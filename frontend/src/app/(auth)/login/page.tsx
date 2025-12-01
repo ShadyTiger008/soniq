@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AuthForm } from "@frontend/components/auth-form";
 import { Music } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@frontend/lib/auth-context";
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+
   const redirect = searchParams.get("redirect") || "/home";
 
   useEffect(() => {
@@ -112,5 +113,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
