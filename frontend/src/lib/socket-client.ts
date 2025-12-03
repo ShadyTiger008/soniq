@@ -6,7 +6,7 @@ import { useAuth } from "./auth-context";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
-  "http://localhost:5001";
+  "https://soniq-88py.onrender.com";
 
 export interface PlayerState {
   isPlaying: boolean;

@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://soniq-88py.onrender.com/api";
 
 export interface ApiResponse<T = any> {
   success: boolean;
