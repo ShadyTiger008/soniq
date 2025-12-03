@@ -31,10 +31,8 @@ app.use(
 );
 
 // CORS middleware (must be before routes)
+// This automatically handles preflight OPTIONS requests for all routes
 app.use(cors(corsOptions));
-
-// Handle preflight requests explicitly
-app.options("*", cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
