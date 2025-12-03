@@ -11,12 +11,16 @@ import { apiRoutes } from "./routes/index.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-
 const app: Express = express();
 const server: HttpServer = createServer(app);
 
 // Security middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false
+  })
+);
 app.use(cors(corsOptions));
 
 // Body parsing middleware
@@ -35,7 +39,7 @@ app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
+    uptime: process.uptime()
   });
 });
 

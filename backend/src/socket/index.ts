@@ -11,10 +11,16 @@ const userSocketMap = new Map<string, string>(); // userId -> socketId
 const roomSocketMap = new Map<string, Set<string>>(); // roomId -> Set of socketIds
 
 export function initializeSocketIO(server: HttpServer): SocketIOServer {
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",").map(origin => origin.trim()) || [
+    "http://localhost:3000",
+    "https://soniq-lime.vercel.app",
+  ];
+
   const io = new SocketIOServer(server, {
     cors: {
-      origin: process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:3000"],
+      origin: allowedOrigins,
       credentials: true,
+      methods: ["GET", "POST"],
     },
     transports: ["websocket", "polling"],
   });
