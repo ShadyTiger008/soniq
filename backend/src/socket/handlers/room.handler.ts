@@ -49,6 +49,17 @@ export function handleRoomEvents(
         listenerCount: room.listenerCount
       });
 
+      // Broadcast updated members list to all in room
+      const updatedRoom = await RoomModel.findById(roomId)
+        .populate("members", "username email avatar")
+        .lean();
+      if (updatedRoom) {
+        io.to(roomId).emit("room:members", {
+          members: updatedRoom.members,
+          listenerCount: updatedRoom.listenerCount
+        });
+      }
+
       // Calculate current player time if playing
       let currentTime = room.playerState?.currentTime || 0;
       if (room.playerState?.isPlaying && room.playerState.lastUpdated) {
@@ -107,6 +118,17 @@ export function handleRoomEvents(
           userId,
           listenerCount: room.listenerCount
         });
+
+        // Broadcast updated members list to all in room
+        const updatedRoom = await RoomModel.findById(roomId)
+          .populate("members", "username email avatar")
+          .lean();
+        if (updatedRoom) {
+          io.to(roomId).emit("room:members", {
+            members: updatedRoom.members,
+            listenerCount: updatedRoom.listenerCount
+          });
+        }
       }
 
       logger.info(`User ${userId} left room ${roomId}`);

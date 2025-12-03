@@ -119,9 +119,15 @@ export function handlePlayerEvents(
           await room.save();
         }
 
+        // Populate requestedBy before emitting
+        const populatedRoomForSkip = await RoomModel.findById(roomId)
+          .populate("queue.requestedBy", "username email")
+          .lean();
+        const queueForSkip = populatedRoomForSkip?.queue || room.queue;
+
         io.to(roomId).emit("player:song-changed", {
           currentSong: room.currentSong,
-          queue: room.queue,
+          queue: queueForSkip,
           playerState: room.playerState
         });
 
@@ -276,9 +282,15 @@ export function handlePlayerEvents(
           room.playerState.lastUpdated = new Date();
           await room.save();
 
+          // Populate requestedBy before emitting
+          const populatedRoomForPlay = await RoomModel.findById(roomId)
+            .populate("queue.requestedBy", "username email")
+            .lean();
+          const queueForPlay = populatedRoomForPlay?.queue || room.queue;
+
           io.to(roomId).emit("player:song-changed", {
             currentSong: room.currentSong,
-            queue: room.queue,
+            queue: queueForPlay,
             playerState: room.playerState
           });
 
@@ -291,8 +303,14 @@ export function handlePlayerEvents(
           });
           await room.save();
 
+          // Populate requestedBy before emitting
+          const populatedRoomForAdd = await RoomModel.findById(roomId)
+            .populate("queue.requestedBy", "username email")
+            .lean();
+          const queueForAdd = populatedRoomForAdd?.queue || room.queue;
+
           io.to(roomId).emit("player:queue-updated", {
-            queue: room.queue
+            queue: queueForAdd
           });
 
           logger.info(`Song added to queue in room ${roomId}`);
@@ -327,9 +345,15 @@ export function handlePlayerEvents(
         }
       }
 
+      // Populate requestedBy before emitting
+      const populatedRoom = await RoomModel.findById(roomId)
+        .populate("queue.requestedBy", "username email")
+        .lean();
+      const queueToEmit = populatedRoom?.queue || room.queue;
+
       socket.emit("player:state", {
         currentSong: room.currentSong,
-        queue: room.queue,
+        queue: queueToEmit,
         playerState: {
           isPlaying: room.playerState?.isPlaying || false,
           currentTime,
@@ -341,6 +365,73 @@ export function handlePlayerEvents(
       socket.emit("player:error", { message: "Failed to get player state" });
     }
   });
+
+  // Reorder queue
+  socket.on(
+    "player:reorder-queue",
+    async (data: {
+      roomId: string;
+      fromIndex: number;
+      toIndex: number;
+      userId: string;
+    }) => {
+      try {
+        const { roomId, fromIndex, toIndex, userId } = data;
+
+        const room = await RoomModel.findById(roomId);
+        if (!room) {
+          socket.emit("player:error", { message: "Room not found" });
+          return;
+        }
+
+        // Check if user is a member
+        const isMember = room.members.some(
+          (memberId: any) => memberId.toString() === userId
+        );
+        if (!isMember) {
+          socket.emit("player:error", {
+            message: "You must be a member of the room to reorder queue"
+          });
+          return;
+        }
+
+        // Validate indices
+        if (
+          fromIndex < 0 ||
+          toIndex < 0 ||
+          fromIndex >= room.queue.length ||
+          toIndex >= room.queue.length
+        ) {
+          socket.emit("player:error", { message: "Invalid queue indices" });
+          return;
+        }
+
+        // Reorder queue
+        const [movedItem] = room.queue.splice(fromIndex, 1);
+        room.queue.splice(toIndex, 0, movedItem);
+        await room.save();
+
+        // Broadcast updated queue (populate requestedBy)
+        const populatedRoom = await RoomModel.findById(roomId)
+          .populate("queue.requestedBy", "username email")
+          .lean();
+        if (populatedRoom) {
+          io.to(roomId).emit("player:queue-updated", {
+            queue: populatedRoom.queue
+          });
+        } else {
+          io.to(roomId).emit("player:queue-updated", {
+            queue: room.queue
+          });
+        }
+
+        logger.info(`Queue reordered in room ${roomId}`);
+      } catch (error) {
+        logger.error("Error in player:reorder-queue:", error);
+        socket.emit("player:error", { message: "Failed to reorder queue" });
+      }
+    }
+  );
 
   // Update player time (called periodically by any user who is playing)
   socket.on(

@@ -58,6 +58,7 @@ export function useSocket(roomId: string | null) {
   const [listenerCount, setListenerCount] = useState(0);
   const [queueUpdate, setQueueUpdate] = useState<QueueUpdate | null>(null);
   const [songChange, setSongChange] = useState<SongChange | null>(null);
+  const [roomMembers, setRoomMembers] = useState<any[]>([]);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -129,16 +130,41 @@ export function useSocket(roomId: string | null) {
         newSocket.emit("player:get-state", { roomId });
         // Request chat history
         newSocket.emit("chat:get-history", { roomId, limit: 50 });
+        // Request room members
+        newSocket.emit("room:get-members", { roomId });
       }
     );
 
-    newSocket.on("room:member-joined", (data: { listenerCount: number }) => {
-      setListenerCount(data.listenerCount);
-    });
+    newSocket.on(
+      "room:member-joined",
+      (data: { listenerCount: number; userId?: string }) => {
+        setListenerCount(data.listenerCount);
+        // Request updated members list
+        if (roomId) {
+          newSocket.emit("room:get-members", { roomId });
+        }
+      }
+    );
 
-    newSocket.on("room:member-left", (data: { listenerCount: number }) => {
-      setListenerCount(data.listenerCount);
-    });
+    newSocket.on(
+      "room:member-left",
+      (data: { listenerCount: number; userId?: string }) => {
+        setListenerCount(data.listenerCount);
+        // Request updated members list
+        if (roomId) {
+          newSocket.emit("room:get-members", { roomId });
+        }
+      }
+    );
+
+    // Room members list
+    newSocket.on(
+      "room:members",
+      (data: { members: any[]; listenerCount: number }) => {
+        setRoomMembers(data.members || []);
+        setListenerCount(data.listenerCount);
+      }
+    );
 
     newSocket.on("room:error", (error: { message: string }) => {
       console.error("Room error:", error);
@@ -236,6 +262,7 @@ export function useSocket(roomId: string | null) {
     newSocket.on(
       "player:time-updated",
       (data: { currentTime: number; timestamp: number }) => {
+        // Update time from socket - always use socket time to prevent glitching
         setPlayerState((prev) => ({
           ...prev!,
           currentTime: data.currentTime,
@@ -398,6 +425,17 @@ export function useSocket(roomId: string | null) {
     }
   };
 
+  const emitReorderQueue = (fromIndex: number, toIndex: number) => {
+    if (socket && roomId && user) {
+      socket.emit("player:reorder-queue", {
+        roomId,
+        fromIndex,
+        toIndex,
+        userId: user._id || user.id,
+      });
+    }
+  };
+
   return {
     socket,
     isConnected,
@@ -406,6 +444,7 @@ export function useSocket(roomId: string | null) {
     listenerCount,
     queueUpdate,
     songChange,
+    roomMembers,
     emitPlayerPlayPause,
     emitPlayerSeek,
     emitPlayerVolume,
@@ -415,5 +454,6 @@ export function useSocket(roomId: string | null) {
     emitChatMessage,
     emitChatReaction,
     emitChatTyping,
+    emitReorderQueue,
   };
 }

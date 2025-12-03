@@ -27,6 +27,14 @@ interface ChatMessage {
   timestamp: string;
 }
 
+interface RoomMember {
+  _id?: string;
+  id?: string;
+  username: string;
+  email?: string;
+  avatar?: string;
+}
+
 interface RoomTabsProps {
   queue?: Song[];
   currentSong?: Song | null;
@@ -34,6 +42,9 @@ interface RoomTabsProps {
   onSendMessage?: (message: string) => void;
   currentUserId?: string;
   isConnected?: boolean;
+  roomMembers?: RoomMember[];
+  isHost?: boolean;
+  onReorderQueue?: (fromIndex: number, toIndex: number) => void;
 }
 
 export function RoomTabs({
@@ -43,6 +54,9 @@ export function RoomTabs({
   onSendMessage,
   currentUserId,
   isConnected = false,
+  roomMembers = [],
+  isHost = false,
+  onReorderQueue,
 }: RoomTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>("chat");
 
@@ -91,8 +105,20 @@ export function RoomTabs({
               isConnected={isConnected}
             />
           )}
-          {activeTab === "queue" && <QueueTab queue={queue} />}
-          {activeTab === "members" && <MembersTab />}
+          {activeTab === "queue" && (
+            <QueueTab
+              queue={queue}
+              onReorderQueue={onReorderQueue}
+              isHost={isHost}
+            />
+          )}
+          {activeTab === "members" && (
+            <MembersTab
+              members={roomMembers}
+              currentUserId={currentUserId}
+              isHost={isHost}
+            />
+          )}
         </div>
       </div>
     </div>

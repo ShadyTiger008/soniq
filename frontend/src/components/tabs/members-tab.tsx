@@ -1,90 +1,82 @@
 "use client";
 
-import { useState } from "react";
 import { MemberItem } from "../member-item";
 
-interface Member {
-  id: string;
-  name: string;
-  role: "admin" | "dj" | "moderator" | "listener" | "guest";
-  avatar: string;
-  isOnline: boolean;
-  djRating?: number;
-  isSelf?: boolean;
+interface RoomMember {
+  _id?: string;
+  id?: string;
+  username: string;
+  email?: string;
+  avatar?: string;
 }
 
-export function MembersTab() {
-  const [members] = useState<Member[]>([
-    {
-      id: "1",
-      name: "DJ Mike",
-      role: "dj",
-      avatar: "🎧",
-      isOnline: true,
-      djRating: 4.8,
-    },
-    {
-      id: "2",
-      name: "You",
-      role: "listener",
-      avatar: "🎵",
-      isOnline: true,
-      isSelf: true,
-    },
-    {
-      id: "3",
-      name: "Alex",
-      role: "listener",
-      avatar: "👤",
-      isOnline: true,
-    },
-    {
-      id: "4",
-      name: "Jordan",
-      role: "moderator",
-      avatar: "🛡️",
-      isOnline: true,
-    },
-    {
-      id: "5",
-      name: "Sam",
-      role: "listener",
-      avatar: "🎶",
-      isOnline: false,
-    },
-  ]);
+interface MembersTabProps {
+  members?: RoomMember[];
+  currentUserId?: string;
+  isHost?: boolean;
+}
 
-  const [currentUserRole] = useState<"admin" | "dj" | "moderator" | "listener">(
-    "listener",
-  );
+export function MembersTab({
+  members = [],
+  currentUserId,
+  isHost = false,
+}: MembersTabProps) {
+  // Convert room members to MemberItem format
+  const formattedMembers = members.map((member) => {
+    const memberId = member._id || member.id || "";
+    const isSelf = memberId === currentUserId;
+    const isHostMember = isHost && isSelf;
+
+    return {
+      id: memberId,
+      name: member.username || "Unknown",
+      role: (isHostMember ? "dj" : "listener") as
+        | "admin"
+        | "dj"
+        | "moderator"
+        | "listener"
+        | "guest",
+      avatar: member.avatar || "🎵",
+      isOnline: true, // All members in room are considered online
+      isSelf,
+    };
+  });
+
+  const currentUserRole = isHost ? "dj" : "listener";
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-4">
       <div className="mb-4">
         <h3 className="font-heading font-700 text-soft-white mb-2 text-lg">
-          Room Members ({members.length})
+          Room Members ({formattedMembers.length})
         </h3>
         <p className="text-muted-foreground text-sm">
-          {members.filter((m) => m.isOnline).length} online
+          {formattedMembers.filter((m) => m.isOnline).length} online
         </p>
       </div>
 
       <div className="space-y-2">
-        {members.map((member) => (
-          <MemberItem
-            key={member.id}
-            {...member}
-            currentUserRole={currentUserRole}
-            onPromoteDJ={() => console.log(`Promote ${member.name} to DJ`)}
-            onPromoteModerator={() =>
-              console.log(`Promote ${member.name} to Moderator`)
-            }
-            onDemote={() => console.log(`Demote ${member.name}`)}
-            onKick={() => console.log(`Kick ${member.name}`)}
-          />
-        ))}
+        {formattedMembers.length > 0 ? (
+          formattedMembers.map((member) => (
+            <MemberItem
+              key={member.id}
+              {...member}
+              currentUserRole={currentUserRole}
+              onPromoteDJ={() => console.log(`Promote ${member.name} to DJ`)}
+              onPromoteModerator={() =>
+                console.log(`Promote ${member.name} to Moderator`)
+              }
+              onDemote={() => console.log(`Demote ${member.name}`)}
+              onKick={() => console.log(`Kick ${member.name}`)}
+            />
+          ))
+        ) : (
+          <div className="text-muted-foreground py-8 text-center">
+            <p className="mb-2">No members yet</p>
+            <p className="text-sm">Members will appear here when they join</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-

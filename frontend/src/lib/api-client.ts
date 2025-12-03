@@ -250,6 +250,13 @@ class ApiClient {
       body: JSON.stringify(userData),
     });
   }
+
+  // YouTube search
+  async searchYouTube(query: string, maxResults: number = 10) {
+    return this.request(
+      `/youtube/search?q=${encodeURIComponent(query)}&maxResults=${maxResults}`
+    );
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

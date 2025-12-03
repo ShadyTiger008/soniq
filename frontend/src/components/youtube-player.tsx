@@ -151,17 +151,23 @@ export function YouTubePlayer({
   useEffect(() => {
     if (!playerRef.current) return;
 
+    // Update time more frequently for smoother playback (every 500ms)
     intervalRef.current = setInterval(() => {
       try {
         const currentTime = playerRef.current.getCurrentTime();
         const duration = playerRef.current.getDuration();
-        if (currentTime && duration) {
+        if (
+          currentTime !== undefined &&
+          currentTime !== null &&
+          duration &&
+          duration > 0
+        ) {
           onTimeUpdate?.(currentTime, duration);
         }
       } catch (e) {
-        // Ignore errors
+        // Ignore errors (player might not be ready)
       }
-    }, 1000);
+    }, 500); // Update every 500ms for smoother updates
 
     return () => {
       if (intervalRef.current) {
