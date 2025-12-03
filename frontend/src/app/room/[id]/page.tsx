@@ -63,6 +63,8 @@ export default function RoomPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false); // Prevent conflicts during sync
+  const [lastSocketTime, setLastSocketTime] = useState<number | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
@@ -255,13 +257,29 @@ export default function RoomPage() {
   // Sync player state from socket - ALL users should sync to global state
   useEffect(() => {
     if (socketPlayerState && currentVideoId) {
+      setIsSyncing(true); // Prevent handleTimeUpdate from interfering
+
       // Update local state immediately
       setIsPlaying(socketPlayerState.isPlaying);
       setVolume(socketPlayerState.volume);
-      setCurrentTime(socketPlayerState.currentTime);
 
-      if (duration > 0) {
-        setProgress((socketPlayerState.currentTime / duration) * 100);
+      // CRITICAL: Non-host no longer updates currentTime here
+      // Time updates are handled in handleTimeUpdate for better control
+      // Only update lastSocketTime for tracking
+      if (!isHost) {
+        // Non-host: Just track socket time, actual update happens in handleTimeUpdate
+        setLastSocketTime(socketPlayerState.currentTime);
+      } else {
+        // Host: Only update if significantly different (prevents micro-adjustments)
+        const timeDiff = Math.abs(currentTime - socketPlayerState.currentTime);
+        if (timeDiff > 0.3 || lastSocketTime === null) {
+          setCurrentTime(socketPlayerState.currentTime);
+          setLastSocketTime(socketPlayerState.currentTime);
+
+          if (duration > 0) {
+            setProgress((socketPlayerState.currentTime / duration) * 100);
+          }
+        }
       }
 
       // Sync YouTube player - wait for it to be ready
@@ -284,9 +302,9 @@ export default function RoomPage() {
               playerCurrentTime - socketPlayerState.currentTime
             );
 
-            // Seek to correct time if difference is significant (more than 0.5 seconds)
-            // This prevents glitching while allowing smooth playback
-            if (timeDiff > 0.5) {
+            // Seek to correct time if difference is significant (1 second threshold)
+            // This threshold prevents unnecessary seeking while ensuring sync
+            if (timeDiff > 1.0) {
               player.seekTo(socketPlayerState.currentTime, true);
             }
 
@@ -300,7 +318,22 @@ export default function RoomPage() {
                 playerState === 5
               ) {
                 // Unstarted, ended, paused, or cued - need to play
-                player.playVideo();
+                // For unstarted, load video first then play
+                if (playerState === -1) {
+                  player.loadVideoById(currentVideoId);
+                  // Wait a bit for video to load, then play
+                  setTimeout(() => {
+                    try {
+                      player.seekTo(socketPlayerState.currentTime, true);
+                      player.playVideo();
+                    } catch (e) {
+                      console.error("Error playing after load:", e);
+                    }
+                  }, 1000);
+                } else {
+                  player.seekTo(socketPlayerState.currentTime, true);
+                  player.playVideo();
+                }
               } else if (playerState === 3) {
                 // Buffering - wait a bit then play
                 setTimeout(() => {
@@ -320,8 +353,12 @@ export default function RoomPage() {
               }
               // If already paused (state === 2), do nothing
             }
+
+            // Allow time updates after sync completes
+            setTimeout(() => setIsSyncing(false), 500);
           } catch (e) {
             console.error("Error syncing YouTube player:", e);
+            setIsSyncing(false);
             // Retry up to 5 times
             if (retryCount < 5) {
               setTimeout(() => syncYouTubePlayer(retryCount + 1), 500);
@@ -331,13 +368,15 @@ export default function RoomPage() {
           // Player not ready yet, retry up to 10 times
           if (retryCount < 10) {
             setTimeout(() => syncYouTubePlayer(retryCount + 1), 500);
+          } else {
+            setIsSyncing(false);
           }
         }
       };
 
       syncYouTubePlayer();
     }
-  }, [socketPlayerState, currentVideoId, duration]);
+  }, [socketPlayerState, currentVideoId, duration, lastSocketTime]);
 
   // Update listener count from socket
   useEffect(() => {
@@ -404,19 +443,42 @@ export default function RoomPage() {
     }
   }, [songChange]);
 
-  // Periodically update player time when playing (anyone can broadcast)
-  // More frequent updates for better sync (every 1 second)
+  // CRITICAL FIX: Only the HOST should broadcast time updates
+  // This prevents conflicts where multiple users broadcast conflicting times
+  // Non-hosts should only receive and sync to the host's time
   useEffect(() => {
-    if (!isPlaying || !currentVideoId) return;
+    // Only host broadcasts time updates
+    if (!isHost || !isPlaying || !currentVideoId || isSyncing) return;
 
     const interval = setInterval(() => {
-      if (isPlaying && currentTime > 0) {
-        emitUpdateTime(currentTime);
+      const player = (window as any).youtubePlayer;
+      if (player && typeof player.getPlayerState === "function") {
+        try {
+          const playerState = player.getPlayerState();
+          // Only broadcast if player is actually playing (state === 1)
+          if (playerState === 1 && currentTime > 0 && !isSyncing) {
+            const actualTime = player.getCurrentTime();
+            // Only broadcast if time has progressed (prevents stuck time issues)
+            // Also ensure we're not broadcasting stale time
+            if (actualTime > currentTime - 0.5 && actualTime > 0) {
+              emitUpdateTime(actualTime);
+            }
+          }
+        } catch (e) {
+          // Ignore errors
+        }
       }
-    }, 1000); // Update every 1 second for better sync
+    }, 1000); // Host broadcasts every 1 second for better sync
 
     return () => clearInterval(interval);
-  }, [isPlaying, currentTime, currentVideoId, emitUpdateTime]);
+  }, [
+    isHost,
+    isPlaying,
+    currentTime,
+    currentVideoId,
+    emitUpdateTime,
+    isSyncing,
+  ]);
 
   // Real YouTube search
   const searchYouTube = useCallback(async (query: string) => {
@@ -462,8 +524,10 @@ export default function RoomPage() {
   const handlePlayPause = () => {
     // Anyone can control playback
     const newIsPlaying = !isPlaying;
-    setIsPlaying(newIsPlaying);
+    // Don't update local state immediately - wait for socket confirmation
+    // This prevents the double-click issue where first click pauses, second click plays
     emitPlayerPlayPause(newIsPlaying);
+    // Local state will be updated via socket event (player:state-changed)
   };
 
   const handleSkip = (direction: "prev" | "next") => {
@@ -506,40 +570,93 @@ export default function RoomPage() {
   };
 
   const handleTimeUpdate = (time: number, totalDuration: number) => {
-    // Always update duration
+    // Always update duration (this is safe and needed)
     setDuration(totalDuration);
 
-    // For non-owners: Use socket time exclusively to prevent glitching
-    // For owners: Use local time but sync with socket periodically
-    if (socketPlayerState) {
-      if (isHost) {
-        // Owner: Use local time for smooth updates, but sync if difference is large
+    // Don't update time if we're currently syncing (prevents conflicts)
+    if (isSyncing) {
+      return;
+    }
+
+    if (isHost) {
+      // HOST: Always use local time (authoritative source)
+      // Local time from YouTube player is the source of truth for the host
+      // Only validate against socket time if there's a large discrepancy (>2s)
+      if (socketPlayerState) {
         const timeDiff = Math.abs(time - socketPlayerState.currentTime);
-        if (timeDiff > 3) {
-          // Large difference - use socket time (someone else might have seeked)
+
+        // If socket time is significantly different (>2 seconds), someone else might have seeked
+        // In this case, trust socket time over local time
+        if (timeDiff > 2.0) {
           setCurrentTime(socketPlayerState.currentTime);
+          setLastSocketTime(socketPlayerState.currentTime);
           if (totalDuration > 0) {
             setProgress((socketPlayerState.currentTime / totalDuration) * 100);
           }
+          return;
+        }
+      }
+
+      // Normal case: Use local time for smooth playback (authoritative)
+      // Only update if time is progressing forward (prevents stuck time)
+      if (time >= currentTime - 0.1) {
+        setCurrentTime(time);
+        if (totalDuration > 0) {
+          setProgress((time / totalDuration) * 100);
+        }
+      }
+    } else {
+      // NON-HOST: Use socket time with smooth interpolation to avoid stuttering
+      // Large differences (>2s) trigger immediate sync + seek
+      if (socketPlayerState) {
+        const timeDiff = Math.abs(time - socketPlayerState.currentTime);
+
+        // Large difference (>2s) - immediate sync required (likely seek happened)
+        if (timeDiff > 2.0) {
+          // Trigger immediate sync by updating time and seeking player
+          setCurrentTime(socketPlayerState.currentTime);
+          setLastSocketTime(socketPlayerState.currentTime);
+          if (totalDuration > 0) {
+            setProgress((socketPlayerState.currentTime / totalDuration) * 100);
+          }
+
+          // Seek player to correct position
+          const player = (window as any).youtubePlayer;
+          if (player && typeof player.seekTo === "function") {
+            try {
+              player.seekTo(socketPlayerState.currentTime, true);
+            } catch (e) {
+              console.error("Error seeking player:", e);
+            }
+          }
+          return;
+        }
+
+        // Small difference - use socket time (smooth interpolation)
+        // Socket time is the source of truth, but we can use local time for smooth UI
+        // Only if it's close to socket time (within 0.5s)
+        if (timeDiff < 0.5 && time >= currentTime - 0.1) {
+          // Use local time for smooth interpolation (close to socket time)
+          setCurrentTime(time);
+          if (totalDuration > 0) {
+            setProgress((time / totalDuration) * 100);
+          }
         } else {
-          // Small difference - use local time for smooth playback
+          // Use socket time (more accurate)
+          setCurrentTime(socketPlayerState.currentTime);
+          setLastSocketTime(socketPlayerState.currentTime);
+          if (totalDuration > 0) {
+            setProgress((socketPlayerState.currentTime / totalDuration) * 100);
+          }
+        }
+      } else {
+        // No socket state yet - use local time as fallback
+        if (time >= currentTime - 0.1) {
           setCurrentTime(time);
           if (totalDuration > 0) {
             setProgress((time / totalDuration) * 100);
           }
         }
-      } else {
-        // Non-owner: Always use socket time to prevent glitching
-        setCurrentTime(socketPlayerState.currentTime);
-        if (totalDuration > 0) {
-          setProgress((socketPlayerState.currentTime / totalDuration) * 100);
-        }
-      }
-    } else {
-      // No socket state yet - use local time (shouldn't happen often)
-      setCurrentTime(time);
-      if (totalDuration > 0) {
-        setProgress((time / totalDuration) * 100);
       }
     }
   };
@@ -573,7 +690,9 @@ export default function RoomPage() {
   const parseDuration = (durationStr: string): number => {
     const parts = durationStr.split(":");
     if (parts.length === 2) {
-      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      const minutes = parseInt(parts[0] || "0", 10);
+      const seconds = parseInt(parts[1] || "0", 10);
+      return minutes * 60 + seconds;
     }
     return 0;
   };
@@ -744,16 +863,27 @@ export default function RoomPage() {
                 onTimeUpdate={handleTimeUpdate}
                 onStateChange={(state) => {
                   // YouTube player states: -1=unstarted, 0=ended, 1=playing, 2=paused, 3=buffering, 5=cued
-                  // Update local state, but socket will override if there's a conflict
-                  // This allows for immediate UI feedback while maintaining global sync
-                  if (state === 1) {
-                    if (!socketPlayerState || socketPlayerState.isPlaying) {
-                      setIsPlaying(true);
+
+                  if (isHost) {
+                    // HOST: Can update state via player events
+                    // Host's local player state is authoritative
+                    // But still validate against socket if available
+                    if (state === 1) {
+                      // Playing
+                      if (!socketPlayerState || socketPlayerState.isPlaying) {
+                        setIsPlaying(true);
+                      }
+                    } else if (state === 2) {
+                      // Paused
+                      if (!socketPlayerState || !socketPlayerState.isPlaying) {
+                        setIsPlaying(false);
+                      }
                     }
-                  } else if (state === 2) {
-                    if (!socketPlayerState || !socketPlayerState.isPlaying) {
-                      setIsPlaying(false);
-                    }
+                  } else {
+                    // NON-HOST: Ignore player state changes completely
+                    // Only socket controls playback for non-host users
+                    // This prevents conflicts where local player state overrides socket state
+                    return;
                   }
                 }}
                 onReady={() => {
