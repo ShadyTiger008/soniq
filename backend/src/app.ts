@@ -18,10 +18,23 @@ const server: HttpServer = createServer(app);
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"]
+      }
+    }
   })
 );
+
+// CORS middleware (must be before routes)
 app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options("*", cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
