@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Crown,
@@ -65,6 +65,9 @@ export default function RoomPage() {
   const [progress, setProgress] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false); // Prevent conflicts during sync
   const [lastSocketTime, setLastSocketTime] = useState<number | null>(null);
+  const [isBuffering, setIsBuffering] = useState(false); // Track buffering state
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Debounce sync timeout
+  const playerReadyRef = useRef<boolean>(false); // Track if player is ready
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
@@ -254,129 +257,92 @@ export default function RoomPage() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Sync player state from socket - ALL users should sync to global state
+  // Sync player state from socket - CRITICAL FIX: Debounced with buffering protection
   useEffect(() => {
-    if (socketPlayerState && currentVideoId) {
-      setIsSyncing(true); // Prevent handleTimeUpdate from interfering
+    if (!socketPlayerState || !currentVideoId || !playerReadyRef.current)
+      return;
 
-      // Update local state immediately
+    // Clear any pending sync
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    // Debounce syncing - wait 800ms before applying
+    syncTimeoutRef.current = setTimeout(() => {
+      // Don't sync during buffering
+      if (isBuffering) return;
+
+      // Update state
       setIsPlaying(socketPlayerState.isPlaying);
       setVolume(socketPlayerState.volume);
 
-      // CRITICAL: Non-host no longer updates currentTime here
-      // Time updates are handled in handleTimeUpdate for better control
-      // Only update lastSocketTime for tracking
       if (!isHost) {
-        // Non-host: Just track socket time, actual update happens in handleTimeUpdate
+        setCurrentTime(socketPlayerState.currentTime);
         setLastSocketTime(socketPlayerState.currentTime);
+        if (duration > 0) {
+          setProgress((socketPlayerState.currentTime / duration) * 100);
+        }
       } else {
-        // Host: Only update if significantly different (prevents micro-adjustments)
-        const timeDiff = Math.abs(currentTime - socketPlayerState.currentTime);
+        // Host: Only update if significantly different
+        const timeDiff = Math.abs(
+          (lastSocketTime || 0) - socketPlayerState.currentTime
+        );
         if (timeDiff > 0.3 || lastSocketTime === null) {
           setCurrentTime(socketPlayerState.currentTime);
           setLastSocketTime(socketPlayerState.currentTime);
-
           if (duration > 0) {
             setProgress((socketPlayerState.currentTime / duration) * 100);
           }
         }
       }
 
-      // Sync YouTube player - wait for it to be ready
-      const syncYouTubePlayer = (retryCount = 0) => {
-        const player = (window as any).youtubePlayer;
-        if (player && typeof player.seekTo === "function") {
-          try {
-            const playerState = player.getPlayerState();
-            // YouTube states: -1=unstarted, 0=ended, 1=playing, 2=paused, 3=buffering, 5=cued
+      // Sync player cautiously
+      const player = (window as any).youtubePlayer;
+      if (player && typeof player.seekTo === "function") {
+        try {
+          const playerState = player.getPlayerState();
 
-            // Get current player time to avoid unnecessary seeks
-            let playerCurrentTime = 0;
-            try {
-              playerCurrentTime = player.getCurrentTime();
-            } catch (e) {
-              // Player might not be ready yet
-            }
+          // Don't interfere with buffering (state 3)
+          if (playerState === 3) return;
 
-            const timeDiff = Math.abs(
-              playerCurrentTime - socketPlayerState.currentTime
-            );
+          const playerTime = player.getCurrentTime() || 0;
+          const timeDiff = Math.abs(playerTime - socketPlayerState.currentTime);
 
-            // Seek to correct time if difference is significant (1 second threshold)
-            // This threshold prevents unnecessary seeking while ensuring sync
-            if (timeDiff > 1.0) {
-              player.seekTo(socketPlayerState.currentTime, true);
-            }
-
-            // Control playback state - IMPORTANT: Handle unstarted state (-1)
-            if (socketPlayerState.isPlaying) {
-              // If playing, ensure player is playing (handle unstarted, paused, ended states)
-              if (
-                playerState === -1 ||
-                playerState === 0 ||
-                playerState === 2 ||
-                playerState === 5
-              ) {
-                // Unstarted, ended, paused, or cued - need to play
-                // For unstarted, load video first then play
-                if (playerState === -1) {
-                  player.loadVideoById(currentVideoId);
-                  // Wait a bit for video to load, then play
-                  setTimeout(() => {
-                    try {
-                      player.seekTo(socketPlayerState.currentTime, true);
-                      player.playVideo();
-                    } catch (e) {
-                      console.error("Error playing after load:", e);
-                    }
-                  }, 1000);
-                } else {
-                  player.seekTo(socketPlayerState.currentTime, true);
-                  player.playVideo();
-                }
-              } else if (playerState === 3) {
-                // Buffering - wait a bit then play
-                setTimeout(() => {
-                  try {
-                    player.playVideo();
-                  } catch (e) {
-                    console.error("Error playing after buffer:", e);
-                  }
-                }, 500);
-              }
-              // If already playing (state === 1), do nothing
-            } else {
-              // If paused, ensure player is paused
-              if (playerState === 1 || playerState === 3) {
-                // Playing or buffering - pause it
-                player.pauseVideo();
-              }
-              // If already paused (state === 2), do nothing
-            }
-
-            // Allow time updates after sync completes
-            setTimeout(() => setIsSyncing(false), 500);
-          } catch (e) {
-            console.error("Error syncing YouTube player:", e);
-            setIsSyncing(false);
-            // Retry up to 5 times
-            if (retryCount < 5) {
-              setTimeout(() => syncYouTubePlayer(retryCount + 1), 500);
-            }
+          // Only seek if significantly out of sync (>2.5s)
+          if (timeDiff > 2.5) {
+            player.seekTo(socketPlayerState.currentTime, true);
           }
-        } else {
-          // Player not ready yet, retry up to 10 times
-          if (retryCount < 10) {
-            setTimeout(() => syncYouTubePlayer(retryCount + 1), 500);
-          } else {
-            setIsSyncing(false);
+
+          // Handle playback state
+          if (
+            socketPlayerState.isPlaying &&
+            playerState !== 1 &&
+            playerState !== 3
+          ) {
+            player.playVideo();
+          } else if (!socketPlayerState.isPlaying && playerState === 1) {
+            player.pauseVideo();
           }
+        } catch (e) {
+          console.error("Sync error:", e);
         }
-      };
+      }
+    }, 800); // 800ms debounce
 
-      syncYouTubePlayer();
-    }
-  }, [socketPlayerState, currentVideoId, duration, lastSocketTime]);
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, [
+    socketPlayerState?.isPlaying,
+    socketPlayerState?.currentTime,
+    currentVideoId,
+    isHost,
+    duration,
+    isBuffering,
+    lastSocketTime,
+  ]);
 
   // Update listener count from socket
   useEffect(() => {
@@ -415,6 +381,7 @@ export default function RoomPage() {
           duration: formatDuration(songChange.currentSong.duration),
         });
         setCurrentVideoId(songChange.currentSong.videoId);
+        playerReadyRef.current = false; // Reset when video changes
 
         // Apply player state from socket
         if (songChange.playerState) {
@@ -607,47 +574,26 @@ export default function RoomPage() {
       }
     } else {
       // NON-HOST: Use socket time with smooth interpolation to avoid stuttering
-      // Large differences (>2s) trigger immediate sync + seek
+      // CRITICAL: Don't seek during handleTimeUpdate - let sync effect handle it
       if (socketPlayerState) {
         const timeDiff = Math.abs(time - socketPlayerState.currentTime);
 
-        // Large difference (>2s) - immediate sync required (likely seek happened)
-        if (timeDiff > 2.0) {
-          // Trigger immediate sync by updating time and seeking player
+        // Large difference (>3s) - update time but don't seek here (sync effect will handle)
+        if (timeDiff > 3.0) {
           setCurrentTime(socketPlayerState.currentTime);
           setLastSocketTime(socketPlayerState.currentTime);
           if (totalDuration > 0) {
             setProgress((socketPlayerState.currentTime / totalDuration) * 100);
-          }
-
-          // Seek player to correct position
-          const player = (window as any).youtubePlayer;
-          if (player && typeof player.seekTo === "function") {
-            try {
-              player.seekTo(socketPlayerState.currentTime, true);
-            } catch (e) {
-              console.error("Error seeking player:", e);
-            }
           }
           return;
         }
 
-        // Small difference - use socket time (smooth interpolation)
-        // Socket time is the source of truth, but we can use local time for smooth UI
-        // Only if it's close to socket time (within 0.5s)
-        if (timeDiff < 0.5 && time >= currentTime - 0.1) {
-          // Use local time for smooth interpolation (close to socket time)
-          setCurrentTime(time);
-          if (totalDuration > 0) {
-            setProgress((time / totalDuration) * 100);
-          }
-        } else {
-          // Use socket time (more accurate)
-          setCurrentTime(socketPlayerState.currentTime);
-          setLastSocketTime(socketPlayerState.currentTime);
-          if (totalDuration > 0) {
-            setProgress((socketPlayerState.currentTime / totalDuration) * 100);
-          }
+        // Small to medium difference - use socket time for accuracy
+        // Don't use local time interpolation to prevent conflicts
+        setCurrentTime(socketPlayerState.currentTime);
+        setLastSocketTime(socketPlayerState.currentTime);
+        if (totalDuration > 0) {
+          setProgress((socketPlayerState.currentTime / totalDuration) * 100);
         }
       } else {
         // No socket state yet - use local time as fallback
@@ -862,31 +808,29 @@ export default function RoomPage() {
                 volume={volume}
                 onTimeUpdate={handleTimeUpdate}
                 onStateChange={(state) => {
-                  // YouTube player states: -1=unstarted, 0=ended, 1=playing, 2=paused, 3=buffering, 5=cued
+                  // Track buffering state
+                  if (state === 3) {
+                    setIsBuffering(true);
+                  } else if (state === 1 || state === 2) {
+                    setIsBuffering(false);
+                  }
 
-                  if (isHost) {
-                    // HOST: Can update state via player events
-                    // Host's local player state is authoritative
-                    // But still validate against socket if available
-                    if (state === 1) {
-                      // Playing
-                      if (!socketPlayerState || socketPlayerState.isPlaying) {
-                        setIsPlaying(true);
-                      }
-                    } else if (state === 2) {
-                      // Paused
-                      if (!socketPlayerState || !socketPlayerState.isPlaying) {
-                        setIsPlaying(false);
-                      }
-                    }
-                  } else {
-                    // NON-HOST: Ignore player state changes completely
-                    // Only socket controls playback for non-host users
-                    // This prevents conflicts where local player state overrides socket state
-                    return;
+                  // Only host updates from player events
+                  if (!isHost) return;
+
+                  // Host can update state via player events
+                  if (state === 1 && !isPlaying) {
+                    setIsPlaying(true);
+                    emitPlayerPlayPause(true);
+                  } else if (state === 2 && isPlaying) {
+                    setIsPlaying(false);
+                    emitPlayerPlayPause(false);
                   }
                 }}
                 onReady={() => {
+                  // Set player ready flag
+                  playerReadyRef.current = true;
+
                   // When player is ready, sync to current socket state if available
                   // This is crucial for mid-way joins - MUST auto-play if song is playing
                   const syncOnReady = (retryCount = 0) => {
