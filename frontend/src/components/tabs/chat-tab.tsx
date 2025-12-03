@@ -79,7 +79,7 @@ export function ChatTab({
       )}
 
       {/* Messages area with proper scrolling */}
-      <div className="mb-4 flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-hide">
+      <div className="mb-4 flex-1 space-y-3 overflow-y-auto pr-2 scrollbar-hide">
         {localMessages.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-center">
             <div>
@@ -88,7 +88,11 @@ export function ChatTab({
             </div>
           </div>
         ) : (
-          localMessages.map((msg) => <ChatMessage key={msg.id} {...msg} />)
+          localMessages.map((msg) => (
+            <div key={msg.id} className="w-full">
+              <ChatMessage {...msg} />
+            </div>
+          ))
         )}
         <div ref={messagesEndRef} />
       </div>
