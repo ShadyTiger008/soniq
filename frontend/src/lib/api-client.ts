@@ -1,5 +1,4 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://soniq-88py.onrender.com/api";
+import { API_BASE_URL, API_ENDPOINTS } from "@frontend/config/api.config";
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -116,7 +115,7 @@ class ApiClient {
 
   // Auth endpoints
   async signup(email: string, password: string, username: string) {
-    return this.request("/auth/signup", {
+    return this.request(API_ENDPOINTS.AUTH.SIGNUP, {
       method: "POST",
       body: JSON.stringify({ email, password, username }),
     });
@@ -124,7 +123,7 @@ class ApiClient {
 
   async login(email: string, password: string) {
     const response = await this.request<{ user: any; token: string }>(
-      "/auth/login",
+      API_ENDPOINTS.AUTH.LOGIN,
       {
         method: "POST",
         body: JSON.stringify({ email, password }),
@@ -143,7 +142,7 @@ class ApiClient {
   }
 
   async logout() {
-    const response = await this.request("/auth/logout", {
+    const response = await this.request(API_ENDPOINTS.AUTH.LOGOUT, {
       method: "POST",
     });
     this.setToken(null);
@@ -151,9 +150,12 @@ class ApiClient {
   }
 
   async refreshToken() {
-    const response = await this.request<{ token: string }>("/auth/refresh", {
-      method: "POST",
-    });
+    const response = await this.request<{ token: string }>(
+      API_ENDPOINTS.AUTH.REFRESH_TOKEN,
+      {
+        method: "POST",
+      }
+    );
 
     if (response.success && response.data?.token) {
       this.setToken(response.data.token);
@@ -176,11 +178,13 @@ class ApiClient {
     if (params?.search) queryParams.append("search", params.search);
 
     const query = queryParams.toString();
-    return this.request(`/rooms${query ? `?${query}` : ""}`);
+    return this.request(
+      `${API_ENDPOINTS.ROOM.LIST}${query ? `?${query}` : ""}`
+    );
   }
 
   async getRoom(id: string) {
-    return this.request(`/rooms/${id}`);
+    return this.request(API_ENDPOINTS.ROOM.GET(id));
   }
 
   async createRoom(roomData: {
@@ -190,7 +194,7 @@ class ApiClient {
     isPrivate?: boolean;
     maxListeners?: number;
   }) {
-    return this.request("/rooms", {
+    return this.request(API_ENDPOINTS.ROOM.CREATE, {
       method: "POST",
       body: JSON.stringify(roomData),
     });
@@ -206,36 +210,33 @@ class ApiClient {
       maxListeners: number;
     }>
   ) {
-    return this.request(`/rooms/${id}`, {
+    return this.request(API_ENDPOINTS.ROOM.UPDATE(id), {
       method: "PUT",
       body: JSON.stringify(roomData),
     });
   }
 
   async deleteRoom(id: string) {
-    return this.request(`/rooms/${id}`, {
+    return this.request(API_ENDPOINTS.ROOM.DELETE(id), {
       method: "DELETE",
     });
   }
 
   async joinRoom(id: string) {
-    return this.request(`/rooms/${id}/join`, {
+    return this.request(API_ENDPOINTS.ROOM.JOIN(id), {
       method: "POST",
     });
   }
 
   async leaveRoom(id: string, deleteIfHost: boolean = false) {
-    const url = deleteIfHost
-      ? `/rooms/${id}/leave?delete=true`
-      : `/rooms/${id}/leave`;
-    return this.request(url, {
+    return this.request(API_ENDPOINTS.ROOM.LEAVE(id, deleteIfHost), {
       method: "POST",
     });
   }
 
   // User endpoints
   async getCurrentUser() {
-    return this.request("/users/me");
+    return this.request(API_ENDPOINTS.USER.ME);
   }
 
   async updateUser(
@@ -245,7 +246,7 @@ class ApiClient {
       avatar: string;
     }>
   ) {
-    return this.request("/users/me", {
+    return this.request(API_ENDPOINTS.USER.UPDATE, {
       method: "PUT",
       body: JSON.stringify(userData),
     });
@@ -253,9 +254,7 @@ class ApiClient {
 
   // YouTube search
   async searchYouTube(query: string, maxResults: number = 10) {
-    return this.request(
-      `/youtube/search?q=${encodeURIComponent(query)}&maxResults=${maxResults}`
-    );
+    return this.request(API_ENDPOINTS.YOUTUBE.SEARCH(query, maxResults));
   }
 }
 

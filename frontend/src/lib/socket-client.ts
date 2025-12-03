@@ -3,10 +3,7 @@
 import { io, Socket } from "socket.io-client";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./auth-context";
-
-const SOCKET_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
-  "https://soniq-88py.onrender.com";
+import { SOCKET_URL } from "@frontend/config/api.config";
 
 export interface PlayerState {
   isPlaying: boolean;
