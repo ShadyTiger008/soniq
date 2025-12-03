@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { CustomError } from "./errorHandler.js";
+import jwt from "jsonwebtoken";
+import { UserModel } from "../models/user.model.js";
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -10,35 +12,78 @@ export interface AuthRequest extends Request {
   };
 }
 
-// Dummy authentication middleware - replace with JWT in production
-export function authenticate(
+// JWT authentication middleware
+export async function authenticate(
   req: AuthRequest,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
     // Extract token from header or cookie
-    const token =
-      req.headers.authorization?.replace("Bearer ", "") ||
-      req.cookies?.authToken;
+    const authHeader = req.headers.authorization;
+    let tokenFromHeader: string | null = null;
+    
+    if (authHeader) {
+      if (authHeader.startsWith("Bearer ")) {
+        tokenFromHeader = authHeader.replace("Bearer ", "").trim();
+      } else {
+        // Also accept token without Bearer prefix
+        tokenFromHeader = authHeader.trim();
+      }
+    }
+    
+    const tokenFromCookie = req.cookies?.authToken;
+    const token = tokenFromHeader || tokenFromCookie;
 
     if (!token) {
-      throw new CustomError("Authentication required", 401);
+      throw new CustomError("Authentication required - no token provided", 401);
     }
 
-    // TODO: Verify JWT token in production
-    // For now, dummy authentication
-    // In production, decode and verify JWT token here
-    // const decoded = jwt.verify(token, process.env.JWT_SECRET!);
-    // req.userId = decoded.userId;
-    // req.user = decoded.user;
+    if (typeof token !== "string" || token.length === 0) {
+      throw new CustomError("Invalid token format", 401);
+    }
 
-    // Dummy user for development
-    req.userId = "dummy-user-id";
+    // Verify JWT token
+    const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    
+    // Log in development for debugging (remove in production)
+    if (process.env.NODE_ENV === "development") {
+      console.log("JWT_SECRET set:", !!process.env.JWT_SECRET);
+      console.log("Token length:", token.length);
+      console.log("Token preview:", token.substring(0, 20) + "...");
+    }
+    
+    let decoded: { userId: string; email: string; username: string };
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; username: string };
+    } catch (jwtError) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("JWT verification error:", jwtError);
+      }
+      if (jwtError instanceof jwt.JsonWebTokenError) {
+        throw new CustomError(`Invalid authentication token: ${jwtError.message}`, 401);
+      } else if (jwtError instanceof jwt.TokenExpiredError) {
+        throw new CustomError("Token expired", 401);
+      } else {
+        throw new CustomError(`Token verification failed: ${jwtError instanceof Error ? jwtError.message : "Unknown error"}`, 401);
+      }
+    }
+
+    if (!decoded.userId) {
+      throw new CustomError("Invalid token payload - missing userId", 401);
+    }
+
+    // Fetch user from database
+    const user = await UserModel.findById(decoded.userId).select("-password");
+    if (!user) {
+      throw new CustomError(`User not found with ID: ${decoded.userId}`, 404);
+    }
+
+    req.userId = String(user._id);
     req.user = {
-      id: "dummy-user-id",
-      email: "user@example.com",
-      username: "dummyuser",
+      id: String(user._id),
+      email: user.email,
+      username: user.username,
     };
 
     next();
@@ -46,30 +91,60 @@ export function authenticate(
     if (error instanceof CustomError) {
       next(error);
     } else {
-      next(new CustomError("Invalid authentication token", 401));
+      // Log unexpected errors for debugging
+      console.error("Authentication error:", error);
+      next(new CustomError(
+        `Authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        401
+      ));
     }
   }
 }
 
 // Optional authentication - doesn't throw error if no token
-export function optionalAuth(
+export async function optionalAuth(
   req: AuthRequest,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
-    const token =
-      req.headers.authorization?.replace("Bearer ", "") ||
-      req.cookies?.authToken;
+    // Extract token from header or cookie (same logic as authenticate)
+    const authHeader = req.headers.authorization;
+    let tokenFromHeader: string | null = null;
+    
+    if (authHeader) {
+      if (authHeader.startsWith("Bearer ")) {
+        tokenFromHeader = authHeader.replace("Bearer ", "").trim();
+      } else {
+        tokenFromHeader = authHeader.trim();
+      }
+    }
+    
+    const tokenFromCookie = req.cookies?.authToken;
+    const token = tokenFromHeader || tokenFromCookie;
 
-    if (token) {
-      // TODO: Verify JWT token in production
-      req.userId = "dummy-user-id";
-      req.user = {
-        id: "dummy-user-id",
-        email: "user@example.com",
-        username: "dummyuser",
-      };
+    if (token && typeof token === "string" && token.length > 0) {
+      try {
+        const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; username: string };
+        
+        if (decoded.userId) {
+          const user = await UserModel.findById(decoded.userId).select("-password");
+          if (user) {
+            req.userId = String(user._id);
+            req.user = {
+              id: String(user._id),
+              email: user.email,
+              username: user.username,
+            };
+          }
+        }
+      } catch (error) {
+        // Invalid token, continue without authentication
+        if (process.env.NODE_ENV === "development") {
+          console.log("Optional auth failed (continuing without auth):", error instanceof Error ? error.message : "Unknown error");
+        }
+      }
     }
     next();
   } catch (error) {

@@ -1,19 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, Edit2, Award, Music, TrendingUp, Share2 } from "lucide-react";
+import { useAuth } from "@frontend/lib/auth-context";
+import { apiClient } from "@frontend/lib/api-client";
+import { toast } from "sonner";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
-  const [userStats] = useState({
-    username: "SoundWave",
-    email: "user@example.com",
-    hoursListened: 247,
-    roomsCreated: 12,
-    djRating: 4.8,
-    followers: 324,
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const [userData, setUserData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push("/login?redirect=/profile");
+    } else if (isAuthenticated) {
+      fetchUserData();
+    }
+  }, [isAuthenticated, authLoading]);
+
+  const fetchUserData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiClient.getCurrentUser();
+      if (response.success && response.data) {
+        setUserData(response.data);
+      } else {
+        toast.error(response.error || "Failed to load profile");
+      }
+    } catch (error) {
+      toast.error("Failed to load profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (authLoading || isLoading || !isAuthenticated) {
+    return (
+      <div className="from-midnight-black via-deep-navy to-midnight-black flex min-h-screen items-center justify-center bg-gradient-to-b">
+        <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+      </div>
+    );
+  }
+
+  const userStats = {
+    username: userData?.username || user?.username || "User",
+    email: userData?.email || user?.email || "",
+    hoursListened: 247, // TODO: Calculate from user activity
+    roomsCreated: 12, // TODO: Get from user's rooms
+    djRating: 4.8, // TODO: Calculate from ratings
+    followers: 324, // TODO: Get from user's followers
     achievements: 8,
-  });
+  };
 
   const achievements = [
     {
@@ -65,7 +106,11 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div className="group relative">
               <div className="from-deep-purple to-electric-magenta flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br text-4xl">
-                👤
+                {userData?.avatar ? (
+                  <img src={userData.avatar} alt={userStats.username} className="h-full w-full rounded-full object-cover" />
+                ) : (
+                  <span>{userStats.username.charAt(0).toUpperCase()}</span>
+                )}
               </div>
               <button className="from-deep-purple to-electric-magenta text-soft-white hover:from-electric-magenta hover:to-neon-pink smooth-transition absolute right-0 bottom-0 rounded-full bg-gradient-to-r p-2 opacity-0 group-hover:opacity-100">
                 <Upload className="h-4 w-4" />

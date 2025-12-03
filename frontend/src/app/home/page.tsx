@@ -6,18 +6,61 @@ import { Search, Plus, Flame, Heart, Music } from "lucide-react";
 import { RoomCard } from "@frontend/components/room-card";
 import { BottomNowPlaying } from "@frontend/components/bottom-now-playing";
 import { useAuth } from "@frontend/lib/auth-context";
+import { apiClient } from "@frontend/lib/api-client";
+import { toast } from "sonner";
 import Link from "next/link";
+
+interface Room {
+  _id: string;
+  name: string;
+  hostId?: any;
+  listenerCount: number;
+  mood: string;
+  isPrivate?: boolean;
+}
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [quickJoin, setQuickJoin] = useState("");
+  const [trendingRooms, setTrendingRooms] = useState<Room[]>([]);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/login?redirect=/home");
     }
   }, [isAuthenticated, isLoading, router]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchTrendingRooms();
+    }
+  }, [isAuthenticated]);
+
+  const fetchTrendingRooms = async () => {
+    setIsLoadingRooms(true);
+    try {
+      const response = await apiClient.getRooms({ limit: 20 });
+      if (response.success && response.data) {
+        const data = response.data as any;
+        setTrendingRooms(data.rooms || data || []);
+      }
+    } catch (error) {
+      toast.error("Failed to load rooms");
+    } finally {
+      setIsLoadingRooms(false);
+    }
+  };
+
+  const handleQuickJoin = async () => {
+    if (!quickJoin.trim()) {
+      toast.error("Please enter a room code or ID");
+      return;
+    }
+    // Try to join by ID or invite code
+    router.push(`/room/${quickJoin.trim()}`);
+  };
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -26,60 +69,6 @@ export default function HomePage() {
       </div>
     );
   }
-
-  const myRooms = [
-    {
-      id: "1",
-      title: "Midnight Vibes",
-      listeners: 1234,
-      mood: "Chill",
-      host: "You",
-      isLive: true,
-    },
-    {
-      id: "2",
-      title: "Study Beats",
-      listeners: 567,
-      mood: "Study",
-      host: "You",
-      isLive: true,
-    },
-  ];
-
-  const trendingRooms = [
-    {
-      id: "3",
-      title: "Lofi Hip Hop Radio",
-      listeners: 3421,
-      mood: "Lofi",
-      host: "DJ Alex",
-      isLive: true,
-    },
-    {
-      id: "4",
-      title: "Late Night Electronic",
-      listeners: 8921,
-      mood: "Party",
-      host: "DJ Mike",
-      isLive: true,
-    },
-    {
-      id: "5",
-      title: "Ambient Meditation",
-      listeners: 2445,
-      mood: "Chill",
-      host: "Zen Master",
-      isLive: true,
-    },
-    {
-      id: "6",
-      title: "Focus Flow Sessions",
-      listeners: 5432,
-      mood: "Study",
-      host: "Study Gang",
-      isLive: true,
-    },
-  ];
 
   return (
     <div className="from-midnight-black via-deep-navy to-midnight-black text-soft-white min-h-screen bg-gradient-to-b pb-32">
@@ -146,6 +135,7 @@ export default function HomePage() {
               }}
             />
             <button
+              onClick={handleQuickJoin}
               className="from-deep-purple to-electric-magenta text-soft-white rounded-xl bg-gradient-to-r px-8 py-3 font-bold transition-all duration-300 hover:shadow-lg"
               style={{ boxShadow: "0 0 15px rgba(108, 43, 217, 0.2)" }}
             >
@@ -154,30 +144,34 @@ export default function HomePage() {
           </div>
         </section>
 
-        {myRooms.length > 0 && (
-          <section className="mb-16">
-            <h2 className="text-soft-white mb-6 flex items-center gap-3 text-xl font-bold">
-              <Heart className="text-electric-magenta h-5 w-5" />
-              My Rooms
-            </h2>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {myRooms.map((room) => (
-                <RoomCard key={room.id} {...room} />
-              ))}
-            </div>
-          </section>
-        )}
-
         <section>
           <h2 className="text-soft-white mb-6 flex items-center gap-3 text-xl font-bold">
             <Flame className="text-neon-pink h-5 w-5" />
             Trending Now
           </h2>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {trendingRooms.map((room) => (
-              <RoomCard key={room.id} {...room} />
-            ))}
-          </div>
+          {isLoadingRooms ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+            </div>
+          ) : trendingRooms.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No rooms available. Create one to get started!
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {trendingRooms.map((room) => (
+                <RoomCard
+                  key={room._id}
+                  id={room._id}
+                  title={room.name}
+                  listeners={room.listenerCount}
+                  mood={room.mood}
+                  host={typeof room.hostId === "object" ? room.hostId?.username || "Unknown" : "Unknown"}
+                  isLive={true}
+                />
+              ))}
+            </div>
+          )}
         </section>
       </div>
 

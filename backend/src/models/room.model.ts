@@ -17,6 +17,12 @@ export interface IRoom extends Document {
     duration: number;
     thumbnail?: string;
   };
+  playerState?: {
+    isPlaying: boolean;
+    currentTime: number;
+    volume: number;
+    lastUpdated: Date;
+  };
   queue: Array<{
     videoId: string;
     title: string;
@@ -92,6 +98,26 @@ const roomSchema = new Schema<IRoom>(
       artist: String,
       duration: Number,
       thumbnail: String
+    },
+    playerState: {
+      isPlaying: {
+        type: Boolean,
+        default: false
+      },
+      currentTime: {
+        type: Number,
+        default: 0
+      },
+      volume: {
+        type: Number,
+        default: 80,
+        min: 0,
+        max: 100
+      },
+      lastUpdated: {
+        type: Date,
+        default: Date.now
+      }
     },
     queue: [
       {

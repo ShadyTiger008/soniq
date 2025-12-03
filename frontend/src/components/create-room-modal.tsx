@@ -10,12 +10,14 @@ interface CreateRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (roomData: any) => void;
+  isLoading?: boolean;
 }
 
 export function CreateRoomModal({
   isOpen,
   onClose,
   onSubmit,
+  isLoading = false,
 }: CreateRoomModalProps) {
   const [formData, setFormData] = useState({
     name: "",
@@ -38,8 +40,8 @@ export function CreateRoomModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     onSubmit?.(formData);
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -163,9 +165,17 @@ export function CreateRoomModal({
             </button>
             <button
               type="submit"
-              className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink text-soft-white font-600 smooth-transition neon-glow flex-1 rounded-lg bg-gradient-to-r px-4 py-2.5"
+              disabled={isLoading}
+              className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink text-soft-white font-600 smooth-transition neon-glow flex-1 rounded-lg bg-gradient-to-r px-4 py-2.5 disabled:opacity-50"
             >
-              Create Room
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="border-soft-white h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
+                  Creating...
+                </span>
+              ) : (
+                "Create Room"
+              )}
             </button>
           </div>
         </form>

@@ -8,160 +8,301 @@ export function handlePlayerEvents(
   userSocketMap: Map<string, string>,
   roomSocketMap: Map<string, Set<string>>
 ) {
-  // Play/Pause control (DJ only)
-  socket.on("player:play-pause", async (data: {
-    roomId: string;
-    isPlaying: boolean;
-    userId: string;
-  }) => {
-    try {
-      const { roomId, isPlaying, userId } = data;
+  // Play/Pause control (Anyone can control)
+  socket.on(
+    "player:play-pause",
+    async (data: { roomId: string; isPlaying: boolean; userId: string }) => {
+      try {
+        const { roomId, isPlaying, userId } = data;
 
-      // Verify user is room host
-      const room = await RoomModel.findById(roomId);
-      if (!room || room.hostId.toString() !== userId) {
-        socket.emit("player:error", { message: "Only room host can control playback" });
-        return;
-      }
+        // Verify room exists and user is a member
+        const room = await RoomModel.findById(roomId);
+        if (!room) {
+          socket.emit("player:error", {
+            message: "Room not found"
+          });
+          return;
+        }
 
-      // Broadcast to room
-      io.to(roomId).emit("player:state-changed", {
-        isPlaying,
-        timestamp: Date.now(),
-      });
+        // Check if user is a member of the room
+        const isMember = room.members.some(
+          (memberId: any) => memberId.toString() === userId
+        );
+        if (!isMember) {
+          socket.emit("player:error", {
+            message: "You must be a member of the room to control playback"
+          });
+          return;
+        }
 
-      logger.info(`Player ${isPlaying ? "playing" : "paused"} in room ${roomId}`);
-    } catch (error) {
-      logger.error("Error in player:play-pause:", error);
-      socket.emit("player:error", { message: "Failed to control playback" });
-    }
-  });
-
-  // Skip song (DJ only)
-  socket.on("player:skip", async (data: {
-    roomId: string;
-    direction: "next" | "prev";
-    userId: string;
-  }) => {
-    try {
-      const { roomId, direction, userId } = data;
-
-      const room = await RoomModel.findById(roomId);
-      if (!room || room.hostId.toString() !== userId) {
-        socket.emit("player:error", { message: "Only room host can skip songs" });
-        return;
-      }
-
-      if (direction === "next" && room.queue.length > 0) {
-        const nextSong = room.queue[0];
-        room.currentSong = {
-          videoId: nextSong.videoId,
-          title: nextSong.title,
-          artist: nextSong.artist,
-          duration: nextSong.duration,
-        };
-        room.queue.shift();
+        // Update player state in database
+        if (!room.playerState) {
+          room.playerState = {
+            isPlaying: false,
+            currentTime: 0,
+            volume: 80,
+            lastUpdated: new Date()
+          };
+        }
+        room.playerState.isPlaying = isPlaying;
+        room.playerState.lastUpdated = new Date();
         await room.save();
+
+        // Broadcast to room
+        io.to(roomId).emit("player:state-changed", {
+          isPlaying,
+          currentTime: room.playerState.currentTime,
+          timestamp: Date.now()
+        });
+
+        logger.info(
+          `Player ${isPlaying ? "playing" : "paused"} in room ${roomId}`
+        );
+      } catch (error) {
+        logger.error("Error in player:play-pause:", error);
+        socket.emit("player:error", { message: "Failed to control playback" });
       }
-
-      io.to(roomId).emit("player:song-changed", {
-        currentSong: room.currentSong,
-        queue: room.queue,
-      });
-
-      logger.info(`Song skipped in room ${roomId}`);
-    } catch (error) {
-      logger.error("Error in player:skip:", error);
-      socket.emit("player:error", { message: "Failed to skip song" });
     }
-  });
+  );
 
-  // Seek (DJ only)
-  socket.on("player:seek", async (data: {
-    roomId: string;
-    time: number;
-    userId: string;
-  }) => {
-    try {
-      const { roomId, time, userId } = data;
+  // Skip song (Anyone can control)
+  socket.on(
+    "player:skip",
+    async (data: {
+      roomId: string;
+      direction: "next" | "prev";
+      userId: string;
+    }) => {
+      try {
+        const { roomId, direction, userId } = data;
 
-      const room = await RoomModel.findById(roomId);
-      if (!room || room.hostId.toString() !== userId) {
-        socket.emit("player:error", { message: "Only room host can seek" });
-        return;
+        const room = await RoomModel.findById(roomId);
+        if (!room) {
+          socket.emit("player:error", {
+            message: "Room not found"
+          });
+          return;
+        }
+
+        // Check if user is a member of the room
+        const isMember = room.members.some(
+          (memberId: any) => memberId.toString() === userId
+        );
+        if (!isMember) {
+          socket.emit("player:error", {
+            message: "You must be a member of the room to skip songs"
+          });
+          return;
+        }
+
+        if (direction === "next" && room.queue.length > 0) {
+          const nextSong = room.queue[0];
+          room.currentSong = {
+            videoId: nextSong.videoId,
+            title: nextSong.title,
+            artist: nextSong.artist,
+            duration: nextSong.duration
+          };
+          room.queue.shift();
+          // Reset player state for new song
+          if (!room.playerState) {
+            room.playerState = {
+              isPlaying: false,
+              currentTime: 0,
+              volume: 80,
+              lastUpdated: new Date()
+            };
+          }
+          room.playerState.currentTime = 0;
+          room.playerState.isPlaying = true;
+          room.playerState.lastUpdated = new Date();
+          await room.save();
+        }
+
+        io.to(roomId).emit("player:song-changed", {
+          currentSong: room.currentSong,
+          queue: room.queue,
+          playerState: room.playerState
+        });
+
+        logger.info(`Song skipped in room ${roomId}`);
+      } catch (error) {
+        logger.error("Error in player:skip:", error);
+        socket.emit("player:error", { message: "Failed to skip song" });
       }
-
-      io.to(roomId).emit("player:seeked", {
-        time,
-        timestamp: Date.now(),
-      });
-    } catch (error) {
-      logger.error("Error in player:seek:", error);
-      socket.emit("player:error", { message: "Failed to seek" });
     }
-  });
+  );
 
-  // Volume control (DJ only)
-  socket.on("player:volume", async (data: {
-    roomId: string;
-    volume: number;
-    userId: string;
-  }) => {
-    try {
-      const { roomId, volume, userId } = data;
+  // Seek (Anyone can control)
+  socket.on(
+    "player:seek",
+    async (data: { roomId: string; time: number; userId: string }) => {
+      try {
+        const { roomId, time, userId } = data;
 
-      const room = await RoomModel.findById(roomId);
-      if (!room || room.hostId.toString() !== userId) {
-        socket.emit("player:error", { message: "Only room host can control volume" });
-        return;
+        const room = await RoomModel.findById(roomId);
+        if (!room) {
+          socket.emit("player:error", { message: "Room not found" });
+          return;
+        }
+
+        // Check if user is a member of the room
+        const isMember = room.members.some(
+          (memberId: any) => memberId.toString() === userId
+        );
+        if (!isMember) {
+          socket.emit("player:error", {
+            message: "You must be a member of the room to seek"
+          });
+          return;
+        }
+
+        // Update player state in database
+        if (!room.playerState) {
+          room.playerState = {
+            isPlaying: false,
+            currentTime: 0,
+            volume: 80,
+            lastUpdated: new Date()
+          };
+        }
+        room.playerState.currentTime = Math.max(0, time);
+        room.playerState.lastUpdated = new Date();
+        await room.save();
+
+        io.to(roomId).emit("player:seeked", {
+          time: room.playerState.currentTime,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        logger.error("Error in player:seek:", error);
+        socket.emit("player:error", { message: "Failed to seek" });
       }
-
-      io.to(roomId).emit("player:volume-changed", {
-        volume: Math.max(0, Math.min(100, volume)),
-        timestamp: Date.now(),
-      });
-    } catch (error) {
-      logger.error("Error in player:volume:", error);
-      socket.emit("player:error", { message: "Failed to change volume" });
     }
-  });
+  );
+
+  // Volume control (Anyone can control)
+  socket.on(
+    "player:volume",
+    async (data: { roomId: string; volume: number; userId: string }) => {
+      try {
+        const { roomId, volume, userId } = data;
+
+        const room = await RoomModel.findById(roomId);
+        if (!room) {
+          socket.emit("player:error", {
+            message: "Room not found"
+          });
+          return;
+        }
+
+        // Check if user is a member of the room
+        const isMember = room.members.some(
+          (memberId: any) => memberId.toString() === userId
+        );
+        if (!isMember) {
+          socket.emit("player:error", {
+            message: "You must be a member of the room to control volume"
+          });
+          return;
+        }
+
+        // Update player state in database
+        if (!room.playerState) {
+          room.playerState = {
+            isPlaying: false,
+            currentTime: 0,
+            volume: 80,
+            lastUpdated: new Date()
+          };
+        }
+        room.playerState.volume = Math.max(0, Math.min(100, volume));
+        room.playerState.lastUpdated = new Date();
+        await room.save();
+
+        io.to(roomId).emit("player:volume-changed", {
+          volume: room.playerState.volume,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        logger.error("Error in player:volume:", error);
+        socket.emit("player:error", { message: "Failed to change volume" });
+      }
+    }
+  );
 
   // Add song to queue
-  socket.on("player:add-to-queue", async (data: {
-    roomId: string;
-    song: {
-      videoId: string;
-      title: string;
-      artist: string;
-      duration: number;
-    };
-    userId: string;
-  }) => {
-    try {
-      const { roomId, song, userId } = data;
+  socket.on(
+    "player:add-to-queue",
+    async (data: {
+      roomId: string;
+      song: {
+        videoId: string;
+        title: string;
+        artist: string;
+        duration: number;
+      };
+      userId: string;
+      playNow?: boolean; // If true, play immediately (host only)
+    }) => {
+      try {
+        const { roomId, song, userId, playNow } = data;
 
-      const room = await RoomModel.findById(roomId);
-      if (!room) {
-        socket.emit("player:error", { message: "Room not found" });
-        return;
+        const room = await RoomModel.findById(roomId);
+        if (!room) {
+          socket.emit("player:error", { message: "Room not found" });
+          return;
+        }
+
+        // If playNow is true and user is host, play immediately
+        if (playNow && room.hostId.toString() === userId) {
+          room.currentSong = {
+            videoId: song.videoId,
+            title: song.title,
+            artist: song.artist,
+            duration: song.duration
+          };
+          // Reset player state for new song
+          if (!room.playerState) {
+            room.playerState = {
+              isPlaying: false,
+              currentTime: 0,
+              volume: 80,
+              lastUpdated: new Date()
+            };
+          }
+          room.playerState.currentTime = 0;
+          room.playerState.isPlaying = true;
+          room.playerState.lastUpdated = new Date();
+          await room.save();
+
+          io.to(roomId).emit("player:song-changed", {
+            currentSong: room.currentSong,
+            queue: room.queue,
+            playerState: room.playerState
+          });
+
+          logger.info(`Song played immediately in room ${roomId}`);
+        } else {
+          // Add to queue normally
+          room.queue.push({
+            ...song,
+            requestedBy: userId as any
+          });
+          await room.save();
+
+          io.to(roomId).emit("player:queue-updated", {
+            queue: room.queue
+          });
+
+          logger.info(`Song added to queue in room ${roomId}`);
+        }
+      } catch (error) {
+        logger.error("Error in player:add-to-queue:", error);
+        socket.emit("player:error", { message: "Failed to add song to queue" });
       }
-
-      room.queue.push({
-        ...song,
-        requestedBy: userId as any,
-      });
-      await room.save();
-
-      io.to(roomId).emit("player:queue-updated", {
-        queue: room.queue,
-      });
-
-      logger.info(`Song added to queue in room ${roomId}`);
-    } catch (error) {
-      logger.error("Error in player:add-to-queue:", error);
-      socket.emit("player:error", { message: "Failed to add song to queue" });
     }
-  });
+  );
 
   // Get current player state
   socket.on("player:get-state", async (data: { roomId: string }) => {
@@ -174,14 +315,74 @@ export function handlePlayerEvents(
         return;
       }
 
+      // Calculate current time based on last update and playing state
+      let currentTime = room.playerState?.currentTime || 0;
+      if (room.playerState?.isPlaying && room.playerState.lastUpdated) {
+        const timeSinceUpdate =
+          (Date.now() - room.playerState.lastUpdated.getTime()) / 1000;
+        currentTime = room.playerState.currentTime + timeSinceUpdate;
+        // Cap at song duration if available
+        if (room.currentSong?.duration) {
+          currentTime = Math.min(currentTime, room.currentSong.duration);
+        }
+      }
+
       socket.emit("player:state", {
         currentSong: room.currentSong,
         queue: room.queue,
+        playerState: {
+          isPlaying: room.playerState?.isPlaying || false,
+          currentTime,
+          volume: room.playerState?.volume || 80
+        }
       });
     } catch (error) {
       logger.error("Error in player:get-state:", error);
       socket.emit("player:error", { message: "Failed to get player state" });
     }
   });
-}
 
+  // Update player time (called periodically by any user who is playing)
+  socket.on(
+    "player:update-time",
+    async (data: { roomId: string; currentTime: number; userId: string }) => {
+      try {
+        const { roomId, currentTime, userId } = data;
+
+        const room = await RoomModel.findById(roomId);
+        if (!room) {
+          return; // Silently ignore if room not found
+        }
+
+        // Check if user is a member
+        const isMember = room.members.some(
+          (memberId: any) => memberId.toString() === userId
+        );
+        if (!isMember) {
+          return; // Silently ignore if not a member
+        }
+
+        // Update player state in database
+        if (!room.playerState) {
+          room.playerState = {
+            isPlaying: false,
+            currentTime: 0,
+            volume: 80,
+            lastUpdated: new Date()
+          };
+        }
+        room.playerState.currentTime = Math.max(0, currentTime);
+        room.playerState.lastUpdated = new Date();
+        await room.save();
+
+        // Broadcast time update to room (except sender)
+        socket.to(roomId).emit("player:time-updated", {
+          currentTime,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        logger.error("Error in player:update-time:", error);
+      }
+    }
+  );
+}

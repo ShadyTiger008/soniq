@@ -15,76 +15,81 @@ interface Message {
   isOwn?: boolean;
 }
 
-export function ChatTab() {
+interface ChatTabProps {
+  messages?: Array<{
+    id: string;
+    userId: string;
+    username: string;
+    avatar?: string;
+    message: string;
+    timestamp: string;
+  }>;
+  onSendMessage?: (message: string) => void;
+  currentUserId?: string;
+  isConnected?: boolean;
+}
+
+export function ChatTab({
+  messages: socketMessages = [],
+  onSendMessage,
+  currentUserId,
+  isConnected = false,
+}: ChatTabProps) {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      user: "DJ Mike",
-      avatar: "🎧",
-      message: "Welcome to Midnight Vibes! Thanks for joining",
-      timestamp: "8:15 PM",
-      role: "dj",
-      reactions: [
-        { emoji: "❤️", count: 12, userReacted: true },
-        { emoji: "🔥", count: 8, userReacted: false },
-      ],
-    },
-    {
-      id: "2",
-      user: "Alex",
-      avatar: "👤",
-      message: "This track is absolutely amazing!",
-      timestamp: "8:16 PM",
-      reactions: [{ emoji: "🎉", count: 5, userReacted: false }],
-    },
-    {
-      id: "3",
-      user: "You",
-      avatar: "🎵",
-      message: "Love the vibes in this room",
-      timestamp: "8:17 PM",
-      isOwn: true,
-      reactions: [
-        { emoji: "🙌", count: 3, userReacted: true },
-        { emoji: "❤️", count: 2, userReacted: false },
-      ],
-    },
-  ]);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+
+  // Convert socket messages to local format
+  useEffect(() => {
+    if (socketMessages.length > 0) {
+      const converted = socketMessages.map((msg) => ({
+        id: msg.id,
+        user: msg.username,
+        avatar: msg.avatar || "🎵",
+        message: msg.message,
+        timestamp: new Date(msg.timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        isOwn: msg.userId === currentUserId,
+      }));
+      setLocalMessages(converted);
+    }
+  }, [socketMessages, currentUserId]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [localMessages]);
 
   const handleSendMessage = () => {
-    if (message.trim()) {
-      setMessages([
-        ...messages,
-        {
-          id: Date.now().toString(),
-          user: "You",
-          avatar: "🎵",
-          message: message.trim(),
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          isOwn: true,
-        },
-      ]);
+    if (message.trim() && onSendMessage) {
+      onSendMessage(message.trim());
       setMessage("");
     }
   };
 
   return (
     <div className="flex h-full min-h-[400px] flex-col p-4">
+      {/* Connection status */}
+      {!isConnected && (
+        <div className="mb-2 text-center text-xs text-yellow-500">
+          Connecting to room...
+        </div>
+      )}
+
       {/* Messages area with proper scrolling */}
       <div className="mb-4 flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-hide">
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} {...msg} />
-        ))}
+        {localMessages.length === 0 ? (
+          <div className="text-muted-foreground flex h-full items-center justify-center text-center">
+            <div>
+              <p className="mb-2 text-lg">No messages yet</p>
+              <p className="text-sm">Be the first to say something!</p>
+            </div>
+          </div>
+        ) : (
+          localMessages.map((msg) => <ChatMessage key={msg.id} {...msg} />)
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -117,7 +122,7 @@ export function ChatTab() {
 
         <button
           onClick={handleSendMessage}
-          disabled={!message.trim()}
+          disabled={!message.trim() || !isConnected}
           className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink smooth-transition shrink-0 rounded-xl bg-gradient-to-r p-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-electric-magenta/20"
           title="Send message"
         >

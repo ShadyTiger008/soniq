@@ -27,7 +27,19 @@ export async function updateUser(
   next: NextFunction
 ): Promise<void> {
   try {
-    const user = await userService.updateUser(req.userId!, req.body);
+    const { username, email, avatar } = req.body;
+    const updateData: any = {};
+
+    // Only allow updating specific fields
+    if (username !== undefined) updateData.username = username;
+    if (email !== undefined) updateData.email = email;
+    if (avatar !== undefined) updateData.avatar = avatar;
+
+    if (Object.keys(updateData).length === 0) {
+      throw new CustomError("No valid fields to update", 400);
+    }
+
+    const user = await userService.updateUser(req.userId!, updateData);
 
     res.json({
       success: true,

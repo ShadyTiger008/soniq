@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@frontend/lib/auth-context";
+import { ToastProvider } from "@frontend/components/toast-provider";
 import "../styles/globals.css";
 
 const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -45,7 +46,10 @@ export default function RootLayout({
       <body
         className={`${_inter.variable} ${_poppins.variable} from-midnight-black via-deep-navy to-midnight-black bg-gradient-to-b font-sans antialiased`}
       >
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <ToastProvider />
+        </AuthProvider>
         <Analytics />
       </body>
     </html>

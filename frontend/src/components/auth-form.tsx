@@ -53,8 +53,13 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
 
       if (success) {
         onSubmit?.(formData);
-        // Redirect to home page after successful auth
-        router.push("/home");
+        // Get redirect from URL params or default to /home
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirect = urlParams.get("redirect") || "/home";
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          router.push(redirect);
+        }, 100);
       } else {
         setError(
           type === "login"

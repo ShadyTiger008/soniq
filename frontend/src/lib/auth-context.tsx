@@ -2,11 +2,15 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient } from "./api-client";
+import { toast } from "sonner";
 
 interface User {
-  id: string;
+  _id: string;
+  id?: string;
   username: string;
   email: string;
+  avatar?: string;
 }
 
 interface AuthContextType {
@@ -14,18 +18,12 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (username: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Dummy credentials for demo
-const DUMMY_USERS = [
-  { id: "1", username: "demo", email: "demo@soniq.com", password: "demo123" },
-  { id: "2", username: "admin", email: "admin@soniq.com", password: "admin123" },
-  { id: "3", username: "test", email: "test@soniq.com", password: "test123" },
-];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -33,45 +31,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem("soniq_user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        localStorage.removeItem("soniq_user");
-      }
+    // Check for stored token and validate
+    const token = localStorage.getItem("soniq_token");
+    if (token) {
+      apiClient.setToken(token);
+      refreshUser().finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
+
+  const refreshUser = async () => {
+    try {
+      const response = await apiClient.getCurrentUser();
+      if (response.success && response.data) {
+        const userData = response.data as any;
+        setUser({
+          _id: userData._id || userData.id,
+          id: userData._id || userData.id,
+          username: userData.username,
+          email: userData.email,
+          avatar: userData.avatar,
+        });
+      } else {
+        // Token invalid, clear it
+        apiClient.setToken(null);
+        setUser(null);
+      }
+    } catch (error) {
+      apiClient.setToken(null);
+      setUser(null);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const foundUser = DUMMY_USERS.find(
-      (u) => u.email === email && u.password === password,
-    );
-
-    if (foundUser) {
-      const userData = { id: foundUser.id, username: foundUser.username, email: foundUser.email };
-      setUser(userData);
-      localStorage.setItem("soniq_user", JSON.stringify(userData));
+    try {
+      const response = await apiClient.login(email, password);
+      
+      if (response.success && response.data) {
+        const userData = (response.data as any).user;
+        setUser({
+          _id: userData._id || userData.id,
+          id: userData._id || userData.id,
+          username: userData.username,
+          email: userData.email,
+          avatar: userData.avatar,
+        });
+        toast.success("Welcome back!");
+        setIsLoading(false);
+        return true;
+      } else {
+        toast.error(response.error || "Login failed");
+        setIsLoading(false);
+        return false;
+      }
+    } catch (error) {
+      toast.error("An error occurred during login");
       setIsLoading(false);
-      return true;
+      return false;
     }
-
-    // Also allow any email/password for demo purposes
-    const userData = {
-      id: Date.now().toString(),
-      username: email.split("@")[0],
-      email,
-    };
-    setUser(userData);
-    localStorage.setItem("soniq_user", JSON.stringify(userData));
-    setIsLoading(false);
-    return true;
   };
 
   const signup = async (
@@ -80,23 +99,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
   ): Promise<boolean> => {
     setIsLoading(true);
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const userData = {
-      id: Date.now().toString(),
-      username,
-      email,
-    };
-    setUser(userData);
-    localStorage.setItem("soniq_user", JSON.stringify(userData));
-    setIsLoading(false);
-    return true;
+    try {
+      const response = await apiClient.signup(email, password, username);
+      
+      if (response.success && response.data) {
+        // After signup, login automatically
+        const loginResponse = await apiClient.login(email, password);
+        if (loginResponse.success && loginResponse.data) {
+          const userData = (loginResponse.data as any).user;
+          setUser({
+            _id: userData._id || userData.id,
+            id: userData._id || userData.id,
+            username: userData.username,
+            email: userData.email,
+            avatar: userData.avatar,
+          });
+          toast.success("Account created successfully!");
+          setIsLoading(false);
+          return true;
+        }
+      }
+      
+      toast.error(response.error || "Signup failed");
+      setIsLoading(false);
+      return false;
+    } catch (error) {
+      toast.error("An error occurred during signup");
+      setIsLoading(false);
+      return false;
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await apiClient.logout();
+    } catch (error) {
+      // Continue with logout even if API call fails
+    }
     setUser(null);
-    localStorage.removeItem("soniq_user");
+    apiClient.setToken(null);
+    toast.success("Logged out successfully");
     router.push("/");
   };
 
@@ -109,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         isAuthenticated: !!user,
+        refreshUser,
       }}
     >
       {children}
@@ -123,4 +166,3 @@ export function useAuth() {
   }
   return context;
 }
-

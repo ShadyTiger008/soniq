@@ -1,73 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Headphones, Moon, Heart, PartyPopper, Coffee, Users, Music2 } from "lucide-react";
 import { RoomCard } from "@frontend/components/room-card";
 import { BottomNowPlaying } from "@frontend/components/bottom-now-playing";
+import { apiClient } from "@frontend/lib/api-client";
+import { toast } from "sonner";
 import Link from "next/link";
+
+interface Room {
+  _id: string;
+  name: string;
+  hostId?: any;
+  listenerCount: number;
+  mood: string;
+  currentSong?: any;
+}
 
 export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState("Featured");
-  const [selectedMood, setSelectedMood] = useState("Focus");
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const categories = ["Featured", "Trending", "Lofi", "Study", "Party", "Chill", "Romance", "Gaming"];
 
-  const liveNowRooms = [
-    {
-      id: "live1",
-      title: "Lofi Chill Vibes",
-      host: "DJ Zen",
-      listeners: 1245,
-      thumbnail: "/api/placeholder/400/300",
-      mood: "Chill",
-    },
-    {
-      id: "live2",
-      title: "Euphoria Grooves",
-      host: "Sound Master",
-      listeners: 892,
-      thumbnail: "/api/placeholder/400/300",
-      mood: "Party",
-    },
-    {
-      id: "live3",
-      title: "Deep Focus",
-      host: "Study Gang",
-      listeners: 654,
-      thumbnail: "/api/placeholder/400/300",
-      mood: "Study",
-    },
-  ];
+  useEffect(() => {
+    fetchRooms();
+  }, [selectedMood, searchQuery]);
 
-  const trendingRooms = [
-    {
-      id: "trend1",
-      title: "Late Night Beats",
-      host: "Subham",
-      listeners: 42,
-      avatars: ["👤", "🎧", "🎵", "🎶"],
-      mood: "Party",
-      timeAgo: "8 min",
-    },
-    {
-      id: "trend2",
-      title: "Feel-Good Tunes",
-      host: "DJ Alex",
-      listeners: 38,
-      avatars: ["👤", "🎧", "🎵", "🎶"],
-      mood: "Chill",
-      timeAgo: "15 min",
-    },
-    {
-      id: "trend3",
-      title: "Shill Indie Jams",
-      host: "Subham",
-      listeners: 42,
-      avatars: ["👤", "🎧", "🎵", "🎶"],
-      mood: "Indie",
-      timeAgo: "15 min",
-    },
-  ];
+  const fetchRooms = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiClient.getRooms({
+        limit: 50,
+        mood: selectedMood || undefined,
+        search: searchQuery || undefined,
+      });
+      if (response.success && response.data) {
+        const data = response.data as any;
+        setRooms(data.rooms || data || []);
+      } else {
+        toast.error(response.error || "Failed to load rooms");
+      }
+    } catch (error) {
+      toast.error("Failed to load rooms");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const liveNowRooms = rooms.slice(0, 3).map((room) => ({
+    id: room._id,
+    title: room.name,
+    host: typeof room.hostId === "object" ? room.hostId?.username || "Unknown" : "Unknown",
+    listeners: room.listenerCount,
+    thumbnail: "/api/placeholder/400/300",
+    mood: room.mood,
+  }));
+
+  const trendingRooms = rooms.slice(3, 6).map((room) => ({
+    id: room._id,
+    title: room.name,
+    host: typeof room.hostId === "object" ? room.hostId?.username || "Unknown" : "Unknown",
+    listeners: room.listenerCount,
+    avatars: ["👤", "🎧", "🎵", "🎶"],
+    mood: room.mood,
+    timeAgo: "Recently",
+  }));
 
   const moods = [
     { id: "Focus", icon: Headphones, label: "Focus" },
@@ -79,11 +80,11 @@ export default function ExplorePage() {
     { id: "Coffee", icon: Coffee, label: "Coffee" },
   ];
 
-  const newRooms = [
-    { id: "new1", title: "Fresh Beats Lab", listeners: 8 },
-    { id: "new2", title: "Chillwave Escape", listeners: 16 },
-    { id: "new3", title: "Beats & Beyond", listeners: 23 },
-  ];
+  const newRooms = rooms.slice(6, 9).map((room) => ({
+    id: room._id,
+    title: room.name,
+    listeners: room.listenerCount,
+  }));
 
   return (
     <div className="from-midnight-black via-deep-navy to-midnight-black text-soft-white min-h-screen bg-gradient-to-b pb-32">
@@ -133,10 +134,20 @@ export default function ExplorePage() {
           </h2>
         </div>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {liveNowRooms.map((room) => (
-            <div
+          {isLoading ? (
+            <div className="col-span-3 flex items-center justify-center py-12">
+              <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+            </div>
+          ) : liveNowRooms.length === 0 ? (
+            <div className="col-span-3 text-center py-12 text-muted-foreground">
+              No rooms available
+            </div>
+          ) : (
+            liveNowRooms.map((room) => (
+            <Link
               key={room.id}
-              className="glass-card group relative overflow-hidden rounded-2xl"
+              href={`/room/${room.id}`}
+              className="glass-card group relative overflow-hidden rounded-2xl block"
             >
               {/* Room Image */}
               <div className="from-deep-purple to-ocean-blue relative aspect-[4/3] overflow-hidden bg-gradient-to-br">
@@ -150,9 +161,12 @@ export default function ExplorePage() {
                 </div>
                 {/* Join Button Overlay */}
                 <div className="from-midnight-black/90 smooth-transition absolute inset-0 flex items-end bg-gradient-to-t to-transparent p-4 opacity-0 group-hover:opacity-100">
-                  <button className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink text-soft-white w-full rounded-lg bg-gradient-to-r px-6 py-3 font-bold transition-all duration-300">
+                  <Link
+                    href={`/room/${room.id}`}
+                    className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink text-soft-white w-full rounded-lg bg-gradient-to-r px-6 py-3 font-bold transition-all duration-300 text-center block"
+                  >
                     Join Room
-                  </button>
+                  </Link>
                 </div>
               </div>
               {/* Room Info */}
@@ -171,8 +185,9 @@ export default function ExplorePage() {
                   </span>
                 </div>
               </div>
-            </div>
-          ))}
+            </Link>
+            ))
+          )}
         </div>
       </div>
 
@@ -185,11 +200,21 @@ export default function ExplorePage() {
           </h2>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {trendingRooms.map((room) => (
-            <div
-              key={room.id}
-              className="glass-card hover:border-electric-magenta smooth-transition group rounded-xl p-4"
-            >
+          {isLoading ? (
+            <div className="col-span-3 flex items-center justify-center py-12">
+              <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+            </div>
+          ) : trendingRooms.length === 0 ? (
+            <div className="col-span-3 text-center py-12 text-muted-foreground">
+              No trending rooms available
+            </div>
+          ) : (
+            trendingRooms.map((room) => (
+              <Link
+                key={room.id}
+                href={`/room/${room.id}`}
+                className="glass-card hover:border-electric-magenta smooth-transition group rounded-xl p-4 block"
+              >
               <div className="mb-3 flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="font-heading font-600 text-soft-white mb-1 text-base">
@@ -228,8 +253,9 @@ export default function ExplorePage() {
                 </span>
                 <span className="text-muted-foreground text-xs">{room.timeAgo}</span>
               </div>
-            </div>
-          ))}
+              </Link>
+            ))
+          )}
         </div>
       </div>
 

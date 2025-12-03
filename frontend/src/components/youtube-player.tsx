@@ -80,6 +80,8 @@ export function YouTubePlayer({
         events: {
           onReady: (event: any) => {
             event.target.setVolume(volume);
+            // Store player reference globally for external access
+            (window as any).youtubePlayer = event.target;
             onReady?.();
           },
           onStateChange: (event: any) => {
@@ -108,15 +110,32 @@ export function YouTubePlayer({
   useEffect(() => {
     if (!playerRef.current) return;
 
-    try {
-      if (isPlaying) {
-        playerRef.current.playVideo();
-      } else {
-        playerRef.current.pauseVideo();
+    // Wait a bit for player to be ready
+    const timeoutId = setTimeout(() => {
+      try {
+        if (isPlaying) {
+          playerRef.current.playVideo();
+        } else {
+          playerRef.current.pauseVideo();
+        }
+      } catch (e) {
+        console.error("Error controlling playback:", e);
+        // Retry if player not ready
+        setTimeout(() => {
+          try {
+            if (isPlaying) {
+              playerRef.current?.playVideo();
+            } else {
+              playerRef.current?.pauseVideo();
+            }
+          } catch (err) {
+            console.error("Retry playback control failed:", err);
+          }
+        }, 500);
       }
-    } catch (e) {
-      console.error("Error controlling playback:", e);
-    }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, [isPlaying]);
 
   useEffect(() => {
@@ -162,7 +181,9 @@ export function YouTubePlayer({
     return (
       <div className="from-deep-purple to-ocean-blue flex h-full w-full items-center justify-center bg-gradient-to-br">
         <div className="text-center">
-          <p className="text-muted-foreground mb-2 text-lg">No video selected</p>
+          <p className="text-muted-foreground mb-2 text-lg">
+            No video selected
+          </p>
           <p className="text-muted-foreground text-sm">
             Search and select a song to start playing
           </p>
@@ -202,4 +223,3 @@ export function extractVideoId(urlOrId: string): string | null {
 
   return null;
 }
-

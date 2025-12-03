@@ -12,7 +12,7 @@ export function handleRoomEvents(
   socket.on("room:join", async (data: { roomId: string }) => {
     try {
       const { roomId } = data;
-      const userId = socket.handshake.auth?.userId as string || socket.id;
+      const userId = (socket.handshake.auth?.userId as string) || socket.id;
 
       // Verify room exists
       const room = await RoomModel.findById(roomId);
@@ -46,13 +46,29 @@ export function handleRoomEvents(
       // Notify others in room
       socket.to(roomId).emit("room:member-joined", {
         userId,
-        listenerCount: room.listenerCount,
+        listenerCount: room.listenerCount
       });
 
-      // Send room data to client
+      // Calculate current player time if playing
+      let currentTime = room.playerState?.currentTime || 0;
+      if (room.playerState?.isPlaying && room.playerState.lastUpdated) {
+        const timeSinceUpdate =
+          (Date.now() - room.playerState.lastUpdated.getTime()) / 1000;
+        currentTime = room.playerState.currentTime + timeSinceUpdate;
+        if (room.currentSong?.duration) {
+          currentTime = Math.min(currentTime, room.currentSong.duration);
+        }
+      }
+
+      // Send room data to client with player state
       socket.emit("room:joined", {
         room: room.toObject(),
         listenerCount: room.listenerCount,
+        playerState: {
+          isPlaying: room.playerState?.isPlaying || false,
+          currentTime,
+          volume: room.playerState?.volume || 80
+        }
       });
 
       logger.info(`User ${userId} joined room ${roomId}`);
@@ -66,7 +82,7 @@ export function handleRoomEvents(
   socket.on("room:leave", async (data: { roomId: string }) => {
     try {
       const { roomId } = data;
-      const userId = socket.handshake.auth?.userId as string || socket.id;
+      const userId = (socket.handshake.auth?.userId as string) || socket.id;
 
       await socket.leave(roomId);
 
@@ -89,7 +105,7 @@ export function handleRoomEvents(
         // Notify others in room
         socket.to(roomId).emit("room:member-left", {
           userId,
-          listenerCount: room.listenerCount,
+          listenerCount: room.listenerCount
         });
       }
 
@@ -103,7 +119,10 @@ export function handleRoomEvents(
   socket.on("room:get-members", async (data: { roomId: string }) => {
     try {
       const { roomId } = data;
-      const room = await RoomModel.findById(roomId).populate("members", "username email avatar");
+      const room = await RoomModel.findById(roomId).populate(
+        "members",
+        "username email avatar"
+      );
 
       if (!room) {
         socket.emit("room:error", { message: "Room not found" });
@@ -112,7 +131,7 @@ export function handleRoomEvents(
 
       socket.emit("room:members", {
         members: room.members,
-        listenerCount: room.listenerCount,
+        listenerCount: room.listenerCount
       });
     } catch (error) {
       logger.error("Error in room:get-members:", error);
@@ -120,4 +139,3 @@ export function handleRoomEvents(
     }
   });
 }
-

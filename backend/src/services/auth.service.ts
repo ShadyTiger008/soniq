@@ -1,12 +1,13 @@
 import { UserModel } from "../models/user.model.js";
 import { CustomError } from "../middleware/errorHandler.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 export class AuthService {
   async signup(email: string, password: string, username: string) {
     // Check if user exists
     const existingUser = await UserModel.findOne({
-      $or: [{ email }, { username }],
+      $or: [{ email }, { username }]
     });
 
     if (existingUser) {
@@ -20,7 +21,7 @@ export class AuthService {
     const user = new UserModel({
       email,
       password: hashedPassword,
-      username,
+      username
     });
 
     await user.save();
@@ -43,21 +44,53 @@ export class AuthService {
       throw new CustomError("Invalid credentials", 401);
     }
 
-    // TODO: Generate JWT token in production
+    // Generate JWT token
     const userId = String(user._id);
-    const token = "dummy-token-" + userId;
+    const JWT_SECRET: string =
+      process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || "7d";
 
-    const { password: _, ...userObj } = user.toObject();
+    const token = jwt.sign(
+      { userId, email: user.email, username: user.username },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions
+    );
+
+    const userObj = user.toObject() as any;
+    delete userObj.password;
 
     return {
       user: userObj,
-      token,
+      token
     };
   }
 
   async refreshToken(token: string) {
-    // TODO: Verify and refresh JWT token in production
-    return "refreshed-" + token;
+    const JWT_SECRET: string =
+      process.env.JWT_SECRET || "your-secret-key-change-in-production";
+    const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || "7d";
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as {
+        userId: string;
+        email: string;
+        username: string;
+      };
+
+      // Generate new token
+      const newToken = jwt.sign(
+        {
+          userId: decoded.userId,
+          email: decoded.email,
+          username: decoded.username
+        },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions
+      );
+
+      return newToken;
+    } catch (error) {
+      throw new CustomError("Invalid or expired token", 401);
+    }
   }
 }
-

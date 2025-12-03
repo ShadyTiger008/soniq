@@ -1,10 +1,25 @@
 "use client";
 
+import { Suspense, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { AuthForm } from "@frontend/components/auth-form";
 import { Music } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@frontend/lib/auth-context";
 
-export default function SignupPage() {
+function SignupContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
+
+  const redirect = searchParams.get("redirect") || "/home";
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push(redirect);
+    }
+  }, [isAuthenticated, redirect, router]);
+
   return (
     <div className="from-midnight-black via-deep-navy to-midnight-black flex min-h-screen items-center justify-center bg-gradient-to-b p-4">
       {/* Animated background elements */}
@@ -67,5 +82,13 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupContent />
+    </Suspense>
   );
 }

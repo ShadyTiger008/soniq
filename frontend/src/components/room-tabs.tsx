@@ -18,12 +18,32 @@ interface Song {
   thumbnail?: string;
 }
 
+interface ChatMessage {
+  id: string;
+  userId: string;
+  username: string;
+  avatar?: string;
+  message: string;
+  timestamp: string;
+}
+
 interface RoomTabsProps {
   queue?: Song[];
   currentSong?: Song | null;
+  chatMessages?: ChatMessage[];
+  onSendMessage?: (message: string) => void;
+  currentUserId?: string;
+  isConnected?: boolean;
 }
 
-export function RoomTabs({ queue = [], currentSong = null }: RoomTabsProps) {
+export function RoomTabs({
+  queue = [],
+  currentSong = null,
+  chatMessages = [],
+  onSendMessage,
+  currentUserId,
+  isConnected = false,
+}: RoomTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>("chat");
 
   const tabs = [
@@ -60,8 +80,17 @@ export function RoomTabs({ queue = [], currentSong = null }: RoomTabsProps) {
       {/* Tab content with proper overflow handling */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto">
-          {activeTab === "now-playing" && <NowPlayingTab currentSong={currentSong} />}
-          {activeTab === "chat" && <ChatTab />}
+          {activeTab === "now-playing" && (
+            <NowPlayingTab currentSong={currentSong} />
+          )}
+          {activeTab === "chat" && (
+            <ChatTab
+              messages={chatMessages}
+              onSendMessage={onSendMessage}
+              currentUserId={currentUserId}
+              isConnected={isConnected}
+            />
+          )}
           {activeTab === "queue" && <QueueTab queue={queue} />}
           {activeTab === "members" && <MembersTab />}
         </div>

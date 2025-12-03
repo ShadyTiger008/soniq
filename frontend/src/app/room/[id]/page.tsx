@@ -21,9 +21,15 @@ import {
 import { WaveformVisualizer } from "@frontend/components/waveform-visualizer";
 import { PlayerControls } from "@frontend/components/player-controls";
 import { RoomTabs } from "@frontend/components/room-tabs";
-import { YouTubePlayer, extractVideoId } from "@frontend/components/youtube-player";
+import {
+  YouTubePlayer,
+  extractVideoId,
+} from "@frontend/components/youtube-player";
 import { RoomSettingsModal } from "@frontend/components/room-settings-modal";
 import { useAuth } from "@frontend/lib/auth-context";
+import { apiClient } from "@frontend/lib/api-client";
+import { useSocket } from "@frontend/lib/socket-client";
+import { toast } from "sonner";
 import Link from "next/link";
 
 interface Song {
@@ -42,7 +48,7 @@ export default function RoomPage() {
   const roomId = (params?.id as string) || "default";
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isDJ] = useState(true);
+  const [isDJ, setIsDJ] = useState(false);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(
     "dQw4w9WgXcQ"
   );
@@ -87,6 +93,291 @@ export default function RoomPage() {
     maxListeners: 1000,
     mood: "Chill",
   });
+  const [roomData, setRoomData] = useState<any>(null);
+  const [isLoadingRoom, setIsLoadingRoom] = useState(true);
+  const [isHost, setIsHost] = useState(false);
+
+  // Socket.IO integration
+  const {
+    isConnected,
+    playerState: socketPlayerState,
+    chatMessages,
+    listenerCount: socketListenerCount,
+    queueUpdate,
+    songChange,
+    emitPlayerPlayPause,
+    emitPlayerSeek,
+    emitPlayerVolume,
+    emitPlayerSkip,
+    emitAddToQueue,
+    emitUpdateTime,
+    emitChatMessage,
+  } = useSocket(roomId && roomId !== "default" ? roomId : null);
+
+  // Fetch room data and join on mount
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login?redirect=/room/" + roomId);
+      return;
+    }
+
+    // Only fetch if we have a valid room ID
+    if (roomId && roomId !== "default") {
+      fetchRoomData();
+    } else {
+      setIsLoadingRoom(false);
+      toast.error("Invalid room ID");
+      router.push("/home");
+    }
+
+    // Don't leave room on unmount - only leave when user explicitly clicks "Leave Room"
+    // This prevents accidental room deletion when navigating away
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId, isAuthenticated]);
+
+  const fetchRoomData = async () => {
+    setIsLoadingRoom(true);
+    try {
+      const response = await apiClient.getRoom(roomId);
+      if (response.success && response.data) {
+        const room = response.data as any;
+        setRoomData(room);
+        setRoomSettings({
+          name: room.name,
+          listeners: room.listenerCount,
+          isPrivate: room.isPrivate,
+          maxListeners: room.maxListeners,
+          mood: room.mood,
+        });
+
+        // Check if user is host
+        if (user && room.hostId) {
+          const hostId =
+            typeof room.hostId === "object" ? room.hostId._id : room.hostId;
+          const userIsHost = String(user._id || user.id) === String(hostId);
+          setIsHost(userIsHost);
+          setIsDJ(userIsHost);
+        }
+
+        // Set current song if available
+        if (room.currentSong) {
+          setCurrentSong({
+            id: room.currentSong.videoId,
+            videoId: room.currentSong.videoId,
+            title: room.currentSong.title,
+            artist: room.currentSong.artist || "Unknown",
+            duration: formatDuration(room.currentSong.duration),
+          });
+          setCurrentVideoId(room.currentSong.videoId);
+
+          // If there's player state, apply it immediately (for mid-way joins)
+          if (room.playerState) {
+            // Calculate current time if playing
+            let currentTime = room.playerState.currentTime || 0;
+            if (room.playerState.isPlaying && room.playerState.lastUpdated) {
+              const timeSinceUpdate =
+                (Date.now() -
+                  new Date(room.playerState.lastUpdated).getTime()) /
+                1000;
+              currentTime = room.playerState.currentTime + timeSinceUpdate;
+              // Cap at song duration
+              if (room.currentSong.duration) {
+                currentTime = Math.min(currentTime, room.currentSong.duration);
+              }
+            }
+
+            setIsPlaying(room.playerState.isPlaying || false);
+            setCurrentTime(currentTime);
+            setVolume(room.playerState.volume || 80);
+
+            console.log("Applied initial player state:", {
+              currentTime,
+              isPlaying: room.playerState.isPlaying,
+              volume: room.playerState.volume,
+            });
+          }
+        }
+
+        // Set queue
+        if (room.queue && Array.isArray(room.queue)) {
+          setQueue(
+            room.queue.map((item: any) => ({
+              id: item.videoId,
+              videoId: item.videoId,
+              title: item.title,
+              artist: item.artist || "Unknown",
+              duration: formatDuration(item.duration),
+            }))
+          );
+        }
+
+        // Update listener count from socket if available
+        if (socketListenerCount > 0) {
+          setRoomSettings((prev) => ({
+            ...prev,
+            listeners: socketListenerCount,
+          }));
+        }
+
+        // Join room (only if not already a member)
+        try {
+          await apiClient.joinRoom(roomId);
+          // Don't show toast for join if user is already in room
+        } catch (joinError: any) {
+          // If already a member or other error, continue anyway
+          if (joinError?.error && !joinError.error.includes("already")) {
+            console.warn("Join room warning:", joinError.error);
+          }
+        }
+      } else {
+        toast.error(response.error || "Room not found");
+        router.push("/home");
+      }
+    } catch (error) {
+      console.error("Failed to load room:", error);
+      toast.error("Failed to load room");
+      router.push("/home");
+    } finally {
+      setIsLoadingRoom(false);
+    }
+  };
+
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  // Sync player state from socket - ALL users should sync to global state
+  useEffect(() => {
+    if (socketPlayerState && currentVideoId) {
+      // Update local state
+      setIsPlaying(socketPlayerState.isPlaying);
+      setVolume(socketPlayerState.volume);
+      setCurrentTime(socketPlayerState.currentTime);
+
+      if (duration > 0) {
+        setProgress((socketPlayerState.currentTime / duration) * 100);
+      }
+
+      // Sync YouTube player - wait for it to be ready
+      const syncYouTubePlayer = (retryCount = 0) => {
+        const player = (window as any).youtubePlayer;
+        if (player && typeof player.seekTo === "function") {
+          try {
+            // Get current player time to avoid unnecessary seeks
+            const playerCurrentTime = player.getCurrentTime();
+            const timeDiff = Math.abs(
+              playerCurrentTime - socketPlayerState.currentTime
+            );
+
+            // Only seek if there's a significant difference (more than 1 second)
+            if (timeDiff > 1) {
+              player.seekTo(socketPlayerState.currentTime, true);
+            }
+
+            // Control playback state
+            const playerState = player.getPlayerState();
+            // YouTube states: -1=unstarted, 0=ended, 1=playing, 2=paused, 3=buffering, 5=cued
+            if (socketPlayerState.isPlaying && playerState !== 1) {
+              player.playVideo();
+            } else if (!socketPlayerState.isPlaying && playerState !== 2) {
+              player.pauseVideo();
+            }
+          } catch (e) {
+            console.error("Error syncing YouTube player:", e);
+            // Retry up to 5 times
+            if (retryCount < 5) {
+              setTimeout(() => syncYouTubePlayer(retryCount + 1), 500);
+            }
+          }
+        } else {
+          // Player not ready yet, retry up to 10 times
+          if (retryCount < 10) {
+            setTimeout(() => syncYouTubePlayer(retryCount + 1), 500);
+          }
+        }
+      };
+
+      syncYouTubePlayer();
+    }
+  }, [socketPlayerState, currentVideoId, duration]);
+
+  // Update listener count from socket
+  useEffect(() => {
+    if (socketListenerCount > 0) {
+      setRoomSettings((prev) => ({
+        ...prev,
+        listeners: socketListenerCount,
+      }));
+    }
+  }, [socketListenerCount]);
+
+  // Handle queue updates from socket
+  useEffect(() => {
+    if (queueUpdate?.queue) {
+      setQueue(
+        queueUpdate.queue.map((item: any) => ({
+          id: item.videoId,
+          videoId: item.videoId,
+          title: item.title,
+          artist: item.artist || "Unknown",
+          duration: formatDuration(item.duration),
+        }))
+      );
+    }
+  }, [queueUpdate]);
+
+  // Handle song changes from socket
+  useEffect(() => {
+    if (songChange) {
+      if (songChange.currentSong) {
+        setCurrentSong({
+          id: songChange.currentSong.videoId,
+          videoId: songChange.currentSong.videoId,
+          title: songChange.currentSong.title,
+          artist: songChange.currentSong.artist || "Unknown",
+          duration: formatDuration(songChange.currentSong.duration),
+        });
+        setCurrentVideoId(songChange.currentSong.videoId);
+
+        // Apply player state from socket
+        if (songChange.playerState) {
+          setIsPlaying(songChange.playerState.isPlaying);
+          setCurrentTime(songChange.playerState.currentTime);
+          setVolume(songChange.playerState.volume);
+        } else {
+          // Default to playing when song changes
+          setIsPlaying(true);
+          setCurrentTime(0);
+        }
+      }
+      if (songChange.queue) {
+        setQueue(
+          songChange.queue.map((item: any) => ({
+            id: item.videoId,
+            videoId: item.videoId,
+            title: item.title,
+            artist: item.artist || "Unknown",
+            duration: formatDuration(item.duration),
+          }))
+        );
+      }
+    }
+  }, [songChange]);
+
+  // Periodically update player time when playing (anyone can broadcast)
+  useEffect(() => {
+    if (!isPlaying || !currentVideoId) return;
+
+    const interval = setInterval(() => {
+      if (isPlaying && currentTime > 0) {
+        emitUpdateTime(currentTime);
+      }
+    }, 2000); // Update every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [isPlaying, currentTime, currentVideoId, emitUpdateTime]);
 
   // Dummy YouTube search
   const searchYouTube = useCallback(async (query: string) => {
@@ -136,22 +427,20 @@ export default function RoomPage() {
   }, [searchQuery, searchYouTube]);
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    // Anyone can control playback
+    const newIsPlaying = !isPlaying;
+    setIsPlaying(newIsPlaying);
+    emitPlayerPlayPause(newIsPlaying);
   };
 
   const handleSkip = (direction: "prev" | "next") => {
-    if (direction === "next" && queue.length > 0) {
-      const nextSong = queue[0];
-      if (nextSong) {
-        setCurrentSong(nextSong);
-        setCurrentVideoId(nextSong.videoId);
-        setQueue(queue.slice(1));
-        setIsPlaying(true);
-      }
-    }
+    // Anyone can skip
+    emitPlayerSkip(direction);
+    // Local state will be updated via socket events
   };
 
   const handleSeek = (amount: number) => {
+    // Anyone can seek
     const newTime = Math.max(0, Math.min(duration, currentTime + amount));
     setCurrentTime(newTime);
     setProgress((newTime / duration) * 100);
@@ -162,9 +451,11 @@ export default function RoomPage() {
         console.error("Error seeking:", e);
       }
     }
+    emitPlayerSeek(newTime);
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Anyone can seek
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const percentage = clickX / rect.width;
@@ -178,28 +469,71 @@ export default function RoomPage() {
         console.error("Error seeking:", e);
       }
     }
+    emitPlayerSeek(newTime);
   };
 
   const handleTimeUpdate = (time: number, totalDuration: number) => {
-    setCurrentTime(time);
+    // Update duration for all users
     setDuration(totalDuration);
-    if (totalDuration > 0) {
-      setProgress((time / totalDuration) * 100);
+
+    // Update time locally, but socket updates will override if there's a significant difference
+    // This allows smooth local updates while maintaining sync
+    if (socketPlayerState) {
+      const timeDiff = Math.abs(time - socketPlayerState.currentTime);
+      // If socket time is significantly different (>2 seconds), use socket time
+      // Otherwise use local time for smooth updates
+      if (timeDiff > 2) {
+        setCurrentTime(socketPlayerState.currentTime);
+        if (totalDuration > 0) {
+          setProgress((socketPlayerState.currentTime / totalDuration) * 100);
+        }
+      } else {
+        setCurrentTime(time);
+        if (totalDuration > 0) {
+          setProgress((time / totalDuration) * 100);
+        }
+      }
+    } else {
+      // No socket state yet, use local time
+      setCurrentTime(time);
+      if (totalDuration > 0) {
+        setProgress((time / totalDuration) * 100);
+      }
     }
   };
 
   const handleSelectSong = (song: Song) => {
-    setCurrentSong(song);
-    setCurrentVideoId(song.videoId);
-    setIsPlaying(true);
+    // If host, play immediately; otherwise add to queue
+    emitAddToQueue(
+      {
+        videoId: song.videoId,
+        title: song.title,
+        artist: song.artist,
+        duration: parseDuration(song.duration),
+      },
+      isHost // playNow = true if host
+    );
     setShowSearch(false);
     setSearchQuery("");
   };
 
   const handleAddToQueue = (song: Song) => {
-    setQueue([...queue, song]);
+    emitAddToQueue({
+      videoId: song.videoId,
+      title: song.title,
+      artist: song.artist,
+      duration: parseDuration(song.duration),
+    });
     setShowSearch(false);
     setSearchQuery("");
+  };
+
+  const parseDuration = (durationStr: string): number => {
+    const parts = durationStr.split(":");
+    if (parts.length === 2) {
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    }
+    return 0;
   };
 
   const handleShareRoom = async () => {
@@ -240,33 +574,65 @@ export default function RoomPage() {
     }
   };
 
-  const handleLeaveRoom = () => {
-    if (confirm("Are you sure you want to leave this room?")) {
-      router.push("/home");
+  const handleLeaveRoom = async () => {
+    const isHostLeaving = isHost;
+    const message = isHostLeaving
+      ? "Are you sure you want to leave and delete this room? This action cannot be undone."
+      : "Are you sure you want to leave this room?";
+
+    if (confirm(message)) {
+      try {
+        // Only delete room if host is leaving and confirms
+        await apiClient.leaveRoom(roomId, isHostLeaving);
+        toast.success(
+          isHostLeaving ? "Room deleted successfully" : "Left room successfully"
+        );
+        router.push("/home");
+      } catch (error) {
+        toast.error("Failed to leave room");
+        router.push("/home");
+      }
     }
   };
 
-  const handleSaveSettings = (settings: {
+  const handleSaveSettings = async (settings: {
     name: string;
     isPrivate: boolean;
     maxListeners: number;
     mood: string;
   }) => {
-    setRoomSettings({
-      ...roomSettings,
-      name: settings.name,
-      isPrivate: settings.isPrivate,
-      maxListeners: settings.maxListeners,
-      mood: settings.mood,
-    });
-    alert("Room settings saved successfully!");
+    try {
+      const response = await apiClient.updateRoom(roomId, {
+        name: settings.name,
+        isPrivate: settings.isPrivate,
+        maxListeners: settings.maxListeners,
+        mood: settings.mood,
+      });
+
+      if (response.success) {
+        setRoomSettings({
+          ...roomSettings,
+          ...settings,
+        });
+        toast.success("Room settings saved successfully!");
+        setShowSettings(false);
+        // Refresh room data
+        await fetchRoomData();
+      } else {
+        toast.error(response.error || "Failed to save settings");
+      }
+    } catch (error) {
+      toast.error("An error occurred while saving settings");
+    }
   };
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push(`/login?redirect=/room/${roomId}`);
-    }
-  }, [isAuthenticated, router, roomId]);
+  if (isLoadingRoom) {
+    return (
+      <div className="from-midnight-black via-deep-navy to-midnight-black flex min-h-screen items-center justify-center bg-gradient-to-b">
+        <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -335,8 +701,67 @@ export default function RoomPage() {
                 volume={volume}
                 onTimeUpdate={handleTimeUpdate}
                 onStateChange={(state) => {
-                  if (state === 1) setIsPlaying(true);
-                  else if (state === 2) setIsPlaying(false);
+                  // YouTube player states: -1=unstarted, 0=ended, 1=playing, 2=paused, 3=buffering, 5=cued
+                  // Update local state, but socket will override if there's a conflict
+                  // This allows for immediate UI feedback while maintaining global sync
+                  if (state === 1) {
+                    if (!socketPlayerState || socketPlayerState.isPlaying) {
+                      setIsPlaying(true);
+                    }
+                  } else if (state === 2) {
+                    if (!socketPlayerState || !socketPlayerState.isPlaying) {
+                      setIsPlaying(false);
+                    }
+                  }
+                }}
+                onReady={() => {
+                  // When player is ready, sync to current socket state if available
+                  // This is crucial for mid-way joins
+                  const syncOnReady = () => {
+                    const player = (window as any).youtubePlayer;
+                    if (player && socketPlayerState && currentVideoId) {
+                      try {
+                        // Get duration first
+                        const playerDuration = player.getDuration();
+                        if (playerDuration) {
+                          setDuration(playerDuration);
+                        }
+
+                        // Seek to the correct time (important for mid-way joins)
+                        const targetTime = Math.min(
+                          socketPlayerState.currentTime,
+                          playerDuration || socketPlayerState.currentTime
+                        );
+                        player.seekTo(targetTime, true);
+                        setCurrentTime(targetTime);
+
+                        // Control playback state
+                        if (socketPlayerState.isPlaying) {
+                          // Small delay to ensure seek completes
+                          setTimeout(() => {
+                            player.playVideo();
+                          }, 100);
+                        } else {
+                          player.pauseVideo();
+                        }
+
+                        console.log("Player synced on ready:", {
+                          time: targetTime,
+                          isPlaying: socketPlayerState.isPlaying,
+                        });
+                      } catch (e) {
+                        console.error("Error syncing player on ready:", e);
+                        // Retry after a short delay
+                        setTimeout(syncOnReady, 500);
+                      }
+                    } else if (socketPlayerState && !player) {
+                      // Player not ready yet, retry
+                      setTimeout(syncOnReady, 500);
+                    }
+                  };
+
+                  // Wait a bit for player to fully initialize
+                  setTimeout(syncOnReady, 300);
                 }}
               />
               {/* Search Overlay */}
@@ -454,7 +879,11 @@ export default function RoomPage() {
               onPlayPause={handlePlayPause}
               onSkip={handleSkip}
               onSeek={handleSeek}
-              onVolumeChange={setVolume}
+              onVolumeChange={(vol) => {
+                // Anyone can control volume
+                setVolume(vol);
+                emitPlayerVolume(vol);
+              }}
               onProgressClick={handleProgressClick}
             />
           </div>
@@ -466,7 +895,14 @@ export default function RoomPage() {
 
           {/* Tabs section - Fixed height with proper overflow */}
           <div className="glass-card min-h-[500px] overflow-hidden rounded-2xl border-2 border-deep-purple/20">
-            <RoomTabs queue={queue} currentSong={currentSong} />
+            <RoomTabs
+              queue={queue}
+              currentSong={currentSong}
+              chatMessages={chatMessages}
+              onSendMessage={emitChatMessage}
+              currentUserId={user?._id || user?.id}
+              isConnected={isConnected}
+            />
           </div>
         </div>
 
