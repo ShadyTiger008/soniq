@@ -1,4 +1,5 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@frontend/config/api.config";
+import type { Room, Song } from "@frontend/types";
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -170,12 +171,14 @@ class ApiClient {
     limit?: number;
     mood?: string;
     search?: string;
+    sort?: string;
   }) {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append("page", params.page.toString());
     if (params?.limit) queryParams.append("limit", params.limit.toString());
     if (params?.mood) queryParams.append("mood", params.mood);
     if (params?.search) queryParams.append("search", params.search);
+    if (params?.sort) queryParams.append("sort", params.sort);
 
     const query = queryParams.toString();
     return this.request(
@@ -184,7 +187,7 @@ class ApiClient {
   }
 
   async getRoom(id: string) {
-    return this.request(API_ENDPOINTS.ROOM.GET(id));
+    return this.request<Room>(API_ENDPOINTS.ROOM.GET(id));
   }
 
   async createRoom(roomData: {
@@ -254,7 +257,7 @@ class ApiClient {
 
   // YouTube search
   async searchYouTube(query: string, maxResults: number = 10) {
-    return this.request(API_ENDPOINTS.YOUTUBE.SEARCH(query, maxResults));
+    return this.request<Song[]>(API_ENDPOINTS.YOUTUBE.SEARCH(query, maxResults));
   }
 }
 

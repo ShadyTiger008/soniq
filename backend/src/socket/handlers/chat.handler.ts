@@ -5,9 +5,7 @@ import mongoose from "mongoose";
 
 export function handleChatEvents(
   io: SocketIOServer,
-  socket: Socket,
-  userSocketMap: Map<string, string>,
-  roomSocketMap: Map<string, Set<string>>
+  socket: Socket
 ) {
   // Send message
   socket.on(
@@ -72,9 +70,11 @@ export function handleChatEvents(
           .populate("userId", "username avatar")
           .lean();
 
-        const messageData = messages.reverse().map((msg) => ({
+        const messageData = messages.reverse().map((msg: any) => ({
           id: msg._id.toString(),
-          userId: msg.userId.toString(),
+          userId: msg.userId?._id 
+            ? msg.userId._id.toString() 
+            : (msg.userId ? msg.userId.toString() : null),
           username: msg.username,
           avatar: msg.avatar || "🎵",
           message: msg.message,

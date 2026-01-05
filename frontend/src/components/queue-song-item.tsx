@@ -14,6 +14,9 @@ interface QueueSongItemProps {
   isDragging?: boolean;
   isDJ?: boolean;
   isNow?: boolean;
+  isOwn?: boolean;
+  onRemove?: () => void;
+  onPlay?: () => void;
 }
 
 export function QueueSongItem({
@@ -26,13 +29,16 @@ export function QueueSongItem({
   requestedByRole,
   isDJ = false,
   isNow = false,
+  isOwn = false,
+  onRemove,
+  onPlay,
 }: QueueSongItemProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div
-      className={`glass-card group hover:border-electric-magenta/50 smooth-transition flex items-center justify-between p-3 ${
-        isNow ? "border-electric-magenta/50 bg-[rgba(214,93,242,0.05)]" : ""
+      className={`group hover:bg-muted/50 smooth-transition flex items-center justify-between p-3 rounded-lg border border-transparent hover:border-border/50 ${
+        isNow ? "bg-primary/5 dark:bg-primary/10 border-primary/20" : ""
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -40,11 +46,11 @@ export function QueueSongItem({
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {/* Drag handle (DJ only) */}
         {isDJ && (
-          <Grip className="text-muted-foreground group-hover:text-electric-magenta h-4 w-4 flex-shrink-0 cursor-grab" />
+          <Grip className="text-muted-foreground group-hover:text-primary h-4 w-4 flex-shrink-0 cursor-grab transition-colors" />
         )}
 
         {/* Thumbnail */}
-        <div className="from-deep-purple to-ocean-blue relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-gradient-to-br">
+        <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-lg bg-muted shadow-sm border border-border">
           {thumbnail ? (
             <img
               src={thumbnail || "/placeholder.svg"}
@@ -52,11 +58,15 @@ export function QueueSongItem({
               className="h-full w-full object-cover"
             />
           ) : (
-            <Music className="text-muted-foreground h-full w-full p-2" />
+            <div className="h-full w-full flex items-center justify-center bg-muted text-muted-foreground">
+               <Music className="h-5 w-5" />
+            </div>
           )}
           {isNow && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <Play className="text-electric-magenta h-4 w-4 fill-current" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+               <div className="h-6 w-6 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                  <Play className="text-white h-3 w-3 fill-current ml-0.5" />
+               </div>
             </div>
           )}
         </div>
@@ -64,33 +74,50 @@ export function QueueSongItem({
         {/* Song info */}
         <div className="min-w-0 flex-1">
           <p
-            className={`font-600 truncate text-sm ${isNow ? "text-electric-magenta" : "text-soft-white"}`}
+            className={`font-bold truncate text-sm tracking-tight ${isNow ? "text-primary" : "text-foreground"}`}
           >
             {title}
           </p>
-          <div className="text-muted-foreground flex items-center gap-2 truncate text-xs">
+          <div className="text-muted-foreground flex items-center gap-2 truncate text-[10px] font-bold uppercase tracking-tight tabular-nums">
             <span className="truncate">{artist}</span>
-            <span>•</span>
+            <span className="opacity-30">•</span>
             <span className="flex-shrink-0">{duration}</span>
           </div>
         </div>
 
         {/* Requested by */}
-        <div className="flex-shrink-0 text-right">
-          <p className="text-muted-foreground text-xs">{requestedBy}</p>
+        <div className="flex-shrink-0 text-right pr-2">
+          <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">{requestedBy}</p>
           {requestedByRole && (
-            <p className="text-ocean-blue font-500 text-xs">
+            <p className="text-primary font-black text-[9px] uppercase tracking-[0.15em] mt-0.5">
               {requestedByRole}
             </p>
           )}
         </div>
       </div>
 
-      {/* Delete button (DJ only) */}
-      {isDJ && isHovered && (
-        <button className="text-destructive hover:bg-destructive/10 smooth-transition ml-2 flex-shrink-0 rounded p-1">
-          <Trash2 className="h-4 w-4" />
-        </button>
+      {/* Actions (DJ only) */}
+      {(isDJ || isOwn) && isHovered && (
+        <div className="flex items-center gap-1 ml-2">
+            {!isNow && onPlay && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onPlay(); }}
+                  className="text-muted-foreground hover:text-primary hover:bg-primary/10 smooth-transition flex-shrink-0 rounded-full p-2"
+                  title="Play Now"
+                >
+                    <Play className="h-4 w-4 fill-current" />
+                </button>
+            )}
+            {onRemove && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 smooth-transition flex-shrink-0 rounded-full p-2"
+                  title="Remove from Queue"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+            )}
+        </div>
       )}
     </div>
   );

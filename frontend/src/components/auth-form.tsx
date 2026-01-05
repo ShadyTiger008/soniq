@@ -77,14 +77,14 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
   return (
     <form onSubmit={handleSubmit} className="w-full space-y-4">
       {error && (
-        <div className="border-red-500/50 bg-red-500/10 text-red-400 rounded-lg border p-3 text-sm">
+        <div className="border-red-500/50 bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl border p-4 text-xs font-bold uppercase tracking-widest leading-relaxed">
           {error}
         </div>
       )}
 
       {type === "signup" && (
-        <div className="relative">
-          <User className="text-electric-magenta absolute top-3.5 left-3 h-5 w-5 opacity-60" />
+        <div className="relative group">
+          <User className="text-primary absolute top-4 left-4 h-5 w-5 opacity-40 group-focus-within:opacity-100 transition-opacity" />
           <input
             type="text"
             name="username"
@@ -92,13 +92,13 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
             value={formData.username}
             onChange={handleChange}
             required
-            className="text-soft-white placeholder-muted-foreground focus:border-electric-magenta focus:ring-electric-magenta smooth-transition w-full rounded-lg border border-[rgba(108,43,217,0.3)] bg-[rgba(26,22,51,0.6)] py-3 pr-4 pl-10 focus:ring-1 focus:outline-none"
+            className="text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary/20 smooth-transition w-full rounded-2xl border border-border bg-muted/30 py-4 pr-4 pl-12 focus:ring-4 focus:outline-none font-medium"
           />
         </div>
       )}
 
-      <div className="relative">
-        <Mail className="text-ocean-blue absolute top-3.5 left-3 h-5 w-5 opacity-60" />
+      <div className="relative group">
+        <Mail className="text-primary absolute top-4 left-4 h-5 w-5 opacity-40 group-focus-within:opacity-100 transition-opacity" />
         <input
           type="email"
           name="email"
@@ -106,12 +106,12 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
           value={formData.email}
           onChange={handleChange}
           required
-          className="text-soft-white placeholder-muted-foreground focus:border-ocean-blue focus:ring-ocean-blue smooth-transition w-full rounded-lg border border-[rgba(108,43,217,0.3)] bg-[rgba(26,22,51,0.6)] py-3 pr-4 pl-10 focus:ring-1 focus:outline-none"
+          className="text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary/20 smooth-transition w-full rounded-2xl border border-border bg-muted/30 py-4 pr-4 pl-12 focus:ring-4 focus:outline-none font-medium"
         />
       </div>
 
-      <div className="relative">
-        <Lock className="text-deep-purple absolute top-3.5 left-3 h-5 w-5 opacity-60" />
+      <div className="relative group">
+        <Lock className="text-primary absolute top-4 left-4 h-5 w-5 opacity-40 group-focus-within:opacity-100 transition-opacity" />
         <input
           type="password"
           name="password"
@@ -120,21 +120,21 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
           onChange={handleChange}
           required
           minLength={3}
-          className="text-soft-white placeholder-muted-foreground focus:border-deep-purple focus:ring-deep-purple smooth-transition w-full rounded-lg border border-[rgba(108,43,217,0.3)] bg-[rgba(26,22,51,0.6)] py-3 pr-4 pl-10 focus:ring-1 focus:outline-none"
+          className="text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary/20 smooth-transition w-full rounded-2xl border border-border bg-muted/30 py-4 pr-4 pl-12 focus:ring-4 focus:outline-none font-medium"
         />
       </div>
 
       <button
         type="submit"
         disabled={isLoading}
-        className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink text-soft-white font-heading font-600 smooth-transition neon-glow flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r py-3 disabled:opacity-50"
+        className="bg-primary text-primary-foreground font-black uppercase tracking-[0.2em] text-xs smooth-transition flex w-full items-center justify-center gap-2 rounded-2xl py-4 disabled:opacity-50 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] mt-2"
       >
         {isLoading ? (
-          <span className="border-soft-white h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
+          <span className="border-primary-foreground h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
         ) : (
           <>
             {type === "login" ? "Sign In" : "Create Account"}
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4 stroke-[3px]" />
           </>
         )}
       </button>

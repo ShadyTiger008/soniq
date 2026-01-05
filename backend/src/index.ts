@@ -1,14 +1,8 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import { app, server } from "./app.js";
 import { connectDatabase } from "./config/database.js";
 import { logger } from "./utils/logger.js";
 import { initializeSocketIO } from "./socket/index.js";
-
-// Load environment variables
-const envResult = dotenv.config({ path: ".env" });
-if (envResult.error) {
-  console.warn("Warning: .env file not found or couldn't be loaded:", envResult.error.message);
-}
 
 const PORT = process.env.PORT || 5001;
 const NODE_ENV = process.env.NODE_ENV || "development";

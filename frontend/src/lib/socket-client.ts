@@ -5,21 +5,17 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./auth-context";
 import { SOCKET_URL } from "@frontend/config/api.config";
 
-export interface PlayerState {
+import type { ChatMessage } from "@frontend/types";
+
+export interface SocketPlayerState {
   isPlaying: boolean;
   currentTime: number;
   volume: number;
+  shuffle: boolean;
+  repeatMode: 'none' | 'one' | 'all';
 }
 
-export interface ChatMessage {
-  id: string;
-  userId: string;
-  username: string;
-  avatar?: string;
-  message: string;
-  timestamp: string;
-  roomId: string;
-}
+
 
 export interface QueueUpdate {
   queue: Array<{
@@ -27,6 +23,8 @@ export interface QueueUpdate {
     title: string;
     artist: string;
     duration: number;
+    thumbnail?: string;
+    requestedBy?: any;
   }>;
 }
 
@@ -36,21 +34,25 @@ export interface SongChange {
     title: string;
     artist: string;
     duration: number;
+    thumbnail?: string;
+    requestedBy?: any;
   };
   queue?: Array<{
     videoId: string;
     title: string;
     artist: string;
     duration: number;
+    thumbnail?: string;
+    requestedBy?: any;
   }>;
-  playerState?: PlayerState;
+  playerState?: SocketPlayerState;
 }
 
 export function useSocket(roomId: string | null) {
   const { user, isAuthenticated } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [playerState, setPlayerState] = useState<PlayerState | null>(null);
+  const [playerState, setPlayerState] = useState<SocketPlayerState | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [listenerCount, setListenerCount] = useState(0);
   const [queueUpdate, setQueueUpdate] = useState<QueueUpdate | null>(null);
@@ -111,7 +113,7 @@ export function useSocket(roomId: string | null) {
       (data: {
         room: any;
         listenerCount: number;
-        playerState?: PlayerState;
+        playerState?: SocketPlayerState;
       }) => {
         console.log("Room joined:", data);
         setListenerCount(data.listenerCount);
@@ -121,6 +123,8 @@ export function useSocket(roomId: string | null) {
             isPlaying: data.playerState.isPlaying,
             currentTime: data.playerState.currentTime,
             volume: data.playerState.volume,
+            shuffle: data.playerState.shuffle,
+            repeatMode: data.playerState.repeatMode,
           });
         }
         // Request full player state (includes current song and queue)
@@ -173,7 +177,7 @@ export function useSocket(roomId: string | null) {
       (data: {
         currentSong?: any;
         queue?: any[];
-        playerState?: PlayerState;
+        playerState?: SocketPlayerState;
       }) => {
         console.log("Player state received:", data);
         if (data.playerState) {
@@ -183,6 +187,8 @@ export function useSocket(roomId: string | null) {
             isPlaying: data.playerState.isPlaying,
             currentTime: data.playerState.currentTime,
             volume: data.playerState.volume,
+            shuffle: data.playerState.shuffle,
+            repeatMode: data.playerState.repeatMode,
           });
         }
         // Also trigger song change if currentSong is provided
@@ -212,6 +218,8 @@ export function useSocket(roomId: string | null) {
             isPlaying: data.isPlaying,
             currentTime: data.currentTime ?? prev?.currentTime ?? 0,
             volume: prev?.volume ?? 80,
+            shuffle: prev?.shuffle ?? false,
+            repeatMode: prev?.repeatMode ?? 'none',
           };
           return newState;
         });
@@ -243,7 +251,7 @@ export function useSocket(roomId: string | null) {
       (data: {
         currentSong?: any;
         queue?: any[];
-        playerState?: PlayerState;
+        playerState?: SocketPlayerState;
       }) => {
         setSongChange(data);
         if (data.playerState) {
@@ -266,9 +274,25 @@ export function useSocket(roomId: string | null) {
           // Keep existing isPlaying and volume
           isPlaying: prev?.isPlaying ?? false,
           volume: prev?.volume ?? 80,
+          shuffle: prev?.shuffle ?? false,
+          repeatMode: prev?.repeatMode ?? 'none',
         }));
       }
     );
+
+    newSocket.on("player:shuffle-changed", (data: { shuffle: boolean }) => {
+      setPlayerState((prev) => ({
+        ...prev!,
+        shuffle: data.shuffle,
+      }));
+    });
+
+    newSocket.on("player:repeat-changed", (data: { repeatMode: 'none' | 'one' | 'all' }) => {
+      setPlayerState((prev) => ({
+        ...prev!,
+        repeatMode: data.repeatMode,
+      }));
+    });
 
     newSocket.on("player:error", (error: { message: string }) => {
       console.error("Player error:", error);
@@ -319,11 +343,12 @@ export function useSocket(roomId: string | null) {
   }, [roomId, isAuthenticated, user]);
 
   // Emit functions
-  const emitPlayerPlayPause = (isPlaying: boolean) => {
+  const emitPlayerPlayPause = (isPlaying: boolean, currentTime?: number) => {
     if (socket && roomId && user) {
       socket.emit("player:play-pause", {
         roomId,
         isPlaying,
+        currentTime,
         userId: user._id || user.id,
       });
     }
@@ -359,12 +384,33 @@ export function useSocket(roomId: string | null) {
     }
   };
 
+  const emitPlayerShuffle = (shuffle: boolean) => {
+    if (socket && roomId && user) {
+      socket.emit("player:shuffle", {
+        roomId,
+        shuffle,
+        userId: user._id || user.id,
+      });
+    }
+  };
+
+  const emitPlayerRepeat = (repeatMode: 'none' | 'one' | 'all') => {
+    if (socket && roomId && user) {
+      socket.emit("player:repeat", {
+        roomId,
+        repeatMode,
+        userId: user._id || user.id,
+      });
+    }
+  };
+
   const emitAddToQueue = (
     song: {
       videoId: string;
       title: string;
       artist: string;
       duration: number;
+      thumbnail?: string;
     },
     playNow = false
   ) => {
@@ -433,6 +479,26 @@ export function useSocket(roomId: string | null) {
     }
   };
 
+  const emitRemoveFromQueue = (videoId: string) => {
+    if (socket && roomId && user) {
+        socket.emit("player:remove-from-queue", {
+            roomId,
+            videoId,
+            userId: user._id || user.id,
+        });
+    }
+  };
+
+  const emitPlayQueueItem = (videoId: string) => {
+      if (socket && roomId && user) {
+          socket.emit("player:play-queue-item", {
+              roomId,
+              videoId,
+              userId: user._id || user.id,
+          });
+      }
+  };
+
   return {
     socket,
     isConnected,
@@ -446,11 +512,15 @@ export function useSocket(roomId: string | null) {
     emitPlayerSeek,
     emitPlayerVolume,
     emitPlayerSkip,
+    emitPlayerShuffle,
+    emitPlayerRepeat,
     emitAddToQueue,
     emitUpdateTime,
     emitChatMessage,
     emitChatReaction,
     emitChatTyping,
     emitReorderQueue,
+    emitRemoveFromQueue,
+    emitPlayQueueItem,
   };
 }

@@ -6,10 +6,16 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // // <CHANGE> Force rebuild and clear cache for Tailwind v4
-  // webpack: (config, { isServer }) => {
-  //   return config;
-  // },
+  async redirects() {
+    return [
+
+      {
+        source: '/rooms',
+        destination: '/explore',
+        permanent: true,
+      },
+    ]
+  },
 };
 
 export default nextConfig;

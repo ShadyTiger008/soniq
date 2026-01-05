@@ -10,6 +10,7 @@ interface YouTubePlayerProps {
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onReady?: () => void;
   onError?: (error: string) => void;
+  currentTime?: number;
 }
 
 declare global {
@@ -27,10 +28,12 @@ export function YouTubePlayer({
   onTimeUpdate,
   onReady,
   onError,
+  currentTime: seekTime,
 }: YouTubePlayerProps) {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAPIReady, setIsAPIReady] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -39,7 +42,11 @@ export function YouTubePlayer({
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName("script")[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      if (firstScriptTag && firstScriptTag.parentNode) {
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      } else {
+        document.head.appendChild(tag);
+      }
 
       window.onYouTubeIframeAPIReady = () => {
         setIsAPIReady(true);
@@ -82,6 +89,7 @@ export function YouTubePlayer({
             event.target.setVolume(volume);
             // Store player reference globally for external access
             (window as any).youtubePlayer = event.target;
+            setIsReady(true);
             onReady?.();
           },
           onStateChange: (event: any) => {
@@ -97,6 +105,7 @@ export function YouTubePlayer({
     initializePlayer();
 
     return () => {
+      setIsReady(false);
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
@@ -108,7 +117,7 @@ export function YouTubePlayer({
   }, [isAPIReady, videoId]);
 
   useEffect(() => {
-    if (!playerRef.current) return;
+    if (!playerRef.current || typeof playerRef.current.playVideo !== 'function') return;
 
     // Wait a bit for player to be ready
     const timeoutId = setTimeout(() => {
@@ -120,18 +129,6 @@ export function YouTubePlayer({
         }
       } catch (e) {
         console.error("Error controlling playback:", e);
-        // Retry if player not ready
-        setTimeout(() => {
-          try {
-            if (isPlaying) {
-              playerRef.current?.playVideo();
-            } else {
-              playerRef.current?.pauseVideo();
-            }
-          } catch (err) {
-            console.error("Retry playback control failed:", err);
-          }
-        }, 500);
       }
     }, 100);
 
@@ -139,7 +136,7 @@ export function YouTubePlayer({
   }, [isPlaying]);
 
   useEffect(() => {
-    if (!playerRef.current) return;
+    if (!playerRef.current || typeof playerRef.current.setVolume !== 'function') return;
 
     try {
       playerRef.current.setVolume(volume);
@@ -147,22 +144,38 @@ export function YouTubePlayer({
       console.error("Error setting volume:", e);
     }
   }, [volume]);
+  
+  useEffect(() => {
+    if (!playerRef.current || seekTime === undefined || typeof playerRef.current.getCurrentTime !== 'function') return;
+
+    try {
+      const currentPlayerTime = playerRef.current.getCurrentTime();
+      // Only seek if the difference is significant (> 2 seconds) to avoid loops
+      if (Math.abs(currentPlayerTime - seekTime) > 2) {
+        playerRef.current.seekTo(seekTime, true);
+      }
+    } catch (e) {
+      console.error("Error seeking video:", e);
+    }
+  }, [seekTime]);
 
   useEffect(() => {
-    if (!playerRef.current) return;
+    if (!playerRef.current || !isReady) return;
 
     // Update time more frequently for smoother playback (every 500ms)
     intervalRef.current = setInterval(() => {
       try {
-        const currentTime = playerRef.current.getCurrentTime();
-        const duration = playerRef.current.getDuration();
-        if (
-          currentTime !== undefined &&
-          currentTime !== null &&
-          duration &&
-          duration > 0
-        ) {
-          onTimeUpdate?.(currentTime, duration);
+        if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+          const currentTime = playerRef.current.getCurrentTime();
+          const duration = playerRef.current.getDuration();
+          if (
+            currentTime !== undefined &&
+            currentTime !== null &&
+            duration &&
+            duration > 0
+          ) {
+            onTimeUpdate?.(currentTime, duration);
+          }
         }
       } catch (e) {
         // Ignore errors (player might not be ready)
@@ -174,7 +187,7 @@ export function YouTubePlayer({
         clearInterval(intervalRef.current);
       }
     };
-  }, [onTimeUpdate]);
+  }, [onTimeUpdate, isReady]);
 
   // Expose player methods
   useEffect(() => {
@@ -185,15 +198,26 @@ export function YouTubePlayer({
 
   if (!videoId) {
     return (
-      <div className="from-deep-purple to-ocean-blue flex h-full w-full items-center justify-center bg-gradient-to-br">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-2 text-lg">
-            No video selected
-          </p>
-          <p className="text-muted-foreground text-sm">
-            Search and select a song to start playing
-          </p>
+      <div className="flex h-full w-full flex-col items-center justify-center bg-zinc-900 p-6 text-center">
+        <div className="mb-6 rounded-full bg-zinc-800 p-6 shadow-xl">
+          <svg
+            className="h-12 w-12 text-zinc-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+            />
+          </svg>
         </div>
+        <h3 className="mb-2 text-xl font-bold text-white">No song playing</h3>
+        <p className="max-w-[260px] text-sm text-zinc-400">
+          Search for a song or add music to the queue to get the party started.
+        </p>
       </div>
     );
   }

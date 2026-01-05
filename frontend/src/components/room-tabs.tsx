@@ -9,31 +9,7 @@ import { MembersTab } from "./tabs/members-tab";
 
 type TabType = "now-playing" | "chat" | "queue" | "members";
 
-interface Song {
-  id: string;
-  videoId: string;
-  title: string;
-  artist: string;
-  duration: string;
-  thumbnail?: string;
-}
-
-interface ChatMessage {
-  id: string;
-  userId: string;
-  username: string;
-  avatar?: string;
-  message: string;
-  timestamp: string;
-}
-
-interface RoomMember {
-  _id?: string;
-  id?: string;
-  username: string;
-  email?: string;
-  avatar?: string;
-}
+import type { Song, ChatMessage, RoomMember } from "@frontend/types";
 
 interface RoomTabsProps {
   queue?: Song[];
@@ -45,6 +21,14 @@ interface RoomTabsProps {
   roomMembers?: RoomMember[];
   isHost?: boolean;
   onReorderQueue?: (fromIndex: number, toIndex: number) => void;
+  onRequestSong?: (song: Song) => void;
+  requests?: Song[];
+  onApproveRequest?: (id: string) => void;
+  onRejectRequest?: (id: string) => void;
+  onRemoveSong?: (id: string) => void;
+  onPlaySong?: (id: string) => void;
+  onUpdateRole?: (userId: string, role: "dj" | "listener") => void;
+  onKickMember?: (userId: string) => void;
 }
 
 export function RoomTabs({
@@ -57,6 +41,14 @@ export function RoomTabs({
   roomMembers = [],
   isHost = false,
   onReorderQueue,
+  onRequestSong,
+  requests = [],
+  onApproveRequest,
+  onRejectRequest,
+  onRemoveSong,
+  onPlaySong,
+  onUpdateRole,
+  onKickMember,
 }: RoomTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>("chat");
 
@@ -68,9 +60,9 @@ export function RoomTabs({
   ] as const;
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex h-full w-full flex-col bg-card">
       {/* Tab navigation with Premium Design */}
-      <div className="flex gap-2 overflow-x-auto border-b-2 border-deep-purple/20 p-4 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto border-b border-border p-2 scrollbar-hide bg-muted/30">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -78,13 +70,13 @@ export function RoomTabs({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`smooth-transition flex items-center gap-2 rounded-xl px-5 py-2.5 whitespace-nowrap font-500 ${
+              className={`smooth-transition flex items-center gap-2 rounded-lg px-4 py-3 whitespace-nowrap font-medium text-sm flex-1 justify-center ${
                 isActive
-                  ? "from-deep-purple to-electric-magenta text-soft-white neon-glow bg-gradient-to-r shadow-lg shadow-electric-magenta/20"
-                  : "glass-card hover:border-electric-magenta text-muted-foreground hover:text-soft-white border-2 border-transparent"
+                  ? "bg-background text-foreground shadow-sm border border-border"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={`h-4 w-4 ${isActive ? 'text-primary' : ''}`} />
               <span>{tab.label}</span>
             </button>
           );
@@ -92,8 +84,8 @@ export function RoomTabs({
       </div>
 
       {/* Tab content with proper overflow handling */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto">
+      <div className="flex-1 overflow-hidden relative">
+        <div className="absolute inset-0 overflow-y-auto">
           {activeTab === "now-playing" && (
             <NowPlayingTab currentSong={currentSong} />
           )}
@@ -108,8 +100,15 @@ export function RoomTabs({
           {activeTab === "queue" && (
             <QueueTab
               queue={queue}
+              requests={requests}
               onReorderQueue={onReorderQueue}
               isHost={isHost}
+              onRequestSong={onRequestSong}
+              onApproveRequest={onApproveRequest}
+              onRejectRequest={onRejectRequest}
+              onRemoveSong={onRemoveSong}
+              onPlaySong={onPlaySong}
+              currentUserId={currentUserId}
             />
           )}
           {activeTab === "members" && (
@@ -117,6 +116,9 @@ export function RoomTabs({
               members={roomMembers}
               currentUserId={currentUserId}
               isHost={isHost}
+              onPromoteDJ={(id) => onUpdateRole?.(id, 'dj')}
+              onDemote={(id) => onUpdateRole?.(id, 'listener')}
+              onKick={onKickMember}
             />
           )}
         </div>

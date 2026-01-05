@@ -1,102 +1,87 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@plugin "tailwindcss-animate";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* SONIQ Nightwave Palette */
-  --deep-purple: #6c2bd9;
-  --electric-magenta: #d65df2;
-  --midnight-black: #0f0b24;
-  --ocean-blue: #3b82f6;
-  --soft-white: #f2f4f8;
-  --deep-navy: #1a1633;
-  --neon-pink: #ff006e;
-  --neon-cyan: #00f5ff;
+  /* SONIQ Premium Palette - Light Mode */
+  --background: #ffffff;
+  --foreground: #020617; /* Slate 950 for better contrast on white */
+  
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  
+  --primary: #1DB954; /* Spotify Green */
+  --primary-foreground: #ffffff;
+  
+  --secondary: #f1f5f9; /* Slate 100 */
+  --secondary-foreground: #1e293b; /* Slate 800 */
+  
+  --muted: #f1f5f9; /* Slate 100 */
+  --muted-foreground: #64748b; /* Slate 500 */
+  
+  --accent: #f8fafc; /* Slate 50 */
+  --accent-foreground: #1e293b;
+  
+  --destructive: #ef4444; /* Red 500 */
+  --destructive-foreground: #ffffff;
+  
+  --border: #e2e8f0; /* Slate 200 */
+  --input: #e2e8f0;
+  --ring: #1DB954;
+  
+  --radius: 0.75rem;
 
-  /* Design Tokens */
-  --background: #0f0b24;
-  --foreground: #f2f4f8;
-  --card: #1a1633;
-  --card-foreground: #f2f4f8;
-  --primary: #6c2bd9;
-  --primary-foreground: #f2f4f8;
-  --secondary: #d65df2;
-  --secondary-foreground: #0f0b24;
-  --muted: #403d52;
-  --muted-foreground: #a8a5b8;
-  --accent: #3b82f6;
-  --accent-foreground: #f2f4f8;
-  --destructive: #ff006e;
-  --destructive-foreground: #f2f4f8;
-  --border: #2d2547;
-  --input: #1a1633;
-  --ring: #6c2bd9;
-  --radius: 0.875rem;
-
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Custom Sonic Brand Colors */
+  --brand-violet: #7c3aed;
+  --brand-magenta: #d946ef;
+  --brand-cyan: #06b6d4;
+  --brand-navy: #1e1b4b;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* SONIQ Premium Palette - Dark Mode */
+  --background: #000000; /* Pure Black */
+  --foreground: #f8fafc; /* Slate 50 */
+  
+  --card: #121212; /* Spotify Dark Gray */
+  --card-foreground: #f8fafc;
+  
+  --popover: #121212;
+  --popover-foreground: #f8fafc;
+  
+  --primary: #1DB954; /* Spotify Green */
+  --primary-foreground: #000000;
+  
+  --secondary: #282828; /* Spotify Light Gray */
+  --secondary-foreground: #f8fafc;
+  
+  --muted: #282828;
+  --muted-foreground: #a1a1aa; /* Zinc 400 */
+  
+  --accent: #282828;
+  --accent-foreground: #f8fafc;
+  
+  --destructive: #7f1d1d; /* Red 900 */
+  --destructive-foreground: #f8fafc;
+  
+  --border: #282828;
+  --input: #282828;
+  --ring: #1DB954;
 }
 
 @theme inline {
-  --color-deep-purple: var(--deep-purple);
-  --color-electric-magenta: var(--electric-magenta);
-  --color-midnight-black: var(--midnight-black);
-  --color-ocean-blue: var(--ocean-blue);
-  --color-soft-white: var(--soft-white);
-  --color-deep-navy: var(--deep-navy);
-  --color-neon-pink: var(--neon-pink);
-  --color-neon-cyan: var(--neon-cyan);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -110,24 +95,20 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Spotify-like Brand Colors */
+  --color-spotify-green: #1DB954;
+  --color-spotify-black: #191414;
+  --color-spotify-dark-gray: #121212;
+  --color-spotify-light-gray: #282828;
 }
+
+
+
 
 @layer base {
   * {
@@ -135,88 +116,61 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-family: var(--font-outfit), "Inter", system-ui, -apple-system, sans-serif;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  /* Premium Typography */
+  h1, h2, h3, h4, h5, h6 {
     font-family: "Poppins", system-ui, -apple-system, sans-serif;
+    @apply tracking-tight;
   }
-
-  h1 {
-    @apply font-extrabold text-4xl tracking-tight;
-  }
-
-  h2 {
-    @apply font-bold text-3xl tracking-tight;
-  }
-
-  h3 {
-    @apply font-bold text-2xl tracking-tight;
-  }
-
-  h4 {
-    @apply font-semibold text-xl tracking-tight;
-  }
-
-  p {
-    @apply text-base leading-relaxed;
-  }
-
-  label {
-    @apply font-medium text-sm;
-  }
+  h1 { @apply text-4xl font-bold lg:text-5xl; }
+  h2 { @apply text-3xl font-semibold; }
+  h3 { @apply text-2xl font-semibold; }
+  h4 { @apply text-xl font-medium; }
 }
 
 @layer components {
-  .neon-glow {
-    box-shadow: 0 0 20px rgba(108, 43, 217, 0.3), 0 0 40px rgba(214, 93, 242, 0.2);
+  /* Glassmorphism Card Utility */
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-xl border border-border/50 dark:border-white/5 shadow-sm;
+  }
+  
+  .glass-card-hover {
+    @apply hover:bg-card/80 transition-all duration-300;
   }
 
-  .glow-pulse {
-    animation: glow-pulse 2s ease-in-out infinite;
+  /* Neon/Glow Effects */
+  .neon-text {
+    text-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
   }
-
+  
+  .glow-box {
+    box-shadow: 0 0 20px -5px var(--primary);
+  }
+  
   .smooth-transition {
     @apply transition-all duration-300 ease-in-out;
   }
-
-  .neon-gradient {
-    @apply bg-gradient-to-r from-deep-purple via-electric-magenta to-neon-pink;
-  }
 }
 
-@keyframes glow-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(108, 43, 217, 0.3), 0 0 40px rgba(214, 93, 242, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(108, 43, 217, 0.5), 0 0 60px rgba(214, 93, 242, 0.3);
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
 }
 
-@keyframes waveform {
-  0%,
-  100% {
-    transform: scaleY(0.3);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-}
-
+/* Utility to hide scrollbar */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }

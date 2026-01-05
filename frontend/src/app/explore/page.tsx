@@ -87,22 +87,26 @@ export default function ExplorePage() {
   }));
 
   return (
-    <div className="from-midnight-black via-deep-navy to-midnight-black text-soft-white min-h-screen bg-gradient-to-b pb-32">
+    <div className="bg-background text-foreground min-h-screen pb-32">
       {/* Header Section */}
       <div className="mx-auto max-w-7xl px-4 pt-12 pb-8">
-        <div
-          className="relative mx-auto max-w-3xl rounded-3xl border-2 p-8 text-center"
-          style={{
-            borderImage: "linear-gradient(135deg, #6C2BD9, #D65DF2, #ff006e) 1",
-            background:
-              "linear-gradient(135deg, rgba(108, 43, 217, 0.1) 0%, rgba(214, 93, 242, 0.05) 100%)",
-            backdropFilter: "blur(10px)",
-          }}
-        >
-          <h1 className="mb-3 text-5xl font-bold text-white">Explore Rooms</h1>
-          <p className="text-muted-foreground text-lg">
+        <div className="relative mx-auto max-w-3xl rounded-3xl border border-border p-8 text-center bg-card shadow-sm">
+          <h1 className="mb-3 text-5xl font-bold text-foreground tracking-tight">Explore Rooms</h1>
+          <p className="text-muted-foreground text-lg mb-8">
             Join live music rooms, discover trending vibes, and connect with people listening right now.
           </p>
+          
+          {/* Main Search Bar */}
+          <div className="relative max-w-xl mx-auto">
+             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary h-5 w-5" />
+             <input 
+                type="text"
+                placeholder="Search for rooms, vibes, or genres..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-muted border border-border rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-foreground shadow-inner"
+             />
+          </div>
         </div>
       </div>
 
@@ -113,10 +117,10 @@ export default function ExplorePage() {
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`smooth-transition whitespace-nowrap rounded-xl px-6 py-3 font-semibold ${
+              className={`smooth-transition whitespace-nowrap rounded-xl px-6 py-3 font-semibold text-sm ${
                 selectedCategory === category
-                  ? "from-deep-purple to-electric-magenta text-soft-white bg-gradient-to-r shadow-lg shadow-electric-magenta/30"
-                  : "glass-card hover:border-electric-magenta text-muted-foreground hover:text-soft-white"
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                  : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border/50"
               }`}
             >
               {category}
@@ -128,7 +132,7 @@ export default function ExplorePage() {
       {/* Live Now Rooms */}
       <div className="mx-auto max-w-7xl px-4 pb-12">
         <div className="mb-6">
-          <h2 className="text-soft-white mb-2 flex items-center gap-2 text-2xl font-bold">
+          <h2 className="text-foreground mb-2 flex items-center gap-2 text-2xl font-bold tracking-tight">
             <span className="text-2xl">🔥</span>
             Live Now
           </h2>
@@ -136,56 +140,55 @@ export default function ExplorePage() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {isLoading ? (
             <div className="col-span-3 flex items-center justify-center py-12">
-              <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+              <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
             </div>
           ) : liveNowRooms.length === 0 ? (
-            <div className="col-span-3 text-center py-12 text-muted-foreground">
+            <div className="col-span-3 text-center py-12 text-muted-foreground bg-card rounded-2xl border border-dashed border-border">
               No rooms available
             </div>
           ) : (
             liveNowRooms.map((room) => (
-            <Link
+            <div
               key={room.id}
-              href={`/room/${room.id}`}
-              className="glass-card group relative overflow-hidden rounded-2xl block"
+              className="bg-card group relative overflow-hidden rounded-2xl block border border-border shadow-sm hover:shadow-md transition-all"
             >
               {/* Room Image */}
-              <div className="from-deep-purple to-ocean-blue relative aspect-[4/3] overflow-hidden bg-gradient-to-br">
+              <div className="from-primary/10 to-primary/5 relative aspect-[4/3] overflow-hidden bg-gradient-to-br">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Music2 className="text-muted-foreground h-24 w-24 opacity-20" />
+                  <Music2 className="text-primary/20 h-24 w-24" />
                 </div>
                 {/* Live Now Badge */}
-                <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-red-500/90 px-3 py-1.5 backdrop-blur-sm">
+                <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-red-500/90 px-3 py-1.5 backdrop-blur-sm shadow-sm">
                   <div className="bg-white h-2 w-2 animate-pulse rounded-full" />
-                  <span className="font-600 text-xs text-white">Live Now 🔥</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-white">Live Now 🔥</span>
                 </div>
                 {/* Join Button Overlay */}
-                <div className="from-midnight-black/90 smooth-transition absolute inset-0 flex items-end bg-gradient-to-t to-transparent p-4 opacity-0 group-hover:opacity-100">
+                <div className="from-background/90 dark:from-black/90 smooth-transition absolute inset-0 flex items-center justify-center bg-gradient-to-t to-transparent opacity-0 group-hover:opacity-100 backdrop-blur-[2px]">
                   <Link
                     href={`/room/${room.id}`}
-                    className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink text-soft-white w-full rounded-lg bg-gradient-to-r px-6 py-3 font-bold transition-all duration-300 text-center block"
+                    className="bg-primary text-primary-foreground w-max rounded-xl px-8 py-3 font-bold transition-all duration-300 shadow-xl hover:scale-105 active:scale-95"
                   >
                     Join Room
                   </Link>
                 </div>
               </div>
               {/* Room Info */}
-              <div className="p-4">
-                <h3 className="font-heading font-700 text-soft-white mb-1 text-lg">
+              <div className="p-5">
+                <h3 className="font-bold text-foreground mb-1 text-lg tracking-tight">
                   {room.title}
                 </h3>
-                <p className="text-muted-foreground mb-3 text-sm">By {room.host}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1 text-xs">
-                    <Users className="h-3 w-3" />
+                <p className="text-muted-foreground mb-4 text-sm font-medium">By {room.host}</p>
+                <div className="flex items-center justify-between border-t border-border pt-4">
+                  <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold uppercase tracking-tight">
+                    <Users className="h-4 w-4 text-primary" />
                     {room.listeners.toLocaleString()} listening
                   </span>
-                  <span className="text-electric-magenta border-electric-magenta/20 rounded-full border bg-[rgba(214,93,242,0.1)] px-2 py-1 text-xs">
+                  <span className="text-primary border-primary/20 rounded-full border bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
                     {room.mood}
                   </span>
                 </div>
               </div>
-            </Link>
+            </div>
             ))
           )}
         </div>
@@ -194,7 +197,7 @@ export default function ExplorePage() {
       {/* Trending Rooms */}
       <div className="mx-auto max-w-7xl px-4 pb-12">
         <div className="mb-6">
-          <h2 className="text-soft-white mb-2 flex items-center gap-2 text-2xl font-bold">
+          <h2 className="text-foreground mb-2 flex items-center gap-2 text-2xl font-bold tracking-tight">
             <span className="text-2xl">🔥</span>
             Trending Rooms
           </h2>
@@ -202,10 +205,10 @@ export default function ExplorePage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {isLoading ? (
             <div className="col-span-3 flex items-center justify-center py-12">
-              <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+              <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
             </div>
           ) : trendingRooms.length === 0 ? (
-            <div className="col-span-3 text-center py-12 text-muted-foreground">
+            <div className="col-span-3 text-center py-12 text-muted-foreground bg-card rounded-xl border border-dashed border-border">
               No trending rooms available
             </div>
           ) : (
@@ -213,21 +216,21 @@ export default function ExplorePage() {
               <Link
                 key={room.id}
                 href={`/room/${room.id}`}
-                className="glass-card hover:border-electric-magenta smooth-transition group rounded-xl p-4 block"
+                className="bg-card hover:bg-muted/50 border border-border shadow-sm smooth-transition group rounded-xl p-5 block"
               >
-              <div className="mb-3 flex items-start justify-between">
+              <div className="mb-4 flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="font-heading font-600 text-soft-white mb-1 text-base">
+                  <h3 className="font-bold text-foreground mb-1 text-base tracking-tight truncate">
                     {room.title}
                   </h3>
-                  <p className="text-muted-foreground text-xs">{room.host}</p>
+                  <p className="text-muted-foreground text-xs font-medium">By {room.host}</p>
                 </div>
               </div>
-              <div className="mb-3 flex items-center gap-2">
+              <div className="mb-4 flex items-center gap-2">
                 {room.avatars?.map((avatar, idx) => (
                   <div
                     key={idx}
-                    className="from-deep-purple to-electric-magenta flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r text-xs"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-muted border border-border text-xs shadow-sm"
                   >
                     {avatar}
                   </div>
@@ -237,7 +240,7 @@ export default function ExplorePage() {
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div
                       key={i}
-                      className="from-deep-purple to-electric-magenta w-1 rounded-full bg-gradient-to-t"
+                      className="bg-primary/40 w-1 rounded-full group-hover:bg-primary transition-colors"
                       style={{
                         height: `${10 + i * 2}px`,
                         animation: `waveform ${0.5 + i * 0.1}s ease-in-out infinite`,
@@ -247,11 +250,11 @@ export default function ExplorePage() {
                   ))}
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground text-xs">
-                  {room.listeners} listening
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+                  {room.listeners.toLocaleString()} listening
                 </span>
-                <span className="text-muted-foreground text-xs">{room.timeAgo}</span>
+                <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">{room.timeAgo}</span>
               </div>
               </Link>
             ))
@@ -262,7 +265,7 @@ export default function ExplorePage() {
       {/* Rooms by Mood */}
       <div className="mx-auto max-w-7xl px-4 pb-12">
         <div className="mb-6">
-          <h2 className="text-soft-white mb-2 flex items-center gap-2 text-2xl font-bold">
+          <h2 className="text-foreground mb-2 flex items-center gap-2 text-2xl font-bold tracking-tight">
             <span className="text-2xl">🍃</span>
             Rooms by Mood
           </h2>
@@ -274,18 +277,18 @@ export default function ExplorePage() {
               <button
                 key={mood.id}
                 onClick={() => setSelectedMood(mood.id)}
-                className={`smooth-transition flex min-w-[120px] flex-col items-center gap-2 rounded-xl p-4 ${
+                className={`smooth-transition flex min-w-[120px] flex-col items-center gap-3 rounded-2xl p-6 border transition-all ${
                   selectedMood === mood.id
-                    ? "from-deep-purple to-electric-magenta bg-gradient-to-r text-soft-white shadow-lg shadow-electric-magenta/30"
-                    : "glass-card hover:border-electric-magenta text-muted-foreground hover:text-soft-white"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border-primary"
+                    : "bg-card hover:bg-muted text-muted-foreground hover:text-foreground border-border shadow-sm"
                 }`}
               >
                 {mood.emoji ? (
-                  <span className="text-3xl">{mood.emoji}</span>
+                  <span className="text-3xl filter drop-shadow-sm">{mood.emoji}</span>
                 ) : (
-                  <Icon className="h-8 w-8" />
+                  <Icon className={`h-8 w-8 ${selectedMood === mood.id ? 'text-primary-foreground' : 'text-primary'}`} />
                 )}
-                <span className="font-500 text-sm">{mood.label}</span>
+                <span className="font-bold text-xs uppercase tracking-widest">{mood.label}</span>
               </button>
             );
           })}
@@ -295,7 +298,7 @@ export default function ExplorePage() {
       {/* New & Rising Rooms */}
       <div className="mx-auto max-w-7xl px-4 pb-12">
         <div className="mb-6">
-          <h2 className="text-soft-white mb-2 flex items-center gap-2 text-2xl font-bold">
+          <h2 className="text-foreground mb-2 flex items-center gap-2 text-2xl font-bold tracking-tight">
             <span className="text-2xl">✨</span>
             New & Rising Rooms
           </h2>
@@ -305,18 +308,23 @@ export default function ExplorePage() {
             <Link
               key={room.id}
               href={`/room/${room.id}`}
-              className="glass-card hover:border-electric-magenta smooth-transition group flex items-center justify-between rounded-xl p-4"
+              className="bg-card hover:bg-muted border border-border shadow-sm smooth-transition group flex items-center justify-between rounded-2xl p-5"
             >
-              <div>
-                <h3 className="font-heading font-600 text-soft-white mb-1 text-base">
-                  {room.title}
-                </h3>
-                <p className="text-muted-foreground flex items-center gap-1 text-sm">
-                  <Users className="h-3 w-3" />
-                  {room.listeners} listeners
-                </p>
+              <div className="flex items-center gap-4">
+                 <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center text-primary border border-border">
+                    <Music className="h-5 w-5" />
+                 </div>
+                 <div>
+                    <h3 className="font-bold text-foreground mb-0.5 text-base tracking-tight">
+                      {room.title}
+                    </h3>
+                    <p className="text-muted-foreground flex items-center gap-1.5 text-xs font-bold uppercase tracking-tight">
+                      <Users className="h-3.5 w-3.5 text-primary" />
+                      {room.listeners.toLocaleString()} listeners
+                    </p>
+                 </div>
               </div>
-              <button className="from-deep-purple to-electric-magenta text-soft-white smooth-transition rounded-lg bg-gradient-to-r px-4 py-2 text-sm font-semibold opacity-0 group-hover:opacity-100">
+              <button className="bg-primary text-primary-foreground smooth-transition rounded-xl px-6 py-2.5 text-xs font-black uppercase tracking-widest shadow-md opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0">
                 Join
               </button>
             </Link>

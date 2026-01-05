@@ -12,11 +12,14 @@ import {
   Share2,
   Crown,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 interface PlayerControlsProps {
   isPlaying?: boolean;
-  isDJ?: boolean;
+  isDJ?: boolean; // Used for badge/admin styling
+  canPlay?: boolean; // Permission to play/pause
+  canSkip?: boolean; // Permission to skip
+  canSeek?: boolean; // Permission to seek
   volume?: number;
   currentTime?: number;
   duration?: number;
@@ -25,12 +28,15 @@ interface PlayerControlsProps {
   onSkip?: (direction: "prev" | "next") => void;
   onSeek?: (amount: number) => void;
   onVolumeChange?: (volume: number) => void;
-  onProgressClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onProgressClick?: (time: number) => void;
 }
 
 export function PlayerControls({
   isPlaying = false,
   isDJ = false,
+  canPlay = true, // Default to true if not specified
+  canSkip = true,
+  canSeek = true,
   volume = 80,
   currentTime = 0,
   duration = 0,
@@ -43,6 +49,9 @@ export function PlayerControls({
 }: PlayerControlsProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [previousVolume, setPreviousVolume] = useState(volume);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragProgress, setDragProgress] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -69,22 +78,70 @@ export function PlayerControls({
     }
   };
 
+  const calculateProgressFromClick = useCallback((e: React.MouseEvent | MouseEvent) => {
+    if (!progressBarRef.current || !duration || !canSeek) return null;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, x / rect.width));
+    return percentage;
+  }, [duration, canSeek]);
+
+  const handleProgressBarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canSeek || !duration) return;
+    setIsDragging(true);
+    const percentage = calculateProgressFromClick(e);
+    if (percentage !== null) {
+      setDragProgress(percentage * 100);
+    }
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const percentage = calculateProgressFromClick(e);
+      if (percentage !== null) {
+        setDragProgress(percentage * 100);
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      setIsDragging(false);
+      const percentage = calculateProgressFromClick(e);
+      if (percentage !== null && onProgressClick) {
+        onProgressClick(percentage * duration);
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, calculateProgressFromClick, duration, onProgressClick]);
+
+  const displayProgress = isDragging ? dragProgress : progress;
+
   return (
     <div className="w-full">
       {/* Progress bar */}
       <div className="mb-4">
         <div
-          className="group relative h-2 cursor-pointer overflow-hidden rounded-full bg-[rgba(108,43,217,0.2)]"
-          onClick={onProgressClick}
+          ref={progressBarRef}
+          className={`group relative h-2 overflow-hidden rounded-full bg-primary/20 ${canSeek ? "cursor-pointer" : "cursor-default"}`}
+          onMouseDown={handleProgressBarMouseDown}
         >
           <div
-            className="from-deep-purple to-electric-magenta absolute h-full rounded-full bg-gradient-to-r transition-all"
-            style={{ width: `${progress}%` }}
+            className="from-primary to-primary/60 absolute h-full rounded-full bg-gradient-to-r transition-all"
+            style={{ width: `${displayProgress}%` }}
           />
-          <div
-            className="bg-electric-magenta shadow-electric-magenta/50 smooth-transition absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full opacity-0 shadow-lg group-hover:opacity-100"
-            style={{ left: `calc(${progress}% - 8px)` }}
-          />
+          {canSeek && (
+            <div
+              className={`bg-primary shadow-primary/50 smooth-transition absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full shadow-lg ${isDragging ? 'opacity-100 scale-125' : 'opacity-0 group-hover:opacity-100'}`}
+              style={{ left: `calc(${displayProgress}% - 8px)` }}
+            />
+          )}
         </div>
         <div className="text-muted-foreground mt-2 flex justify-between text-xs">
           <span>{formatTime(currentTime)}</span>
@@ -94,19 +151,21 @@ export function PlayerControls({
 
       {/* Main controls */}
       <div className="mb-6 flex items-center justify-center gap-2">
-        {isDJ && (
-          <button
-            onClick={() => onSkip?.("prev")}
-            className="glass-card hover:border-deep-purple smooth-transition p-3"
-            title="Previous"
-          >
-            <SkipBack className="text-ocean-blue h-5 w-5" />
-          </button>
-        )}
+        <button
+          onClick={() => onSkip?.("prev")}
+          disabled={!canSkip}
+          className={`glass-card smooth-transition p-3 ${!canSkip ? 'opacity-50 cursor-not-allowed' : 'hover:border-deep-purple'}`}
+          title="Previous"
+        >
+          <SkipBack className="text-ocean-blue h-5 w-5" />
+        </button>
 
         <button
-          onClick={onPlayPause}
-          className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink neon-glow smooth-transition rounded-full bg-gradient-to-r p-4"
+          onClick={() => {
+              if(canPlay) onPlayPause?.();
+          }}
+          disabled={!canPlay}
+          className={`from-deep-purple to-electric-magenta neon-glow smooth-transition rounded-full bg-gradient-to-r p-4 ${!canPlay ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:from-electric-magenta hover:to-neon-pink'}`}
           title={isPlaying ? "Pause" : "Play"}
         >
           {isPlaying ? (
@@ -116,15 +175,14 @@ export function PlayerControls({
           )}
         </button>
 
-        {isDJ && (
-          <button
-            onClick={() => onSkip?.("next")}
-            className="glass-card hover:border-ocean-blue smooth-transition p-3"
-            title="Next"
-          >
-            <SkipForward className="text-neon-cyan h-5 w-5" />
-          </button>
-        )}
+        <button
+          onClick={() => onSkip?.("next")}
+          disabled={!canSkip}
+          className={`glass-card smooth-transition p-3 ${!canSkip ? 'opacity-50 cursor-not-allowed' : 'hover:border-ocean-blue'}`}
+          title="Next"
+        >
+          <SkipForward className="text-neon-cyan h-5 w-5" />
+        </button>
       </div>
 
       {/* Secondary controls - DJ only */}

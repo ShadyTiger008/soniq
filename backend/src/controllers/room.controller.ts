@@ -28,8 +28,8 @@ export async function createRoom(
       isPrivate: isPrivate || false,
       maxListeners: maxListeners || 1000,
       hostId: req.userId,
-      listenerCount: 0,
-      members: [req.userId] // Host is automatically a member
+      listenerCount: 1, // Host is automatically a member
+      members: [req.userId]
     };
 
     const room = await roomService.createRoom(roomData);
@@ -69,7 +69,8 @@ export async function getRooms(
       page: Number(page),
       limit: Number(limit),
       mood: mood as string,
-      search: search as string
+      search: search as string,
+      sort: req.query.sort as string
     });
 
     res.json({
@@ -105,14 +106,16 @@ export async function getRoom(
     if (roomData._id) {
       roomData._id = String(roomData._id);
     }
-    // Also convert nested ObjectIds
-    if (
-      roomData.hostId &&
-      typeof roomData.hostId === "object" &&
-      roomData.hostId._id
-    ) {
-      roomData.hostId._id = String(roomData.hostId._id);
+    
+    // Ensure hostId is a string
+    if (roomData.hostId) {
+      if (typeof roomData.hostId === "object" && roomData.hostId._id) {
+         roomData.hostId._id = String(roomData.hostId._id);
+      } else if (typeof roomData.hostId !== "object") {
+         roomData.hostId = String(roomData.hostId);
+      }
     }
+
     if (roomData.members && Array.isArray(roomData.members)) {
       roomData.members = roomData.members.map((member: any) => {
         if (member && member._id) {

@@ -1,11 +1,4 @@
-interface Song {
-  id: string;
-  videoId: string;
-  title: string;
-  artist: string;
-  duration: string;
-  thumbnail?: string;
-}
+import type { Song } from "@frontend/types";
 
 interface NowPlayingTabProps {
   currentSong?: Song | null;

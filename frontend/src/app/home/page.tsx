@@ -9,6 +9,7 @@ import { useAuth } from "@frontend/lib/auth-context";
 import { apiClient } from "@frontend/lib/api-client";
 import { toast } from "sonner";
 import Link from "next/link";
+import { AppShell } from "@frontend/components/layout/app-shell";
 
 interface Room {
   _id: string;
@@ -58,124 +59,115 @@ export default function HomePage() {
       toast.error("Please enter a room code or ID");
       return;
     }
-    // Try to join by ID or invite code
     router.push(`/room/${quickJoin.trim()}`);
   };
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="from-midnight-black via-deep-navy to-midnight-black flex min-h-screen items-center justify-center bg-gradient-to-b">
-        <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
 
+  // Time-based greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
   return (
-    <div className="from-midnight-black via-deep-navy to-midnight-black text-soft-white min-h-screen bg-gradient-to-b pb-32">
-      <div
-        className="border-deep-purple/20 sticky top-0 z-20 border-b"
-        style={{
-          backdropFilter: "blur(10px)",
-          background: "rgba(15, 11, 36, 0.8)",
-        }}
-      >
-        <div className="mx-auto max-w-7xl px-4 py-6">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="from-ocean-blue to-electric-magenta flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br">
-                <Music className="text-soft-white h-7 w-7" />
-              </div>
-              <h1 className="from-deep-purple via-electric-magenta to-neon-pink bg-gradient-to-r bg-clip-text text-3xl font-bold text-transparent">
-                SONIQ
-              </h1>
-            </div>
-            <Link
-              href="/room/create"
-              className="from-deep-purple to-electric-magenta text-soft-white flex items-center gap-2 rounded-xl bg-gradient-to-r px-6 py-3 font-bold transition-all duration-300 hover:shadow-lg"
-              style={{ boxShadow: "0 0 20px rgba(108, 43, 217, 0.2)" }}
-            >
-              <Plus className="h-5 w-5" />
-              <span className="hidden sm:inline">Create Room</span>
-            </Link>
-          </div>
-
-          <div className="relative">
-            <Search className="text-muted-foreground absolute top-4 left-4 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Search rooms, artists, moods..."
-              className="border-deep-purple/30 text-soft-white placeholder-muted-foreground focus:border-electric-magenta focus:ring-electric-magenta/50 w-full rounded-xl border py-3 pr-4 pl-12 transition-all duration-300 focus:ring-2 focus:outline-none"
-              style={{
-                background: "rgba(26, 22, 51, 0.6)",
-                backdropFilter: "blur(8px)",
-              }}
-            />
-          </div>
+    <AppShell>
+      {/* Home Content Container */}
+      <div className="relative min-h-full w-full bg-background p-6 pb-32">
+        
+        {/* Top Header / Search */}
+        <div className="mb-8 flex items-center justify-between">
+           <div className="flex items-center gap-4">
+              {/* Optional: Navigation Arrows could go here */}
+           </div>
+           <div className="relative w-full max-w-md hidden md:block">
+           </div>
         </div>
-      </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-10">
-        <section className="mb-16">
-          <h2 className="text-soft-white mb-4 flex items-center gap-3 text-xl font-bold">
-            <div className="from-ocean-blue to-neon-cyan flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br">
-              <Music className="text-midnight-black h-5 w-5" />
+        {/* Hero / Greeting Section */}
+        <div className="mb-10">
+            <h1 className="mb-8 text-4xl font-black text-foreground tracking-tight">
+                {greeting}
+            </h1>
+            
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {/* Create Room Card */}
+                <div 
+                   onClick={() => router.push('/room/create')}
+                   className="group flex cursor-pointer items-center gap-5 rounded-2xl bg-card p-5 transition-all hover:bg-muted border border-border/50 shadow-sm hover:shadow-md"
+                >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg group-hover:scale-105 transition-transform">
+                        <Plus className="h-6 w-6 text-primary-foreground" />
+                    </div>
+                    <div>
+                        <span className="block font-bold text-foreground">Create New Room</span>
+                        <span className="text-xs text-muted-foreground font-medium">Start your own session</span>
+                    </div>
+                </div>
+
+                {/* Quick Join Card (Input) */}
+                <div className="col-span-1 md:col-span-2 lg:col-span-2 flex items-center gap-3 rounded-2xl bg-card p-4 transition-all focus-within:ring-2 focus-within:ring-primary/20 border border-border/50 shadow-sm">
+                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Search className="h-6 w-6" />
+                     </div>
+                     <input 
+                        type="text"
+                        placeholder="Enter room code to join..."
+                        value={quickJoin}
+                        onChange={(e) => setQuickJoin(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleQuickJoin()}
+                        className="w-full bg-transparent text-lg font-bold text-foreground placeholder-muted-foreground focus:outline-none"
+                     />
+                     <button 
+                        onClick={handleQuickJoin}
+                        className="shrink-0 rounded-xl bg-primary px-8 py-3 font-black text-primary-foreground text-sm uppercase tracking-widest transition-all hover:scale-105 shadow-lg shadow-primary/20"
+                     >
+                        Join
+                     </button>
+                </div>
             </div>
-            Quick Join
-          </h2>
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={quickJoin}
-              onChange={(e) => setQuickJoin(e.target.value)}
-              placeholder="Paste room code or invite link..."
-              className="border-deep-purple/30 text-soft-white placeholder-muted-foreground focus:border-electric-magenta flex-1 rounded-xl border px-4 py-3 transition-all duration-300 focus:outline-none"
-              style={{
-                background: "rgba(26, 22, 51, 0.6)",
-                backdropFilter: "blur(8px)",
-              }}
-            />
-            <button
-              onClick={handleQuickJoin}
-              className="from-deep-purple to-electric-magenta text-soft-white rounded-xl bg-gradient-to-r px-8 py-3 font-bold transition-all duration-300 hover:shadow-lg"
-              style={{ boxShadow: "0 0 15px rgba(108, 43, 217, 0.2)" }}
-            >
-              Join
-            </button>
-          </div>
-        </section>
+        </div>
 
+        {/* Trending Section */}
         <section>
-          <h2 className="text-soft-white mb-6 flex items-center gap-3 text-xl font-bold">
-            <Flame className="text-neon-pink h-5 w-5" />
-            Trending Now
-          </h2>
-          {isLoadingRooms ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+            <div className="mb-6 flex items-end justify-between">
+                <h2 className="text-2xl font-black text-foreground tracking-tight hover:text-primary transition-colors cursor-pointer">
+                    Trending Rooms
+                </h2>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                    Show All
+                </span>
             </div>
-          ) : trendingRooms.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No rooms available. Create one to get started!
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {trendingRooms.map((room) => (
-                <RoomCard
-                  key={room._id}
-                  id={room._id}
-                  title={room.name}
-                  listeners={room.listenerCount}
-                  mood={room.mood}
-                  host={typeof room.hostId === "object" ? room.hostId?.username || "Unknown" : "Unknown"}
-                  isLive={true}
-                />
-              ))}
-            </div>
-          )}
+            
+            {isLoadingRooms ? (
+                <div className="flex h-40 items-center justify-center text-muted-foreground font-bold italic tracking-widest">
+                   Loading vibes...
+                </div>
+            ) : trendingRooms.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-12 text-center text-muted-foreground font-medium">
+                    No public rooms active right now. Start the party!
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                    {trendingRooms.map((room) => (
+                         <RoomCard
+                            key={room._id}
+                            id={room._id}
+                            title={room.name}
+                            listeners={room.listenerCount}
+                            mood={room.mood}
+                            host={typeof room.hostId === "object" ? room.hostId?.username || "Unknown" : "Unknown"}
+                            isLive={true} 
+                         />
+                    ))}
+                </div>
+            )}
         </section>
       </div>
-
-      <BottomNowPlaying />
-    </div>
+    </AppShell>
   );
 }

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Search, X, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, X, Clock, Music } from "lucide-react";
+import { apiClient } from "@frontend/lib/api-client";
+import type { Song } from "@frontend/types";
 
 interface RequestSongModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit?: (query: string) => void;
+  onSubmit?: (song: Song) => void;
 }
 
 export function RequestSongModal({
@@ -15,15 +17,50 @@ export function RequestSongModal({
   onSubmit,
 }: RequestSongModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [results, setResults] = useState([
-    { id: "1", title: "Song Title 1", artist: "Artist Name", duration: "3:45" },
-    { id: "2", title: "Song Title 2", artist: "Artist Name", duration: "4:12" },
-    { id: "3", title: "Song Title 3", artist: "Artist Name", duration: "3:28" },
-  ]);
+  const [results, setResults] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleRequestSong = (songId: string) => {
-    console.log(`Requested song: ${songId}`);
-    onClose();
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery("");
+      setResults([]);
+      return;
+    }
+  }, [isOpen]);
+
+  // Debounced search
+  useEffect(() => {
+    const searchSongs = async () => {
+      if (!searchQuery.trim()) {
+        setResults([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await apiClient.searchYouTube(searchQuery);
+        if (response.success && response.data) {
+          setResults(response.data);
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      searchSongs();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const handleRequestSong = (song: Song) => {
+    if (onSubmit) {
+      onSubmit(song);
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
@@ -67,34 +104,55 @@ export function RequestSongModal({
         </div>
 
         {/* Results */}
-        <div className="flex-1 space-y-2 overflow-y-auto p-4">
-          {results.map((song) => (
-            <button
-              key={song.id}
-              onClick={() => handleRequestSong(song.id)}
-              className="glass-card hover:border-electric-magenta smooth-transition group w-full rounded-lg p-3 text-left"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-600 text-soft-white group-hover:text-electric-magenta smooth-transition">
-                    {song.title}
-                  </p>
-                  <p className="text-muted-foreground text-sm">{song.artist}</p>
+        <div className="flex-1 space-y-2 overflow-y-auto p-4 min-h-[300px]">
+          {loading ? (
+             <div className="flex items-center justify-center h-40">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-magenta"></div>
+             </div>
+          ) : results.length > 0 ? (
+            results.map((song) => (
+              <button
+                key={song.id}
+                onClick={() => handleRequestSong(song)}
+                className="glass-card hover:border-electric-magenta smooth-transition group w-full rounded-lg p-3 text-left"
+              >
+                <div className="flex items-center gap-3">
+                   {song.thumbnail ? (
+                      <img src={song.thumbnail} alt={song.title} className="h-10 w-10 rounded object-cover bg-black/50" />
+                   ) : (
+                      <div className="h-10 w-10 rounded bg-white/10 flex items-center justify-center">
+                        <Music className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                   )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-600 text-soft-white group-hover:text-electric-magenta smooth-transition truncate">
+                      {song.title}
+                    </p>
+                    <p className="text-muted-foreground text-sm truncate">{song.artist}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Clock className="text-muted-foreground h-4 w-4" />
+                    <span className="text-muted-foreground text-sm">
+                      {song.duration}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="text-muted-foreground h-4 w-4" />
-                  <span className="text-muted-foreground text-sm">
-                    {song.duration}
-                  </span>
-                </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))
+          ) : searchQuery ? (
+             <div className="text-center text-muted-foreground py-8">
+                No songs found for "{searchQuery}"
+             </div>
+          ) : (
+             <div className="text-center text-muted-foreground py-8">
+                Start typing to search for songs
+             </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="text-muted-foreground border-t border-[rgba(108,43,217,0.2)] p-4 text-center text-sm">
-          You have requested {3} songs today
+           All searches provided by YouTube
         </div>
       </div>
     </div>

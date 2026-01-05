@@ -17,7 +17,29 @@ import {
   LogOut,
   ArrowLeft,
   Play,
+  Pause,
+  GripVertical
 } from "lucide-react";
+import {
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+import { ThemeToggle } from "@frontend/components/theme-toggle";
+import { AppShell } from "@frontend/components/layout/app-shell";
 import { WaveformVisualizer } from "@frontend/components/waveform-visualizer";
 import { PlayerControls } from "@frontend/components/player-controls";
 import { RoomTabs } from "@frontend/components/room-tabs";
@@ -28,17 +50,64 @@ import {
 import { RoomSettingsModal } from "@frontend/components/room-settings-modal";
 import { useAuth } from "@frontend/lib/auth-context";
 import { apiClient } from "@frontend/lib/api-client";
-import { useSocket } from "@frontend/lib/socket-client";
+import { SocketProvider, useSocketContext } from "@frontend/lib/socket-context";
+import { useRoomPlayer } from "@frontend/hooks/use-room-player";
+import type { Song } from "@frontend/types";
 import { toast } from "sonner";
 import Link from "next/link";
+import { QueueSongItem } from "@frontend/components/queue-song-item";
 
-interface Song {
-  id: string;
-  videoId: string;
-  title: string;
-  artist: string;
-  duration: string;
-  thumbnail?: string;
+// Sortable Item Wrapper
+function SortableQueueItem({ song, index, isCurrent, onClick, isDJ }: any) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: song.id }); // Use direct stable ID
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className="relative group">
+            <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/10 dark:hover:bg-white/10 transition-all duration-300 bg-card/50 dark:bg-white/[0.03] backdrop-blur-md border border-border dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                 {/* Drag Handle */}
+                 {isDJ && (
+                    <div {...attributes} {...listeners} className="cursor-grab hover:text-primary text-muted-foreground transition-colors p-1">
+                        <GripVertical className="h-4 w-4" />
+                    </div>
+                 )}
+                 {!isDJ && (
+                    <div className="text-muted-foreground w-4 text-center text-sm font-mono">{index + 1}</div>
+                 )}
+                
+                 {/* Clickable Area for Play */}
+                 <div className="flex-1 min-w-0 flex items-center gap-4 cursor-pointer" onClick={() => onClick(song)}>
+                     <div className="h-10 w-10 bg-muted rounded flex items-center justify-center shrink-0 overflow-hidden">
+                        {song.thumbnail ? (
+                            <img src={song.thumbnail} alt={song.title} className="h-full w-full object-cover" /> 
+                        ) : <Music className="h-5 w-5 text-muted-foreground" />}
+                     </div>
+                      <div className="flex-1 min-w-0">
+                         <p className={`font-semibold truncate tracking-tight ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
+                             {song.title}
+                         </p>
+                         <p className="text-sm text-muted-foreground/80 truncate font-medium">{song.artist}</p>
+                      </div>
+                      <div className="text-right whitespace-nowrap">
+                        <span className="text-xs font-mono text-muted-foreground/60 block mb-0.5">{song.duration}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-bold">BY {song.requestedBy}</span>
+                      </div>
+                 </div>
+            </div>
+        </div>
+    );
 }
 
 export default function RoomPage() {
@@ -47,48 +116,13 @@ export default function RoomPage() {
   const { user, isAuthenticated } = useAuth();
   const roomId = (params?.id as string) || "default";
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isDJ, setIsDJ] = useState(false);
-  const [currentVideoId, setCurrentVideoId] = useState<string | null>(
-    "dQw4w9WgXcQ"
-  );
-  const [currentSong, setCurrentSong] = useState<Song | null>({
-    id: "1",
-    videoId: "dQw4w9WgXcQ",
-    title: "Never Gonna Give You Up",
-    artist: "Rick Astley",
-    duration: "3:33",
-  });
-  const [volume, setVolume] = useState(80);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false); // Prevent conflicts during sync
-  const [lastSocketTime, setLastSocketTime] = useState<number | null>(null);
-  const [isBuffering, setIsBuffering] = useState(false); // Track buffering state
-  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Debounce sync timeout
-  const playerReadyRef = useRef<boolean>(false); // Track if player is ready
-  const lastUserActionRef = useRef<number>(0); // Track when user last clicked a button
+  // State formerly handled manually is now in the hook
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
-  const [queue, setQueue] = useState<Song[]>([
-    {
-      id: "2",
-      videoId: "kJQP7kiw5Fk",
-      title: "Despacito",
-      artist: "Luis Fonsi",
-      duration: "3:47",
-    },
-    {
-      id: "3",
-      videoId: "9bZkp7q19f0",
-      title: "PSY - GANGNAM STYLE",
-      artist: "PSY",
-      duration: "4:12",
-    },
-  ]);
+  // queue is in hook
   const [copied, setCopied] = useState(false);
+
   const [shared, setShared] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -102,653 +136,144 @@ export default function RoomPage() {
   const [roomData, setRoomData] = useState<any>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
   const [isHost, setIsHost] = useState(false);
+  const lastUserActionRef = useRef<number>(0);
+  const playerReadyRef = useRef(false);
 
-  // Socket.IO integration
-  const {
-    isConnected,
-    playerState: socketPlayerState,
-    chatMessages,
-    listenerCount: socketListenerCount,
-    queueUpdate,
-    songChange,
-    roomMembers,
-    emitPlayerPlayPause,
-    emitPlayerSeek,
-    emitPlayerVolume,
-    emitPlayerSkip,
-    emitAddToQueue,
-    emitUpdateTime,
-    emitChatMessage,
-    emitReorderQueue,
-  } = useSocket(roomId && roomId !== "default" ? roomId : null);
-
-  // Fetch room data and join on mount
+  // Debounced search effect
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login?redirect=/room/" + roomId);
-      return;
-    }
+    const searchSongs = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        return;
+      }
 
-    // Only fetch if we have a valid room ID
-    if (roomId && roomId !== "default") {
-      fetchRoomData();
-    } else {
-      setIsLoadingRoom(false);
-      toast.error("Invalid room ID");
-      router.push("/home");
-    }
+      try {
+        const response = await apiClient.searchYouTube(searchQuery);
+        if (response.success && response.data) {
+          setSearchResults(response.data);
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+      }
+    };
 
-    // Don't leave room on unmount - only leave when user explicitly clicks "Leave Room"
-    // This prevents accidental room deletion when navigating away
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, isAuthenticated]);
+    const timeoutId = setTimeout(() => {
+      searchSongs();
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   const fetchRoomData = async () => {
-    setIsLoadingRoom(true);
     try {
-      const response = await apiClient.getRoom(roomId);
-      if (response.success && response.data) {
-        const room = response.data as any;
-        setRoomData(room);
-        setRoomSettings({
-          name: room.name,
-          listeners: room.listenerCount,
-          isPrivate: room.isPrivate,
-          maxListeners: room.maxListeners,
-          mood: room.mood,
+      if (!roomId || roomId === "default") {
+        setRoomData({
+          name: "Default Room",
+          isPrivate: false,
+          maxListeners: 100,
+          mood: "Chill",
+          hostId: "default",
         });
+        setIsLoadingRoom(false);
+        return;
+      }
 
-        // Check if user is host
-        if (user && room.hostId) {
-          const hostId =
-            typeof room.hostId === "object" ? room.hostId._id : room.hostId;
-          const userIsHost = String(user._id || user.id) === String(hostId);
-          setIsHost(userIsHost);
-          setIsDJ(userIsHost);
-        }
-
-        // Set current song if available
-        if (room.currentSong) {
-          setCurrentSong({
-            id: room.currentSong.videoId,
-            videoId: room.currentSong.videoId,
-            title: room.currentSong.title,
-            artist: room.currentSong.artist || "Unknown",
-            duration: formatDuration(room.currentSong.duration),
-          });
-          setCurrentVideoId(room.currentSong.videoId);
-
-          // If there's player state, apply it immediately (for mid-way joins)
-          if (room.playerState) {
-            // Calculate current time if playing
-            let currentTime = room.playerState.currentTime || 0;
-            if (room.playerState.isPlaying && room.playerState.lastUpdated) {
-              const timeSinceUpdate =
-                (Date.now() -
-                  new Date(room.playerState.lastUpdated).getTime()) /
-                1000;
-              currentTime = room.playerState.currentTime + timeSinceUpdate;
-              // Cap at song duration
-              if (room.currentSong.duration) {
-                currentTime = Math.min(currentTime, room.currentSong.duration);
-              }
-            }
-
-            setIsPlaying(room.playerState.isPlaying || false);
-            setCurrentTime(currentTime);
-            setVolume(room.playerState.volume || 80);
-
-            console.log("Applied initial player state:", {
-              currentTime,
-              isPlaying: room.playerState.isPlaying,
-              volume: room.playerState.volume,
-            });
-          }
-        }
-
-        // Set queue
-        if (room.queue && Array.isArray(room.queue)) {
-          setQueue(
-            room.queue.map((item: any) => ({
-              id: item.videoId,
-              videoId: item.videoId,
-              title: item.title,
-              artist: item.artist || "Unknown",
-              duration: formatDuration(item.duration),
-              requestedBy:
-                item.requestedBy?.username || item.requestedBy || "Unknown",
-            }))
-          );
-        }
-
-        // Update listener count from socket if available
-        if (socketListenerCount > 0) {
-          setRoomSettings((prev) => ({
-            ...prev,
-            listeners: socketListenerCount,
-          }));
-        }
-
-        // Join room (only if not already a member)
-        try {
-          await apiClient.joinRoom(roomId);
-          // Don't show toast for join if user is already in room
-        } catch (joinError: any) {
-          // If already a member or other error, continue anyway
-          if (joinError?.error && !joinError.error.includes("already")) {
-            console.warn("Join room warning:", joinError.error);
-          }
+      setIsLoadingRoom(true);
+      const response = await apiClient.getRoom(roomId);
+      
+      if (response.success && response.data) {
+        setRoomData(response.data);
+        setRoomSettings({
+          name: response.data.name,
+          listeners: response.data.listeners?.length || 0,
+          isPrivate: response.data.isPrivate,
+          maxListeners: response.data.maxListeners,
+          mood: response.data.mood || "General",
+        });
+        
+        // Check if current user is host
+        const hostId = typeof response.data.hostId === 'object' ? response.data.hostId._id : response.data.hostId;
+        const currentUserId = user?._id || user?.id;
+        
+        if (currentUserId && String(hostId) === String(currentUserId)) {
+          setIsHost(true);
+        } else {
+            setIsHost(false);
         }
       } else {
-        toast.error(response.error || "Room not found");
-        router.push("/home");
+        toast.error("Failed to load room details");
+        // Fallback for demo/development
+        setIsLoadingRoom(false);
       }
     } catch (error) {
-      console.error("Failed to load room:", error);
-      toast.error("Failed to load room");
-      router.push("/home");
+      console.error("Error fetching room:", error);
+      toast.error("Error loading room");
     } finally {
       setIsLoadingRoom(false);
     }
   };
 
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  // Sync player state from socket - CRITICAL FIX: Protected user actions + buffering protection
   useEffect(() => {
-    if (!socketPlayerState || !currentVideoId) return;
-
-    // PROTECTED USER ACTIONS: Don't sync if user just clicked a button (within last 2 seconds)
-    const timeSinceUserAction = Date.now() - lastUserActionRef.current;
-    if (timeSinceUserAction < 2000) {
-      console.log(
-        `[SYNC] Skipping sync - user action ${timeSinceUserAction}ms ago (protected)`
-      );
-      return; // User action is protected for 2 seconds
+    if (isAuthenticated) {
+      fetchRoomData();
     }
+  }, [roomId, isAuthenticated]);
 
-    // For play/pause state changes, apply immediately (no debounce)
-    // This ensures buttons work responsively
-    const playingChanged = isPlaying !== socketPlayerState.isPlaying;
-    if (playingChanged) {
-      console.log(
-        `[SYNC] Play/pause changed: ${isPlaying} -> ${socketPlayerState.isPlaying}`
-      );
-      setIsPlaying(socketPlayerState.isPlaying);
+  // Socket for Chat & Presence (Player logic is in useRoomPlayer)
+  const {
+      chatMessages,
+      listenerCount: socketListenerCount,
+      roomMembers,
+      emitChatMessage,
+      emitPlayerPlayPause,
+      emitReorderQueue,
+      emitPlayerVolume,
+      playerState: socketPlayerState,
+      isConnected,
+      emitUpdateRole,
+      emitKickMember,
+  } = useSocketContext();
 
-      // Immediately control player for play/pause changes
-      const player = (window as any).youtubePlayer;
-      if (player && typeof player.getPlayerState === "function") {
-        try {
-          const playerState = player.getPlayerState();
-          console.log(
-            `[SYNC] Player state: ${playerState}, target: ${
-              socketPlayerState.isPlaying ? "playing" : "paused"
-            }`
-          );
+  // useRoomPlayer Hook
+  const {
+    playerState,
+    togglePlayPause,
+    setVolume,
+    seekTo,
+    skipForward,
+    skipBackward,
+    addToQueue,
+    reorderQueue,
+    removeFromQueue,
+    playQueueItem,
+    playSong, // Exposed
+    requestSong,
+    approveRequest,
+    rejectRequest,
+    handleTimeUpdate,
+    setIsBuffering,
+    setIsPlaying,
+    setDuration,
+    toggleShuffle,
+    cycleRepeatMode
+  } = useRoomPlayer(roomId && roomId !== "default" ? roomId : "", user?._id || user?.id, isHost);
 
-          // Only change if not buffering and state is different
-          if (playerState !== 3) {
-            if (socketPlayerState.isPlaying && playerState !== 1) {
-              console.log("[SYNC] Playing video");
-              player.playVideo();
-            } else if (!socketPlayerState.isPlaying && playerState === 1) {
-              console.log("[SYNC] Pausing video");
-              player.pauseVideo();
-            }
-          } else {
-            console.log("[SYNC] Skipping - player is buffering");
-          }
-        } catch (e) {
-          console.error("[SYNC] Error syncing play/pause:", e);
-        }
-      }
-    }
+   const {
+      isPlaying,
+      currentTime,
+      volume,
+      currentSong,
+      queue, // Now correctly from hook
+      duration,
+      isBuffering,
+      shuffle,
+      repeatMode
+  } = playerState;
 
-    // Clear any pending sync
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
+  // Derived state
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const currentVideoId = currentSong?.videoId || null;
 
-    // Debounce time syncing - wait 1 second before applying (increased from 800ms)
-    syncTimeoutRef.current = setTimeout(
-      () => {
-        // BETTER BUFFERING HANDLING: Skip sync completely during buffering
-        if (isBuffering) {
-          console.log("[SYNC] Skipping time sync - player is buffering");
-          return;
-        }
-
-        // Wait for player to be ready (but allow if it's a play/pause change)
-        if (!playerReadyRef.current && !playingChanged) {
-          // Player not ready yet, but check if it exists
-          const player = (window as any).youtubePlayer;
-          if (player && typeof player.getPlayerState === "function") {
-            // Player exists, mark as ready
-            playerReadyRef.current = true;
-            console.log("[SYNC] Player marked as ready");
-          } else {
-            console.log("[SYNC] Player not ready yet");
-            return; // Player doesn't exist yet
-          }
-        }
-
-        console.log("[SYNC] Applying time sync", {
-          socketTime: socketPlayerState.currentTime,
-          isHost,
-          duration,
-        });
-
-        // Update volume
-        setVolume(socketPlayerState.volume);
-
-        if (!isHost) {
-          // Non-host: Always use socket time
-          setCurrentTime(socketPlayerState.currentTime);
-          setLastSocketTime(socketPlayerState.currentTime);
-          if (duration > 0) {
-            setProgress((socketPlayerState.currentTime / duration) * 100);
-          }
-        } else {
-          // Host: Only update if significantly different
-          const timeDiff = Math.abs(
-            (lastSocketTime || 0) - socketPlayerState.currentTime
-          );
-          if (timeDiff > 0.3 || lastSocketTime === null) {
-            setCurrentTime(socketPlayerState.currentTime);
-            setLastSocketTime(socketPlayerState.currentTime);
-            if (duration > 0) {
-              setProgress((socketPlayerState.currentTime / duration) * 100);
-            }
-          }
-        }
-
-        // Sync player time cautiously
-        const player = (window as any).youtubePlayer;
-        if (player && typeof player.seekTo === "function") {
-          try {
-            const playerState = player.getPlayerState();
-
-            // Don't interfere with buffering (state 3) for time sync
-            if (playerState === 3) {
-              console.log("[SYNC] Skipping seek - player is buffering");
-              return;
-            }
-
-            const playerTime = player.getCurrentTime() || 0;
-            const timeDiff = Math.abs(
-              playerTime - socketPlayerState.currentTime
-            );
-
-            console.log(
-              `[SYNC] Time diff: ${timeDiff.toFixed(2)}s, threshold: 3.0s`
-            );
-
-            // Only seek if significantly out of sync (>3.0s - increased from 2.5s)
-            if (timeDiff > 3.0) {
-              console.log(
-                `[SYNC] Seeking to ${socketPlayerState.currentTime}s`
-              );
-              player.seekTo(socketPlayerState.currentTime, true);
-            }
-          } catch (e) {
-            console.error("[SYNC] Error syncing time:", e);
-          }
-        }
-      },
-      playingChanged ? 100 : 1000
-    ); // 1 second debounce (increased from 800ms), faster for play/pause
-
-    return () => {
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current);
-      }
-    };
-  }, [
-    socketPlayerState?.isPlaying,
-    socketPlayerState?.currentTime,
-    socketPlayerState?.volume,
-    currentVideoId,
-    isHost,
-    duration,
-    isBuffering,
-    lastSocketTime,
-    isPlaying,
-  ]);
-
-  // Update listener count from socket
-  useEffect(() => {
-    if (socketListenerCount > 0) {
-      setRoomSettings((prev) => ({
-        ...prev,
-        listeners: socketListenerCount,
-      }));
-    }
-  }, [socketListenerCount]);
-
-  // Handle queue updates from socket
-  useEffect(() => {
-    if (queueUpdate?.queue) {
-      setQueue(
-        queueUpdate.queue.map((item: any) => ({
-          id: item.videoId,
-          videoId: item.videoId,
-          title: item.title,
-          artist: item.artist || "Unknown",
-          duration: formatDuration(item.duration),
-        }))
-      );
-    }
-  }, [queueUpdate]);
-
-  // Handle song changes from socket
-  useEffect(() => {
-    if (songChange) {
-      if (songChange.currentSong) {
-        setCurrentSong({
-          id: songChange.currentSong.videoId,
-          videoId: songChange.currentSong.videoId,
-          title: songChange.currentSong.title,
-          artist: songChange.currentSong.artist || "Unknown",
-          duration: formatDuration(songChange.currentSong.duration),
-        });
-        setCurrentVideoId(songChange.currentSong.videoId);
-        playerReadyRef.current = false; // Reset when video changes
-
-        // Apply player state from socket
-        if (songChange.playerState) {
-          setIsPlaying(songChange.playerState.isPlaying);
-          setCurrentTime(songChange.playerState.currentTime);
-          setVolume(songChange.playerState.volume);
-        } else {
-          // Default to playing when song changes
-          setIsPlaying(true);
-          setCurrentTime(0);
-        }
-      }
-      if (songChange.queue) {
-        setQueue(
-          songChange.queue.map((item: any) => ({
-            id: item.videoId,
-            videoId: item.videoId,
-            title: item.title,
-            artist: item.artist || "Unknown",
-            duration: formatDuration(item.duration),
-            requestedBy:
-              item.requestedBy?.username || item.requestedBy || "Unknown",
-          }))
-        );
-      }
-    }
-  }, [songChange]);
-
-  // CRITICAL FIX: Only the HOST should broadcast time updates
-  // This prevents conflicts where multiple users broadcast conflicting times
-  // Non-hosts should only receive and sync to the host's time
-  useEffect(() => {
-    // Only host broadcasts time updates
-    if (!isHost || !isPlaying || !currentVideoId || isSyncing) return;
-
-    const interval = setInterval(() => {
-      const player = (window as any).youtubePlayer;
-      if (player && typeof player.getPlayerState === "function") {
-        try {
-          const playerState = player.getPlayerState();
-          // Only broadcast if player is actually playing (state === 1)
-          if (playerState === 1 && currentTime > 0 && !isSyncing) {
-            const actualTime = player.getCurrentTime();
-            // Only broadcast if time has progressed (prevents stuck time issues)
-            // Also ensure we're not broadcasting stale time
-            if (actualTime > currentTime - 0.5 && actualTime > 0) {
-              emitUpdateTime(actualTime);
-            }
-          }
-        } catch (e) {
-          // Ignore errors
-        }
-      }
-    }, 1000); // Host broadcasts every 1 second for better sync
-
-    return () => clearInterval(interval);
-  }, [
-    isHost,
-    isPlaying,
-    currentTime,
-    currentVideoId,
-    emitUpdateTime,
-    isSyncing,
-  ]);
-
-  // Real YouTube search
-  const searchYouTube = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    try {
-      const response = await apiClient.searchYouTube(query.trim(), 10);
-      if (response.success && response.data) {
-        const results: Song[] = (response.data as any[]).map((item) => ({
-          id: item.videoId,
-          videoId: item.videoId,
-          title: item.title,
-          artist: item.artist || "Unknown Artist",
-          duration: formatDuration(item.duration),
-          thumbnail: item.thumbnail,
-        }));
-        setSearchResults(results);
-      } else {
-        setSearchResults([]);
-        toast.error("No results found");
-      }
-    } catch (error) {
-      console.error("Error searching YouTube:", error);
-      setSearchResults([]);
-      toast.error("Failed to search YouTube. Please try again.");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (searchQuery) {
-      const timeoutId = setTimeout(() => {
-        searchYouTube(searchQuery);
-      }, 300);
-      return () => clearTimeout(timeoutId);
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchQuery, searchYouTube]);
-
-  const handlePlayPause = () => {
-    // RESPONSIVE PLAY/PAUSE BUTTON: Track user action and update immediately
-    const newIsPlaying = !isPlaying;
-
-    console.log(
-      `[USER ACTION] Play/pause clicked: ${isPlaying} -> ${newIsPlaying}`
-    );
-
-    // Track user action to protect it from socket override
-    lastUserActionRef.current = Date.now();
-
-    // Update local state optimistically for immediate UI feedback
-    setIsPlaying(newIsPlaying);
-
-    // Also control player immediately for better UX
-    const player = (window as any).youtubePlayer;
-    if (player && typeof player.getPlayerState === "function") {
-      try {
-        const playerState = player.getPlayerState();
-        console.log(
-          `[USER ACTION] Player state: ${playerState}, action: ${
-            newIsPlaying ? "play" : "pause"
-          }`
-        );
-
-        if (newIsPlaying && playerState !== 1 && playerState !== 3) {
-          console.log("[USER ACTION] Playing video immediately");
-          player.playVideo();
-        } else if (!newIsPlaying && playerState === 1) {
-          console.log("[USER ACTION] Pausing video immediately");
-          player.pauseVideo();
-        }
-      } catch (e) {
-        console.error("[USER ACTION] Error controlling player:", e);
-      }
-    }
-
-    // Emit to socket - socket will confirm and sync all users
-    emitPlayerPlayPause(newIsPlaying);
-    // Socket sync will wait 2 seconds before overriding (protected user action)
-  };
-
-  const handleSkip = (direction: "prev" | "next") => {
-    // PROTECTED USER ACTION: Track skip action
-    console.log(`[USER ACTION] Skip ${direction} clicked`);
-    lastUserActionRef.current = Date.now();
-
-    // Anyone can skip
-    emitPlayerSkip(direction);
-    // Local state will be updated via socket events
-  };
-
-  const handleSeek = (amount: number) => {
-    // PROTECTED USER ACTION: Track seek action
-    const newTime = Math.max(0, Math.min(duration, currentTime + amount));
-    console.log(`[USER ACTION] Seek: ${currentTime}s -> ${newTime}s`);
-    lastUserActionRef.current = Date.now();
-
-    // Anyone can seek
-    setCurrentTime(newTime);
-    setProgress((newTime / duration) * 100);
-    if ((window as any).youtubePlayer) {
-      try {
-        (window as any).youtubePlayer.seekTo(newTime, true);
-      } catch (e) {
-        console.error("[USER ACTION] Error seeking:", e);
-      }
-    }
-    emitPlayerSeek(newTime);
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Anyone can seek
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = clickX / rect.width;
-    const newTime = percentage * duration;
-    setCurrentTime(newTime);
-    setProgress(percentage * 100);
-    if ((window as any).youtubePlayer) {
-      try {
-        (window as any).youtubePlayer.seekTo(newTime, true);
-      } catch (e) {
-        console.error("Error seeking:", e);
-      }
-    }
-    emitPlayerSeek(newTime);
-  };
-
-  const handleTimeUpdate = (time: number, totalDuration: number) => {
-    // Always update duration (this is safe and needed)
-    setDuration(totalDuration);
-
-    // Don't update time if we're currently syncing (prevents conflicts)
-    if (isSyncing) {
-      return;
-    }
-
-    if (isHost) {
-      // HOST: Always use local time (authoritative source)
-      // Local time from YouTube player is the source of truth for the host
-      // Only validate against socket time if there's a large discrepancy (>2s)
-      if (socketPlayerState) {
-        const timeDiff = Math.abs(time - socketPlayerState.currentTime);
-
-        // If socket time is significantly different (>2 seconds), someone else might have seeked
-        // In this case, trust socket time over local time
-        if (timeDiff > 2.0) {
-          setCurrentTime(socketPlayerState.currentTime);
-          setLastSocketTime(socketPlayerState.currentTime);
-          if (totalDuration > 0) {
-            setProgress((socketPlayerState.currentTime / totalDuration) * 100);
-          }
-          return;
-        }
-      }
-
-      // Normal case: Use local time for smooth playback (authoritative)
-      // Only update if time is progressing forward (prevents stuck time)
-      if (time >= currentTime - 0.1) {
-        setCurrentTime(time);
-        if (totalDuration > 0) {
-          setProgress((time / totalDuration) * 100);
-        }
-      }
-    } else {
-      // NON-HOST: Use socket time with smooth interpolation to avoid stuttering
-      // CRITICAL: Don't seek during handleTimeUpdate - let sync effect handle it
-      if (socketPlayerState) {
-        const timeDiff = Math.abs(time - socketPlayerState.currentTime);
-
-        // Large difference (>3s) - update time but don't seek here (sync effect will handle)
-        if (timeDiff > 3.0) {
-          setCurrentTime(socketPlayerState.currentTime);
-          setLastSocketTime(socketPlayerState.currentTime);
-          if (totalDuration > 0) {
-            setProgress((socketPlayerState.currentTime / totalDuration) * 100);
-          }
-          return;
-        }
-
-        // Small to medium difference - use socket time for accuracy
-        // Don't use local time interpolation to prevent conflicts
-        setCurrentTime(socketPlayerState.currentTime);
-        setLastSocketTime(socketPlayerState.currentTime);
-        if (totalDuration > 0) {
-          setProgress((socketPlayerState.currentTime / totalDuration) * 100);
-        }
-      } else {
-        // No socket state yet - use local time as fallback
-        if (time >= currentTime - 0.1) {
-          setCurrentTime(time);
-          if (totalDuration > 0) {
-            setProgress((time / totalDuration) * 100);
-          }
-        }
-      }
-    }
-  };
-
-  const handleSelectSong = (song: Song) => {
-    // If host, play immediately; otherwise add to queue
-    emitAddToQueue(
-      {
-        videoId: song.videoId,
-        title: song.title,
-        artist: song.artist,
-        duration: parseDuration(song.duration),
-      },
-      isHost // playNow = true if host
-    );
-    setShowSearch(false);
-    setSearchQuery("");
-  };
-
-  const handleAddToQueue = (song: Song) => {
-    emitAddToQueue({
-      videoId: song.videoId,
-      title: song.title,
-      artist: song.artist,
-      duration: parseDuration(song.duration),
-    });
-    setShowSearch(false);
-    setSearchQuery("");
-  };
 
   const parseDuration = (durationStr: string): number => {
     const parts = durationStr.split(":");
@@ -758,6 +283,63 @@ export default function RoomPage() {
       return minutes * 60 + seconds;
     }
     return 0;
+  };
+
+  const handleSelectSong = async (song: Song) => {
+    // "Play Now" logic for search results
+    playSong(song);
+    toast.success(`Playing ${song.title}`);
+    setShowSearch(false);
+    setSearchQuery("");
+  };
+
+  const handleQueueItemClick = (song: Song) => {
+      // Play a queue item immediately
+      playSong(song);
+      toast.success(`Skipping to ${song.title}`);
+  };
+
+  const handleAddToQueue = (song: Song) => {
+    addToQueue(song);
+    toast.success(`Added ${song.title} to queue`);
+  };
+
+  const handlePlayPause = () => {
+    togglePlayPause();
+  };
+
+  const handleSkip = (direction: "next" | "prev") => {
+      if (direction === "next") skipForward();
+      else skipBackward();
+  };
+
+  const handleSeek = (time: number) => {
+      seekTo(time);
+  };
+
+  const handleProgressClick = (time: number) => {
+      seekTo(time);
+  };
+  
+  // DnD Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (active.id !== over?.id) {
+        const oldIndex = queue.findIndex((item) => item.id === active.id);
+        const newIndex = queue.findIndex((item) => item.id === over?.id);
+        
+        if (oldIndex !== -1 && newIndex !== -1) {
+            reorderQueue(oldIndex, newIndex);
+        }
+    }
   };
 
   const handleShareRoom = async () => {
@@ -852,507 +434,331 @@ export default function RoomPage() {
 
   if (isLoadingRoom) {
     return (
-      <div className="from-midnight-black via-deep-navy to-midnight-black flex min-h-screen items-center justify-center bg-gradient-to-b">
-        <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="from-midnight-black via-deep-navy to-midnight-black flex min-h-screen items-center justify-center bg-gradient-to-b">
-        <div className="border-soft-white h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
 
+  // Determine user role and permissions
+  const userRole = roomData?.roles?.[user?.id || ""] || (isHost ? "host" : "listener");
+  const permissions = roomData?.permissions || {
+    playPause: "everyone",
+    skip: "everyone",
+    volume: "everyone",
+    addToQueue: "everyone"
+  };
+
+  const checkPermission = (action: "playPause" | "skip" | "seek" | "volume" | "addToQueue") => {
+      if (isHost || userRole === "host") return true;
+      const level = permissions[action === "seek" ? "playPause" : action]; // Seek uses playPause perm
+      if (level === "everyone") return true;
+      if (level === "dj" && userRole === "dj") return true;
+      return false;
+  };
+  
+  const isDJ = isHost || userRole === "dj";
+  const canPlay = checkPermission("playPause");
+  const canSkip = checkPermission("skip");
+  const canSeek = checkPermission("seek");
+
+  const playerProps = {
+    currentSong: currentSong
+      ? {
+          title: currentSong.title,
+          artist: currentSong.artist,
+          coverUrl: currentSong.thumbnail,
+        }
+      : null,
+    isPlaying,
+    isBuffering,
+    progress,
+    currentTime,
+    duration,
+    volume,
+    shuffle,
+    repeatMode,
+    // Add permission flags to props
+    canPlay,
+    canSkip,
+    canSeek,
+    isDJ: isHost || userRole === "dj", // For badge
+    roomName: roomData?.name,
+    
+    onPlayPause: handlePlayPause,
+    onSkipNext: () => handleSkip("next"),
+    onSkipPrev: () => handleSkip("prev"),
+    onShuffle: toggleShuffle,
+    onRepeat: cycleRepeatMode,
+    onSeek: handleSeek,
+    onVolumeChange: (vol: number) => {
+      setVolume(vol);
+      emitPlayerVolume(vol);
+    },
+    onToggleMute: () => {
+      const newVol = volume > 0 ? 0 : 80;
+      setVolume(newVol);
+      emitPlayerVolume(newVol);
+    },
+  };
+
   return (
-    <div className="from-midnight-black via-deep-navy to-midnight-black text-soft-white min-h-screen bg-gradient-to-b pb-20">
-      {/* Premium Header with Navigation */}
-      <div
-        className="border-deep-purple/20 sticky top-0 z-30 border-b backdrop-blur-xl"
-        style={{ background: "rgba(15, 11, 36, 0.95)" }}
-      >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/home"
-              className="smooth-transition text-muted-foreground hover:text-soft-white rounded-lg p-2 hover:bg-white/5"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <h1 className="font-heading font-700 text-lg">
-                {roomSettings.name}
-              </h1>
-              <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                <Users className="h-3 w-3" />
-                {roomSettings.listeners.toLocaleString()} listening
-              </p>
+    <AppShell playerProps={playerProps}>
+      {/* Room Header / Hero Section */}
+      <div className="relative w-full bg-gradient-to-b from-primary/10 dark:from-indigo-600/30 via-background to-background p-8 pt-12 border-b border-border/50">
+        <div className="flex flex-col md:flex-row items-center md:items-end gap-8 relative z-10 max-w-7xl mx-auto">
+            {/* Room Avatar / Icon */}
+            <div className="h-48 w-48 shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shrink-0 ring-1 ring-white/20 relative group overflow-hidden">
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Music className="h-20 w-20 text-white drop-shadow-lg" />
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleLeaveRoom}
-              className="smooth-transition text-muted-foreground hover:text-destructive rounded-lg p-2 hover:bg-white/5"
-              title="Leave Room"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
-          </div>
+            
+            <div className="flex flex-col gap-3 w-full text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-3">
+                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.2em] border border-primary/20">Live Room</span>
+                    {roomSettings.isPrivate && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
+                </div>
+                <h1 className="text-6xl font-black text-foreground tracking-tighter sm:text-7xl lg:text-8xl drop-shadow-sm dark:drop-shadow-xl">{roomSettings.name}</h1>
+                <div className="mt-2 flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground font-medium">
+                    <div className="flex items-center gap-1.5 bg-muted dark:bg-white/5 px-3 py-1.5 rounded-full border border-border dark:border-white/10">
+                        <Users className="h-4 w-4 text-primary" />
+                        <span><strong className="text-foreground font-bold">{socketListenerCount.toLocaleString()}</strong> listening</span>
+                    </div>
+                    <span className="text-muted-foreground/30 text-lg">•</span>
+                    <div className="flex items-center gap-1.5 bg-muted dark:bg-white/5 px-3 py-1.5 rounded-full border border-border dark:border-white/10">
+                        <span className="text-foreground font-bold">{roomSettings.mood}</span>
+                    </div>
+                    <span className="text-muted-foreground/30 text-lg">•</span>
+                    <span className="text-muted-foreground">Host: <span className="text-foreground font-semibold">{isHost ? "You" : "The DJ"}</span></span>
+                </div>
+            </div>
+            
+             <div className="absolute top-0 right-0 p-4 flex gap-2">
+                 <ThemeToggle />
+                 <button onClick={handleShareRoom} className="p-2 hover:bg-accent rounded-full transition-colors text-foreground" title="Share">
+                    <Share2 className="h-5 w-5" />
+                 </button>
+                 <button onClick={() => setShowSettings(true)} className="p-2 hover:bg-accent rounded-full transition-colors text-foreground" title="Settings">
+                    <Settings className="h-5 w-5" />
+                 </button>
+                 <button onClick={handleLeaveRoom} className="p-2 hover:bg-destructive/10 text-destructive rounded-full transition-colors" title="Leave">
+                    <LogOut className="h-5 w-5" />
+                 </button>
+             </div>
         </div>
       </div>
 
-      {/* Admin banner */}
-      {isDJ && (
-        <div className="from-deep-purple/20 to-electric-magenta/20 border-electric-magenta/30 sticky top-[57px] z-20 flex items-center gap-3 border-b bg-gradient-to-r px-4 py-2.5">
-          <Crown className="text-electric-magenta h-4 w-4" />
-          <p className="font-500 text-xs">
-            Admin Control Enabled • You can control playback for this room
-          </p>
-        </div>
-      )}
+      {/* Main Content Grid */}
+      <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-6 relative z-10">
+          
+          {/* Left Column: Player & Queue */}
+          <div className="xl:col-span-2 space-y-6">
+              
+              {/* Playback Actions Row */}
+              <div className="flex items-center gap-6">
+                  <button onClick={handlePlayPause} className="h-16 w-16 bg-primary hover:scale-105 active:scale-95 transition-all rounded-full flex items-center justify-center shadow-lg shadow-primary/20 text-white group">
+                      {isPlaying ? <Pause className="h-8 w-8 fill-current" /> : <Play className="h-8 w-8 fill-current pl-1" />}
+                  </button>
+                  <button onClick={() => setShowSearch(!showSearch)} className="px-6 py-2.5 rounded-full bg-card hover:bg-muted dark:bg-white/5 border border-border dark:border-white/10 dark:hover:bg-white/10 transition-all text-xs font-bold text-foreground tracking-widest uppercase shadow-sm">
+                      {showSearch ? "Close Search" : "Add Songs"}
+                  </button>
+                   {isHost && (
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-bold border border-purple-500/20 uppercase tracking-wider">
+                            <Crown className="h-3 w-3" />
+                            {userRole}
+                        </div>
+                   )}
+              </div>
 
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-4 lg:grid-cols-3">
-        {/* Main player section */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* YouTube Player */}
-          <div className="glass-card overflow-hidden rounded-2xl border-2 border-deep-purple/20 shadow-2xl shadow-electric-magenta/10">
-            <div className="relative aspect-video bg-black">
-              <YouTubePlayer
-                videoId={currentVideoId}
-                isPlaying={isPlaying}
-                volume={volume}
-                onTimeUpdate={handleTimeUpdate}
-                onStateChange={(state) => {
-                  // BETTER BUFFERING HANDLING: Track buffering state with debug logs
-                  if (state === 3) {
-                    console.log("[PLAYER STATE] Buffering detected");
-                    setIsBuffering(true);
-                  } else if (state === 1 || state === 2) {
-                    if (isBuffering) {
-                      console.log(
-                        `[PLAYER STATE] Buffering ended, now ${
-                          state === 1 ? "playing" : "paused"
-                        }`
-                      );
-                    }
-                    setIsBuffering(false);
-                  }
-
-                  // Only host updates from player events
-                  if (!isHost) {
-                    console.log(
-                      `[PLAYER STATE] Non-host ignoring state change: ${state}`
-                    );
-                    return;
-                  }
-
-                  // Host can update state via player events
-                  if (state === 1 && !isPlaying) {
-                    console.log("[PLAYER STATE] Host player started playing");
-                    setIsPlaying(true);
-                    lastUserActionRef.current = Date.now(); // Track as user action
-                    emitPlayerPlayPause(true);
-                  } else if (state === 2 && isPlaying) {
-                    console.log("[PLAYER STATE] Host player paused");
-                    setIsPlaying(false);
-                    lastUserActionRef.current = Date.now(); // Track as user action
-                    emitPlayerPlayPause(false);
-                  }
-                }}
-                onReady={() => {
-                  // Set player ready flag
-                  playerReadyRef.current = true;
-
-                  // When player is ready, sync to current socket state if available
-                  // This is crucial for mid-way joins - MUST auto-play if song is playing
-                  const syncOnReady = (retryCount = 0) => {
-                    const player = (window as any).youtubePlayer;
-                    if (player && currentVideoId) {
-                      try {
-                        // Get duration first
-                        const playerDuration = player.getDuration();
-                        if (playerDuration && playerDuration > 0) {
-                          setDuration(playerDuration);
-                        }
-
-                        // If we have socket state, sync to it
-                        if (socketPlayerState) {
-                          // Seek to the correct time (important for mid-way joins)
-                          const targetTime = Math.min(
-                            socketPlayerState.currentTime,
-                            playerDuration || socketPlayerState.currentTime
-                          );
-
-                          // Seek first
-                          player.seekTo(targetTime, true);
-                          setCurrentTime(targetTime);
-
-                          if (playerDuration > 0) {
-                            setProgress((targetTime / playerDuration) * 100);
-                          }
-
-                          // IMPROVED AUTO-PLAY FOR NEW JOINERS: Wait 1 second after seeking before playing
-                          if (socketPlayerState.isPlaying) {
-                            console.log(
-                              "[ON READY] Auto-playing for new joiner, waiting 1s after seek"
-                            );
-                            // Wait 1 second after seeking before playing (improved timing)
-                            setTimeout(() => {
-                              try {
-                                const currentState = player.getPlayerState();
-                                console.log(
-                                  `[ON READY] Player state after wait: ${currentState}`
-                                );
-
-                                // Play if not already playing and not buffering
-                                if (currentState !== 1 && currentState !== 3) {
-                                  console.log("[ON READY] Playing video");
-                                  player.playVideo();
-                                  setIsPlaying(true);
-                                } else if (currentState === 3) {
-                                  // If buffering, wait a bit more then play
-                                  console.log(
-                                    "[ON READY] Player buffering, waiting additional 1s"
-                                  );
-                                  setTimeout(() => {
-                                    try {
-                                      const newState = player.getPlayerState();
-                                      console.log(
-                                        `[ON READY] Player state after buffer wait: ${newState}`
-                                      );
-                                      if (
-                                        newState !== 1 &&
-                                        socketPlayerState.isPlaying
-                                      ) {
-                                        console.log(
-                                          "[ON READY] Playing video after buffer"
-                                        );
-                                        player.playVideo();
-                                        setIsPlaying(true);
-                                      }
-                                    } catch (e) {
-                                      console.error(
-                                        "[ON READY] Error playing after buffer:",
-                                        e
-                                      );
-                                    }
-                                  }, 1000);
-                                } else {
-                                  console.log(
-                                    `[ON READY] Player already in correct state: ${currentState}`
-                                  );
-                                }
-                              } catch (e) {
-                                console.error(
-                                  "[ON READY] Error auto-playing:",
-                                  e
-                                );
-                              }
-                            }, 1000); // Wait 1 second after seeking (improved from 300ms)
-                          } else {
-                            // Ensure paused if room is paused
-                            console.log(
-                              "[ON READY] Room is paused, ensuring player is paused"
-                            );
-                            player.pauseVideo();
-                            setIsPlaying(false);
-                          }
-
-                          console.log("Player synced on ready:", {
-                            time: targetTime,
-                            isPlaying: socketPlayerState.isPlaying,
-                            duration: playerDuration,
-                          });
-                        } else {
-                          // No socket state yet - wait for it
-                          if (retryCount < 5) {
-                            setTimeout(() => syncOnReady(retryCount + 1), 500);
-                          }
-                        }
-                      } catch (e) {
-                        console.error("Error syncing player on ready:", e);
-                        // Retry after a short delay
-                        if (retryCount < 5) {
-                          setTimeout(() => syncOnReady(retryCount + 1), 500);
-                        }
-                      }
-                    } else if (retryCount < 5) {
-                      // Player not ready yet, retry
-                      setTimeout(() => syncOnReady(retryCount + 1), 500);
-                    }
-                  };
-
-                  // Wait a bit for player to fully initialize
-                  setTimeout(() => syncOnReady(), 300);
-                }}
-              />
-              {/* Search Overlay */}
+               {/* Search Overlay Inline */}
               {showSearch && (
-                <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/95 to-black/80 backdrop-blur-md">
-                  <div className="flex h-full flex-col p-6">
-                    <div className="mb-4 flex items-center justify-between">
-                      <h3 className="font-heading font-700 text-xl flex items-center gap-2">
-                        <Search className="text-electric-magenta h-5 w-5" />
-                        Search & Play
-                      </h3>
-                      <button
-                        onClick={() => {
-                          setShowSearch(false);
-                          setSearchQuery("");
-                          setSearchResults([]);
-                        }}
-                        className="smooth-transition text-muted-foreground hover:text-soft-white rounded-lg p-2 hover:bg-white/10"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    </div>
-                    <div className="relative mb-4">
-                      <Search className="text-muted-foreground absolute top-3.5 left-3 h-5 w-5" />
+                 <div className="bg-card backdrop-blur-xl rounded-2xl p-6 border border-border animate-in fade-in slide-in-from-top-4 shadow-xl z-20">
+                    <div className="relative mb-6">
+                      <Search className="text-primary absolute top-4 left-4 h-5 w-5" />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search for songs, artists..."
+                        placeholder="Search for songs..."
                         autoFocus
-                        className="text-soft-white placeholder-muted-foreground focus:border-electric-magenta focus:ring-electric-magenta smooth-transition w-full rounded-xl border-2 border-white/20 bg-white/10 py-3 pr-4 pl-10 focus:ring-2 focus:outline-none"
+                        className="w-full bg-muted text-foreground rounded-xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground transition-all border border-border"
                       />
                     </div>
-                    <div className="flex-1 space-y-2 overflow-y-auto scrollbar-hide">
-                      {searchResults.map((song) => (
+                     <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                      {searchResults.map((song, index) => (
                         <div
-                          key={song.id}
-                          className="glass-card hover:border-electric-magenta smooth-transition group flex items-center justify-between rounded-xl p-4 border-2 border-transparent"
+                          key={`${song.id}-${index}`}
+                          className="flex items-center justify-between p-4 rounded-2xl hover:bg-muted group transition-all cursor-pointer border border-transparent hover:border-border"
                         >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="from-deep-purple to-electric-magenta flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br">
-                              <Music className="h-6 w-6" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-600 text-soft-white truncate">
-                                {song.title}
-                              </p>
-                              <p className="text-muted-foreground text-sm truncate">
-                                {song.artist}
-                              </p>
-                            </div>
+                          <div className="flex items-center gap-5 overflow-hidden">
+                             <div className="h-14 w-14 bg-muted rounded-xl flex items-center justify-center shrink-0 border border-border shadow-inner">
+                                <Music className="h-7 w-7 text-primary/60" />
+                             </div>
+                             <div className="truncate">
+                                <p className="text-foreground font-black truncate tracking-tight text-lg">{song.title}</p>
+                                <p className="text-muted-foreground text-sm truncate font-bold">{song.artist}</p>
+                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Clock className="h-4 w-4" />
-                              <span className="text-sm">{song.duration}</span>
-                            </div>
-                            <button
-                              onClick={() => handleSelectSong(song)}
-                              className="from-deep-purple to-electric-magenta text-soft-white smooth-transition rounded-lg bg-gradient-to-r px-4 py-2 text-sm font-semibold opacity-0 group-hover:opacity-100 hover:shadow-lg hover:shadow-electric-magenta/30"
-                            >
-                              <Play className="mr-1 inline h-4 w-4" />
-                              Play
-                            </button>
-                            <button
-                              onClick={() => handleAddToQueue(song)}
-                              className="glass-card text-soft-white smooth-transition rounded-lg px-3 py-2 text-sm opacity-0 group-hover:opacity-100 hover:border-electric-magenta"
-                            >
-                              + Queue
-                            </button>
+                          <div className="flex items-center gap-2">
+                             <button
+                                onClick={() => handleSelectSong(song)}
+                                className="text-primary hover:text-primary/80 font-bold text-sm bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-full transition-all"
+                             >
+                                Play Now
+                             </button>
+                             <button
+                                onClick={() => {
+                                    if (isDJ) { // Host or DJ
+                                        handleAddToQueue(song);
+                                        toast.success("Added to queue");
+                                    } else {
+                                        requestSong(song);
+                                        toast.success("Request sent to host");
+                                    }
+                                    setShowSearch(false);
+                                }}
+                                className="text-foreground hover:text-foreground/80 font-medium text-sm px-3 py-1.5 rounded-full hover:bg-muted transition-all"
+                             >
+                                {isDJ ? "Add" : "Request"}
+                             </button>
                           </div>
                         </div>
                       ))}
-                      {searchQuery && searchResults.length === 0 && (
-                        <div className="text-muted-foreground py-12 text-center">
-                          <Music className="mx-auto mb-3 h-12 w-12 opacity-50" />
-                          <p className="mb-1">No results found</p>
-                          <p className="text-sm">Try a different search term</p>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                </div>
+                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Player info and controls */}
-          <div className="glass-card rounded-2xl p-6 border-2 border-deep-purple/20 shadow-xl">
-            <div className="mb-6 flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <h2 className="font-heading font-700 text-soft-white mb-1 text-2xl truncate">
-                  {currentSong?.title || "Now Playing"}
-                </h2>
-                <p className="text-muted-foreground truncate">
-                  {currentSong?.artist || "Artist • Album Name"}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowSearch(!showSearch)}
-                className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink text-soft-white smooth-transition rounded-xl bg-gradient-to-r px-5 py-2.5 text-sm font-semibold shadow-lg shadow-electric-magenta/20 ml-4 shrink-0"
-              >
-                <Search className="mr-2 inline h-4 w-4" />
-                Search
-              </button>
-            </div>
+              {/* Visualizer / Video */}
+              <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl relative group">
+                  <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  <YouTubePlayer
+                    videoId={currentVideoId}
+                    isPlaying={isPlaying}
+                    volume={volume}
+                    currentTime={currentTime}
+                    onTimeUpdate={handleTimeUpdate}
+                    onStateChange={(state) => {
+                      if (state === 3) setIsBuffering(true);
+                      else if (state === 1 || state === 2) setIsBuffering(false);
+                      
+                      // Auto-play next song when current one ends (State 0 is ENDED)
+                      if (state === 0 && isHost) {
+                        toast.info("Song ended, playing next...");
+                        handleSkip("next");
+                      }
 
-            <PlayerControls
-              isPlaying={isPlaying}
-              isDJ={isDJ}
-              volume={volume}
-              currentTime={currentTime}
-              duration={duration}
-              progress={progress}
-              onPlayPause={handlePlayPause}
-              onSkip={handleSkip}
-              onSeek={handleSeek}
-              onVolumeChange={(vol) => {
-                // Anyone can control volume
-                setVolume(vol);
-                emitPlayerVolume(vol);
-              }}
-              onProgressClick={handleProgressClick}
-            />
-          </div>
+                      if (!isHost) return;
+                      
+                      if (state === 1 && !isPlaying) {
+                        setIsPlaying(true);
+                        lastUserActionRef.current = Date.now();
+                        emitPlayerPlayPause(true);
+                      } else if (state === 2 && isPlaying) {
+                        setIsPlaying(false);
+                        lastUserActionRef.current = Date.now();
+                        emitPlayerPlayPause(false);
+                      }
+                    }}
+                    onReady={() => {
+                      playerReadyRef.current = true;
+                      // Include the sync logic here if needed or keep the original simplified
+                      // For brevity, assuming basic sync or copying the block if critical
+                      // Retaining essential sync:
+                         if (socketPlayerState && currentVideoId) {
+                            const player = (window as any).youtubePlayer;
+                            if (player) {
+                               const targetTime = socketPlayerState.currentTime;
+                               if(Math.abs(player.getCurrentTime() - targetTime) > 2) {
+                                   player.seekTo(targetTime, true);
+                               }
+                               if(socketPlayerState.isPlaying) {
+                                   setTimeout(() => { 
+                                       if(player.getPlayerState() !== 1) player.playVideo(); 
+                                       setIsPlaying(true);
+                                   }, 1000);
+                               }
+                            }
+                         }
+                    }}
+                  />
 
-          {/* Waveform visualizer */}
-          <div className="glass-card h-40 overflow-hidden rounded-2xl border-2 border-deep-purple/20">
-            <WaveformVisualizer />
-          </div>
-
-          {/* Tabs section - Fixed height with proper overflow */}
-          <div className="glass-card min-h-[500px] overflow-hidden rounded-2xl border-2 border-deep-purple/20">
-            <RoomTabs
-              queue={queue}
-              currentSong={currentSong}
-              chatMessages={chatMessages}
-              onSendMessage={emitChatMessage}
-              currentUserId={user?._id || user?.id}
-              isConnected={isConnected}
-              roomMembers={roomMembers}
-              isHost={isHost}
-              onReorderQueue={emitReorderQueue}
-            />
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-4">
-          {/* Room header */}
-          <div className="glass-card rounded-2xl p-6 border-2 border-deep-purple/20 shadow-xl">
-            <div className="mb-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-heading font-700 text-xl flex items-center gap-2">
-                  {roomSettings.name}
-                  {roomSettings.isPrivate && (
-                    <Lock className="text-electric-magenta h-4 w-4" />
-                  )}
-                </h3>
-              </div>
-              <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                <Users className="h-4 w-4" />
-                <span>{roomSettings.listeners.toLocaleString()} listening</span>
-              </div>
-            </div>
-
-            {/* Quick stats */}
-            <div className="mb-4 grid grid-cols-3 gap-2 border-b border-[rgba(108,43,217,0.2)] pb-4">
-              <div className="text-center">
-                <p className="font-700 text-electric-magenta text-xl">98%</p>
-                <p className="text-muted-foreground text-xs">Synced</p>
-              </div>
-              <div className="text-center">
-                <p className="font-700 text-ocean-blue text-xl">4.2s</p>
-                <p className="text-muted-foreground text-xs">Latency</p>
-              </div>
-              <div className="text-center">
-                <p className="font-700 text-neon-cyan text-xl">24h</p>
-                <p className="text-muted-foreground text-xs">Room Age</p>
-              </div>
-            </div>
-
-            {/* Room actions */}
-            <div className="space-y-2">
-              <button
-                onClick={handleShareRoom}
-                className="from-deep-purple to-electric-magenta hover:from-electric-magenta hover:to-neon-pink font-500 smooth-transition neon-glow flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r px-4 py-2.5 text-sm shadow-lg shadow-electric-magenta/20"
-              >
-                {shared ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="h-4 w-4" />
-                    Share Room
-                  </>
-                )}
-              </button>
-              <button
-                onClick={handleCopyInvite}
-                className="glass-card hover:border-ocean-blue font-500 smooth-transition flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm border-2 border-transparent"
-              >
-                {copied ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4" />
-                    Copy Invite
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setShowSettings(true)}
-                className="glass-card hover:border-electric-magenta font-500 smooth-transition flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm border-2 border-transparent"
-              >
-                <Settings className="h-4 w-4" />
-                Room Settings
-              </button>
-            </div>
-          </div>
-
-          {/* Upcoming section */}
-          <div className="glass-card rounded-xl p-4 border-2 border-deep-purple/20">
-            <h4 className="font-heading font-600 text-soft-white mb-3 flex items-center gap-2">
-              <Music className="h-4 w-4 text-electric-magenta" />
-              Up Next
-            </h4>
-            <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-hide">
-              {queue.length > 0 ? (
-                queue.slice(0, 5).map((song) => (
-                  <div
-                    key={song.id}
-                    className="rounded-lg bg-[rgba(108,43,217,0.1)] p-3 border border-deep-purple/20 hover:border-electric-magenta/50 smooth-transition cursor-pointer"
-                  >
-                    <p className="font-500 text-soft-white text-sm truncate">
-                      {song.title}
-                    </p>
-                    <p className="text-muted-foreground text-xs truncate">
-                      {song.artist} • {song.duration}
-                    </p>
+                  {/* Waveform Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 h-24 z-20 opacity-30 dark:opacity-30 pointer-events-none mix-blend-multiply dark:mix-blend-screen">
+                     <WaveformVisualizer />
                   </div>
-                ))
-              ) : (
-                <div className="text-muted-foreground py-6 text-center">
-                  <Music className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                  <p className="text-sm">No songs in queue</p>
-                </div>
-              )}
-            </div>
+              </div>
+
+              {/* Queue List (Enhanced) */}
+              <div className="mt-8">
+                  <h3 className="text-xl font-bold text-foreground mb-4">Up Next</h3>
+                  
+                  <div className="py-2 bg-card rounded-xl border border-border">
+                      {queue.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">
+                            <p>Queue is empty</p>
+                            <button onClick={() => setShowSearch(true)} className="text-primary hover:underline mt-2">Add a song</button>
+                        </div>
+                      ) : (
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                          >
+                             <SortableContext
+                                items={queue.map((s: Song) => s.id).filter((id): id is string => id !== undefined)}
+                                strategy={verticalListSortingStrategy}
+                             >
+                                <div className="space-y-1 p-2">
+                                   {queue.filter((s: Song) => s.id !== undefined).map((song: Song, i: number) => (
+                                     <SortableQueueItem 
+                                        key={song.id}
+                                        song={song}
+                                        index={i}
+                                        isCurrent={currentSong?.id === song.id}
+                                        onClick={handleQueueItemClick}
+                                        isDJ={isDJ} // UI allows reordering if isDJ
+                                     />
+                                   ))}
+                                </div>
+                             </SortableContext>
+                          </DndContext>
+                      )}
+                  </div>
+              </div>
           </div>
 
-          {/* Quick actions */}
-          <Link
-            href="/room/create"
-            className="hover:border-electric-magenta text-muted-foreground hover:text-electric-magenta smooth-transition font-500 block w-full rounded-xl border-2 border-dashed border-[rgba(108,43,217,0.3)] p-3 text-center text-sm"
-          >
-            Create New Room
-          </Link>
-        </div>
+          {/* Right Column: Chat/Tabs */}
+          <div className="bg-card rounded-xl border border-border overflow-hidden min-h-[600px] flex flex-col">
+              <RoomTabs
+                 queue={queue}
+                 currentSong={currentSong}
+                 chatMessages={chatMessages}
+                 onSendMessage={emitChatMessage}
+                 currentUserId={user?._id || user?.id}
+                 isConnected={isConnected}
+                 roomMembers={roomMembers}
+                 isHost={isHost}
+                 onReorderQueue={reorderQueue}
+                 requests={playerState.requests}
+                 onRequestSong={requestSong}
+                 onApproveRequest={approveRequest}
+                 onRejectRequest={rejectRequest}
+                 onRemoveSong={removeFromQueue}
+                 onPlaySong={playQueueItem}
+                 onUpdateRole={emitUpdateRole}
+                 onKickMember={emitKickMember}
+               />
+          </div>
       </div>
 
-      {/* Room Settings Modal */}
       <RoomSettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
@@ -1361,6 +767,7 @@ export default function RoomPage() {
         maxListeners={roomSettings.maxListeners}
         onSave={handleSaveSettings}
       />
-    </div>
+    </AppShell>
   );
 }
+

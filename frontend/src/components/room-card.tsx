@@ -24,46 +24,47 @@ export function RoomCard({
 }: RoomCardProps) {
   return (
     <Link href={`/room/${id}`}>
-      <div className="glass-card hover:border-electric-magenta group smooth-transition hover:shadow-electric-magenta/20 cursor-pointer overflow-hidden rounded-xl hover:shadow-lg">
+      <div className="group relative overflow-hidden rounded-xl bg-card p-4 transition-all hover:bg-muted/50 hover:shadow-xl border border-border/50 shadow-sm">
         {/* Thumbnail */}
-        <div className="from-deep-purple to-ocean-blue relative aspect-video overflow-hidden bg-gradient-to-br">
+        <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-lg bg-muted shadow-md">
           <img
-            src={thumbnail || "/placeholder.svg?query=music room thumbnail"}
+            src={thumbnail || "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?q=80&w=1000&auto=format&fit=crop"} // Better placeholder
             alt={title}
-            className="smooth-transition h-full w-full object-cover group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           {isLive && (
-            <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-red-500/90 px-2 py-1 backdrop-blur">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-white" />
-              <span className="font-600 text-xs text-white">LIVE</span>
+            <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-black/60 dark:bg-black/60 px-2.5 py-1 backdrop-blur-md border border-white/10">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white">Live</span>
             </div>
           )}
-          <div className="from-midnight-black/80 smooth-transition absolute inset-0 flex items-end bg-gradient-to-t to-transparent p-3 opacity-0 group-hover:opacity-100">
-            <div className="from-deep-purple to-electric-magenta font-600 text-soft-white hover:from-electric-magenta hover:to-neon-pink w-full rounded-lg bg-gradient-to-r py-2 text-center text-sm">
-              Join Room
-            </div>
+          {/* Play Overlay */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 dark:bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100 backdrop-blur-[2px]">
+             <div className="rounded-full bg-primary p-3 shadow-lg hover:scale-110 transition-transform">
+                <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white" xmlns="http://www.w3.org/2000/svg">
+                   <path d="M8 5v14l11-7z" />
+                </svg>
+             </div>
           </div>
         </div>
 
         {/* Info */}
-        <div className="p-4">
-          <h3 className="font-heading font-600 text-soft-white mb-1 line-clamp-2">
+        <div className="flex flex-col gap-1">
+          <h3 className="line-clamp-1 text-base font-bold text-foreground group-hover:underline tracking-tight">
             {title}
           </h3>
-          <p className="text-muted-foreground mb-3 text-xs">By {host}</p>
-
-          {/* Stats and mood */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="text-muted-foreground flex items-center gap-1 text-xs">
-                <Users className="h-3 w-3" />
-                <span>{listeners.toLocaleString()}</span>
-              </div>
-              <Flame className="text-neon-pink h-3 w-3" />
-            </div>
-            <span className="text-electric-magenta border-electric-magenta/20 rounded-full border bg-[rgba(214,93,242,0.1)] px-2 py-1 text-xs">
-              {mood}
-            </span>
+          <p className="line-clamp-1 text-sm text-muted-foreground font-medium">
+            By {host}
+          </p>
+          
+          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground font-bold uppercase tracking-tighter tabular-nums">
+             <span className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-primary" />
+                {listeners.toLocaleString()} listening
+             </span>
+             <span className="rounded-full border border-border bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-widest font-black">
+                {mood}
+             </span>
           </div>
         </div>
       </div>

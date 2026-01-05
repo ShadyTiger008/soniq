@@ -1,9 +1,10 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Inter, Poppins } from "next/font/google";
+import { Inter, Poppins, Outfit } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@frontend/lib/auth-context";
 import { ToastProvider } from "@frontend/components/toast-provider";
+import { ThemeProvider } from "@frontend/components/theme-provider";
 import "../styles/globals.css";
 
 const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -11,6 +12,10 @@ const _poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-poppins",
+});
+const _outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
 });
 
 export const metadata: Metadata = {
@@ -42,14 +47,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${_inter.variable} ${_poppins.variable} from-midnight-black via-deep-navy to-midnight-black bg-gradient-to-b font-sans antialiased`}
+        className={`${_inter.variable} ${_poppins.variable} ${_outfit.variable} bg-background font-sans antialiased`}
       >
-        <AuthProvider>
-          {children}
-          <ToastProvider />
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            {children}
+            <ToastProvider />
+          </AuthProvider>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

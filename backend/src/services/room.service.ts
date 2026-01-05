@@ -46,6 +46,7 @@ export class RoomService {
     limit: number;
     mood?: string;
     search?: string;
+    sort?: string;
   }) {
     const query: any = {};
 
@@ -64,7 +65,7 @@ export class RoomService {
       .populate("hostId", "username email avatar")
       .limit(filters.limit)
       .skip((filters.page - 1) * filters.limit)
-      .sort({ createdAt: -1 });
+      .sort(filters.sort === 'trending' ? { listenerCount: -1 } : { createdAt: -1 });
 
     const total = await RoomModel.countDocuments(query);
 

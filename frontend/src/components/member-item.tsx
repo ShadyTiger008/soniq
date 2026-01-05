@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Crown, Shield, Sparkles } from "lucide-react";
 import { MemberActionMenu } from "./member-action-menu";
 
@@ -32,6 +33,8 @@ export function MemberItem({
   onDemote,
   onKick,
 }: MemberItemProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case "admin":
@@ -59,7 +62,7 @@ export function MemberItem({
   };
 
   return (
-    <div className="glass-card group hover:border-electric-magenta/50 smooth-transition flex items-center justify-between p-4">
+    <div className={`glass-card group hover:border-electric-magenta/50 smooth-transition flex items-center justify-between p-4 ${isMenuOpen ? 'relative z-50 ring-1 ring-electric-magenta/50' : 'relative z-0'}`}>
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {/* Avatar */}
         <div className="relative flex-shrink-0">
@@ -128,6 +131,8 @@ export function MemberItem({
         onPromoteModerator={onPromoteModerator}
         onDemote={onDemote}
         onKick={onKick}
+        isOpen={isMenuOpen}
+        onOpenChange={setIsMenuOpen}
       />
     </div>
   );

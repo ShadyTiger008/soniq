@@ -83,8 +83,8 @@ export function initializeSocketIO(server: HttpServer): SocketIOServer {
 
     // Register socket handlers
     handleRoomEvents(io, socket, userSocketMap, roomSocketMap);
-    handleChatEvents(io, socket, userSocketMap, roomSocketMap);
-    handlePlayerEvents(io, socket, userSocketMap, roomSocketMap);
+    handleChatEvents(io, socket);
+    handlePlayerEvents(io, socket);
 
     socket.on("disconnect", () => {
       logger.info(`Client disconnected: ${socket.id}`);
