@@ -45,6 +45,9 @@ interface PlayerBarProps {
   repeatMode?: 'none' | 'one' | 'all';
   onShuffle?: () => void;
   onRepeat?: () => void;
+  onToggleLyrics?: () => void;
+  onToggleQueue?: () => void;
+  onToggleFullscreen?: () => void;
 }
 
 export function PlayerBar({
@@ -70,6 +73,9 @@ export function PlayerBar({
   repeatMode = 'none',
   onShuffle,
   onRepeat,
+  onToggleLyrics,
+  onToggleQueue,
+  onToggleFullscreen,
 }: PlayerBarProps) {
   
   const formatTime = (seconds: number) => {
@@ -80,30 +86,30 @@ export function PlayerBar({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-[90px] bg-card border-t border-border px-4 flex items-center justify-between z-50 text-foreground shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:shadow-none">
+    <div className="h-full w-full flex items-center justify-between px-4 text-foreground transition-all duration-300">
       {/* 1. Left: Track Info */}
-      <div className="flex items-center gap-4 w-[30%] min-w-[180px]">
+      <div className="flex items-center gap-3 md:gap-4 min-w-0 md:w-[25%] lg:w-[20%]">
         {currentSong ? (
             <>
-                <div className="h-14 w-14 bg-muted rounded shadow-md flex items-center justify-center shrink-0 overflow-hidden relative group">
+                <div className="h-10 w-10 md:h-12 md:w-12 bg-muted rounded shadow-md flex items-center justify-center shrink-0 overflow-hidden relative group">
                     {currentSong.coverUrl ? (
                         <Image src={currentSong.coverUrl} alt={currentSong.title} fill className="object-cover" />
                     ) : (
-                        <ListMusic className="h-6 w-6 text-muted-foreground" />
+                        <ListMusic className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                     )}
                 </div>
-                <div className="flex flex-col justify-center overflow-hidden">
-                    <p className="font-semibold text-sm text-foreground truncate hover:underline cursor-pointer">
+                <div className="flex flex-col justify-center min-w-0">
+                    <p className="font-semibold text-xs md:text-sm text-foreground truncate hover:underline cursor-pointer">
                         {currentSong.title}
                     </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-                        <span className="hover:text-foreground hover:underline cursor-pointer transition-colors max-w-[150px] truncate">
+                    <div className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground truncate">
+                        <span className="hover:text-foreground hover:underline cursor-pointer transition-colors truncate">
                            {currentSong.artist}
                         </span>
                         {roomName && (
                             <>
-                                <span>•</span>
-                                <span className="text-primary font-bold truncate max-w-[100px]">
+                                <span className="hidden xs:inline">•</span>
+                                <span className="text-primary font-bold truncate hidden xs:inline">
                                     {roomName}
                                 </span>
                             </>
@@ -112,12 +118,12 @@ export function PlayerBar({
                 </div>
             </>
         ) : (
-             <div className="flex flex-col justify-center">
-                 <div className="h-14 w-1 flex items-center text-xs text-muted-foreground italic font-medium">
+             <div className="flex flex-col justify-center min-w-0">
+                 <div className="h-12 w-auto flex items-center text-xs text-muted-foreground italic font-medium truncate">
                     No song playing
                  </div>
                  {roomName && (
-                    <div className="text-xs text-primary font-bold uppercase tracking-wider">
+                    <div className="text-[10px] md:text-xs text-primary font-bold uppercase tracking-wider truncate">
                         {roomName}
                     </div>
                  )}
@@ -126,12 +132,12 @@ export function PlayerBar({
       </div>
 
       {/* 2. Center: Controls & Progress */}
-      <div className="flex flex-col items-center justify-center max-w-[722px] w-[40%] gap-2">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-1 flex-col items-center justify-center gap-1.5 md:gap-2 px-4 md:px-8 min-w-0">
+        <div className="flex items-center gap-4 md:gap-6">
              <button 
                 onClick={onShuffle}
                 className={cn(
-                    "transition-colors",
+                    "transition-colors hidden sm:block",
                     shuffle ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )} 
                 title={shuffle ? "Disable Shuffle" : "Enable Shuffle"}
@@ -140,35 +146,35 @@ export function PlayerBar({
              </button>
              <button 
                 onClick={() => canSkip && onSkipPrev?.()}
-                className={`transition-colors ${canSkip ? "text-muted-foreground hover:text-foreground" : "text-border cursor-not-allowed"}`}
+                className={`transition-colors flex items-center justify-center ${canSkip ? "text-muted-foreground hover:text-foreground" : "text-border cursor-not-allowed"}`}
                 disabled={!canSkip}
              >
-                <SkipBack className="h-5 w-5 fill-current" />
+                <SkipBack className="h-4 w-4 md:h-5 md:w-5 fill-current" />
              </button>
              
              <button 
                 onClick={() => canPlay && onPlayPause?.()}
-                className={`bg-foreground text-background dark:bg-white dark:text-black rounded-full p-2.5 shadow-md transition-all active:scale-95 flex items-center justify-center ${canPlay ? "hover:scale-110" : "opacity-30 cursor-not-allowed hover:scale-100"}`}
+                className={`bg-foreground text-background dark:bg-white dark:text-black rounded-full p-2 md:p-2.5 shadow-md transition-all active:scale-95 flex items-center justify-center ${canPlay ? "hover:scale-110" : "opacity-30 cursor-not-allowed hover:scale-100"}`}
                 disabled={!canPlay}
              >
                 {isPlaying ? (
-                     <Pause className="h-5 w-5 fill-current" />
+                     <Pause className="h-4 w-4 md:h-5 md:w-5 fill-current" />
                 ) : (
-                     <Play className="h-5 w-5 fill-current pl-0.5" />
+                     <Play className="h-4 w-4 md:h-5 md:w-5 fill-current pl-0.5" />
                 )}
              </button>
 
              <button 
                 onClick={() => canSkip && onSkipNext?.()}
-                className={`transition-colors ${canSkip ? "text-muted-foreground hover:text-foreground" : "text-border cursor-not-allowed"}`}
+                className={`transition-colors flex items-center justify-center ${canSkip ? "text-muted-foreground hover:text-foreground" : "text-border cursor-not-allowed"}`}
                 disabled={!canSkip}
              >
-                <SkipForward className="h-5 w-5 fill-current" />
+                <SkipForward className="h-4 w-4 md:h-5 md:w-5 fill-current" />
              </button>
              <button 
                 onClick={onRepeat}
                 className={cn(
-                    "transition-colors relative",
+                    "transition-colors relative hidden sm:block",
                     repeatMode !== 'none' ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )} 
                 title={`Repeat: ${repeatMode}`}
@@ -180,11 +186,11 @@ export function PlayerBar({
              </button>
         </div>
         
-        <div className="w-full flex items-center gap-2 text-[10px] font-bold tracking-tighter text-muted-foreground tabular-nums">
-            <span>{formatTime(currentTime)}</span>
-            <div className={`relative h-1 bg-muted rounded-full w-full group ${canSeek ? "cursor-pointer" : "cursor-default"}`}>
+        <div className="w-full flex items-center gap-1.5 md:gap-2 text-[9px] md:text-[10px] font-bold tracking-tighter text-muted-foreground tabular-nums">
+            <span className="w-8 text-right">{formatTime(currentTime)}</span>
+            <div className={`relative h-1 bg-muted rounded-full flex-1 group ${canSeek ? "cursor-pointer" : "cursor-default"}`}>
                  <div 
-                    className={`absolute h-full bg-foreground dark:bg-white rounded-full ${canSeek ? "group-hover:bg-primary" : "opacity-50"}`}
+                    className={`absolute h-full bg-primary md:bg-foreground md:dark:bg-white rounded-full ${canSeek ? "group-hover:bg-primary" : "opacity-50"}`}
                     style={{ width: `${progress}%` }}
                  />
                  <input 
@@ -197,20 +203,28 @@ export function PlayerBar({
                     className={`absolute inset-0 w-full h-full opacity-0 ${canSeek ? "cursor-pointer" : "cursor-default"}`}
                  />
             </div>
-            <span>{formatTime(duration)}</span>
+            <span className="w-8">{formatTime(duration)}</span>
         </div>
       </div>
 
       {/* 3. Right: Volume & Extras */}
-      <div className="flex items-center justify-end gap-4 w-[30%] min-w-[180px]">
-         <button className="text-muted-foreground hover:text-foreground transition-colors hover:scale-105" title="Lyrics">
+      <div className="hidden xs:flex items-center justify-end gap-2 md:gap-4 md:w-[25%] lg:w-[20%]">
+         <button 
+            onClick={onToggleLyrics}
+            className="text-muted-foreground hover:text-foreground transition-colors hover:scale-105 hidden sm:block" 
+            title="Lyrics"
+         >
             <Mic2 className="h-4 w-4" />
          </button>
-         <button className="text-muted-foreground hover:text-foreground transition-colors hover:scale-105" title="Queue">
+         <button 
+            onClick={onToggleQueue}
+            className="text-muted-foreground hover:text-foreground transition-colors hover:scale-105" 
+            title="Queue"
+         >
             <LayoutList className="h-4 w-4" />
          </button>
          
-         <div className="flex items-center gap-2 w-28 group">
+         <div className="hidden sm:flex items-center gap-2 w-20 md:w-24 lg:w-28 group">
             <button onClick={onToggleMute} className="text-muted-foreground hover:text-foreground transition-colors">
                 {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </button>
@@ -230,7 +244,11 @@ export function PlayerBar({
             </div>
          </div>
          
-         <button className="text-muted-foreground hover:text-foreground transition-colors hover:scale-105" title="Full Screen">
+         <button 
+            onClick={onToggleFullscreen}
+            className="text-muted-foreground hover:text-foreground transition-colors hover:scale-105" 
+            title="Full Screen"
+         >
             <Maximize2 className="h-4 w-4" />
          </button>
       </div>

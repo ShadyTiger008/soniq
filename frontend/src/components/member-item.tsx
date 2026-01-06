@@ -42,7 +42,7 @@ export function MemberItem({
       case "dj":
         return "text-ocean-blue";
       case "moderator":
-        return "text-neon-cyan";
+        return "text-ocean-blue";
       default:
         return "text-muted-foreground";
     }
@@ -55,18 +55,18 @@ export function MemberItem({
       case "dj":
         return "bg-ocean-blue/10 border-ocean-blue/30";
       case "moderator":
-        return "bg-neon-cyan/10 border-neon-cyan/30";
+        return "bg-ocean-blue/10 border-ocean-blue/30 text-ocean-blue";
       default:
-        return "bg-deep-purple/10 border-deep-purple/30";
+        return "bg-primary/10 border-primary/30";
     }
   };
 
   return (
-    <div className={`glass-card group hover:border-electric-magenta/50 smooth-transition flex items-center justify-between p-4 ${isMenuOpen ? 'relative z-50 ring-1 ring-electric-magenta/50' : 'relative z-0'}`}>
+    <div className={`bg-card border border-border group hover:border-primary/50 smooth-transition flex items-center justify-between rounded-xl p-4 ${isMenuOpen ? 'relative z-50 ring-1 ring-primary/50' : 'relative z-0'}`}>
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {/* Avatar */}
         <div className="relative flex-shrink-0">
-          <div className="from-deep-purple to-electric-magenta flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-gradient-to-r text-lg font-bold">
+          <div className="from-primary to-electric-magenta flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-gradient-to-r text-lg font-bold">
             {avatar.startsWith("http") ? (
               <img
                 src={avatar}
@@ -78,14 +78,14 @@ export function MemberItem({
             )}
           </div>
           {isOnline && (
-            <div className="bg-neon-cyan border-midnight-black absolute right-0 bottom-0 h-3 w-3 animate-pulse rounded-full border-2" />
+            <div className="bg-primary border-background absolute right-0 bottom-0 h-3 w-3 animate-pulse rounded-full border-2" />
           )}
         </div>
 
         {/* Member info */}
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <p className="font-600 text-soft-white truncate text-sm">
+            <p className="font-600 text-foreground truncate text-sm">
               {name}{" "}
               {isSelf && (
                 <span className="text-muted-foreground text-xs">(You)</span>

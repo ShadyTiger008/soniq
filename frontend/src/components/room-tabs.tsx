@@ -29,6 +29,8 @@ interface RoomTabsProps {
   onPlaySong?: (id: string) => void;
   onUpdateRole?: (userId: string, role: "dj" | "listener") => void;
   onKickMember?: (userId: string) => void;
+  activeTab?: TabType;
+  onTabChange?: (tab: TabType) => void;
 }
 
 export function RoomTabs({
@@ -49,8 +51,19 @@ export function RoomTabs({
   onPlaySong,
   onUpdateRole,
   onKickMember,
+  activeTab: controlledTab,
+  onTabChange,
 }: RoomTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("chat");
+  const [internalTab, setInternalTab] = useState<TabType>("chat");
+  const activeTab = controlledTab || internalTab;
+
+  const handleTabChange = (tab: TabType) => {
+    if (onTabChange) {
+      onTabChange(tab);
+    } else {
+      setInternalTab(tab);
+    }
+  };
 
   const tabs = [
     { id: "now-playing", label: "Now Playing", icon: Music, emoji: "♫" },
@@ -69,7 +82,7 @@ export function RoomTabs({
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabType)}
+              onClick={() => handleTabChange(tab.id as TabType)}
               className={`smooth-transition flex items-center gap-2 rounded-lg px-4 py-3 whitespace-nowrap font-medium text-sm flex-1 justify-center ${
                 isActive
                   ? "bg-background text-foreground shadow-sm border border-border"

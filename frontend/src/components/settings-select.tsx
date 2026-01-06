@@ -30,7 +30,7 @@ export function SettingsSelect({
   return (
     <div className="space-y-2">
       <div>
-        <p className="font-500 text-soft-white mb-1">{label}</p>
+        <p className="font-500 text-foreground mb-1">{label}</p>
         {description && (
           <p className="text-muted-foreground text-sm">{description}</p>
         )}
@@ -38,9 +38,9 @@ export function SettingsSelect({
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="glass-card hover:border-electric-magenta smooth-transition flex w-full items-center justify-between rounded-lg px-4 py-3 text-left"
+          className="border border-border bg-muted/30 hover:border-primary/50 smooth-transition flex w-full items-center justify-between rounded-lg px-4 py-3 text-left"
         >
-          <span className="text-soft-white">
+          <span className="text-foreground">
             {options.find((o) => o.value === selected)?.label}
           </span>
           <ChevronDown
@@ -49,15 +49,15 @@ export function SettingsSelect({
         </button>
 
         {isOpen && (
-          <div className="glass-card absolute top-full right-0 left-0 z-20 mt-2 overflow-hidden rounded-lg">
+          <div className="bg-card border border-border shadow-xl absolute top-full right-0 left-0 z-20 mt-2 overflow-hidden rounded-lg">
             {options.map((option) => (
               <button
                 key={option.value}
                 onClick={() => handleSelect(option.value)}
                 className={`smooth-transition w-full px-4 py-3 text-left ${
                   selected === option.value
-                    ? "from-deep-purple to-electric-magenta text-soft-white bg-gradient-to-r"
-                    : "text-soft-white hover:bg-[rgba(108,43,217,0.2)]"
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : "text-foreground hover:bg-muted"
                 }`}
               >
                 {option.label}

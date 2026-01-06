@@ -105,6 +105,14 @@
   --color-spotify-black: #191414;
   --color-spotify-dark-gray: #121212;
   --color-spotify-light-gray: #282828;
+
+  /* SONIQ Brand Colors */
+  --color-deep-purple: #7c3aed;
+  --color-electric-magenta: #d946ef;
+  --color-soft-white: #f8fafc;
+  --color-ocean-blue: #06b6d4;
+  --color-neon-pink: #f472b6;
+  --color-deep-blue: #1e1b4b;
 }
 
 

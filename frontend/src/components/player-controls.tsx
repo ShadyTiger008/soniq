@@ -154,10 +154,10 @@ export function PlayerControls({
         <button
           onClick={() => onSkip?.("prev")}
           disabled={!canSkip}
-          className={`glass-card smooth-transition p-3 ${!canSkip ? 'opacity-50 cursor-not-allowed' : 'hover:border-deep-purple'}`}
+          className={`bg-card border border-border smooth-transition rounded-xl p-3 ${!canSkip ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary'}`}
           title="Previous"
         >
-          <SkipBack className="text-ocean-blue h-5 w-5" />
+          <SkipBack className="text-primary h-5 w-5" />
         </button>
 
         <button
@@ -165,46 +165,46 @@ export function PlayerControls({
               if(canPlay) onPlayPause?.();
           }}
           disabled={!canPlay}
-          className={`from-deep-purple to-electric-magenta neon-glow smooth-transition rounded-full bg-gradient-to-r p-4 ${!canPlay ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:from-electric-magenta hover:to-neon-pink'}`}
+          className={`bg-gradient-to-r from-primary to-electric-magenta shadow-lg shadow-primary/20 smooth-transition rounded-full p-4 ${!canPlay ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:scale-105 active:scale-95'}`}
           title={isPlaying ? "Pause" : "Play"}
         >
           {isPlaying ? (
-            <Pause className="text-soft-white h-6 w-6 fill-current" />
+            <Pause className="text-white h-6 w-6 fill-current" />
           ) : (
-            <Play className="text-soft-white ml-1 h-6 w-6 fill-current" />
+            <Play className="text-white ml-1 h-6 w-6 fill-current" />
           )}
         </button>
 
         <button
           onClick={() => onSkip?.("next")}
           disabled={!canSkip}
-          className={`glass-card smooth-transition p-3 ${!canSkip ? 'opacity-50 cursor-not-allowed' : 'hover:border-ocean-blue'}`}
+          className={`bg-card border border-border smooth-transition rounded-xl p-3 ${!canSkip ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary'}`}
           title="Next"
         >
-          <SkipForward className="text-neon-cyan h-5 w-5" />
+          <SkipForward className="text-primary h-5 w-5" />
         </button>
       </div>
 
       {/* Secondary controls - DJ only */}
       {isDJ && (
-        <div className="mb-6 flex items-center justify-center gap-4 border-b border-[rgba(108,43,217,0.2)] pb-4">
+        <div className="mb-6 flex items-center justify-center gap-4 border-b border-border pb-4">
           <button
             onClick={() => onSeek?.(-5)}
-            className="glass-card hover:border-ocean-blue smooth-transition px-3 py-2 text-sm"
+            className="border border-border bg-muted/30 hover:bg-muted font-medium smooth-transition rounded-lg px-3 py-2 text-sm text-foreground"
             title="Rewind 5 seconds"
           >
             -5s
           </button>
           <button
             onClick={() => onSeek?.(5)}
-            className="glass-card hover:border-electric-magenta smooth-transition px-3 py-2 text-sm"
+            className="border border-border bg-muted/30 hover:bg-muted font-medium smooth-transition rounded-lg px-3 py-2 text-sm text-foreground"
             title="Forward 5 seconds"
           >
             +5s
           </button>
           <button
             onClick={() => onSeek?.(10)}
-            className="glass-card hover:border-neon-cyan smooth-transition px-3 py-2 text-sm"
+            className="border border-border bg-muted/30 hover:bg-muted font-medium smooth-transition rounded-lg px-3 py-2 text-sm text-foreground"
             title="Forward 10 seconds"
           >
             +10s
@@ -217,7 +217,7 @@ export function PlayerControls({
         <div className="flex items-center gap-3">
           <button
             onClick={handleMuteToggle}
-            className="smooth-transition text-muted-foreground hover:text-soft-white"
+            className="smooth-transition text-muted-foreground hover:text-foreground"
             title={isMuted ? "Unmute" : "Mute"}
           >
             {isMuted || volume === 0 ? (
@@ -232,34 +232,34 @@ export function PlayerControls({
             max="100"
             value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
-            className="accent-electric-magenta h-1 w-24 cursor-pointer appearance-none rounded-full bg-[rgba(108,43,217,0.2)]"
+            className="accent-primary h-1 w-24 cursor-pointer appearance-none rounded-full bg-muted"
             title={`Volume: ${volume}%`}
           />
-          <span className="text-muted-foreground w-8 text-xs">{volume}</span>
+          <span className="text-muted-foreground w-8 text-xs font-medium">{volume}</span>
         </div>
 
         <div className="flex items-center gap-3">
           {isDJ && (
-            <div className="border-electric-magenta/30 flex items-center gap-1 rounded-full border bg-[rgba(214,93,242,0.1)] px-3 py-1">
-              <Crown className="text-electric-magenta h-4 w-4" />
-              <span className="text-electric-magenta font-500 text-xs">
+            <div className="border-primary/30 flex items-center gap-1 rounded-full border bg-primary/10 px-3 py-1">
+              <Crown className="text-primary h-4 w-4" />
+              <span className="text-primary font-600 text-xs">
                 DJ Mode
               </span>
             </div>
           )}
           <button
             onClick={() => alert("Share feature coming soon!")}
-            className="smooth-transition rounded-lg p-2 hover:bg-[rgba(108,43,217,0.2)]"
+            className="smooth-transition rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground"
             title="Share"
           >
-            <Share2 className="text-muted-foreground hover:text-soft-white h-4 w-4" />
+            <Share2 className="h-4 w-4" />
           </button>
           <button
             onClick={() => alert("Settings coming soon!")}
-            className="smooth-transition rounded-lg p-2 hover:bg-[rgba(108,43,217,0.2)]"
+            className="smooth-transition rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground"
             title="Settings"
           >
-            <Settings className="text-muted-foreground hover:text-soft-white h-4 w-4" />
+            <Settings className="h-4 w-4" />
           </button>
           <button
             onClick={() => {
@@ -268,10 +268,10 @@ export function PlayerControls({
                 player.requestFullscreen?.();
               }
             }}
-            className="smooth-transition rounded-lg p-2 hover:bg-[rgba(108,43,217,0.2)]"
+            className="smooth-transition rounded-lg p-2 hover:bg-muted text-muted-foreground hover:text-foreground"
             title="Fullscreen"
           >
-            <Maximize2 className="text-muted-foreground hover:text-soft-white h-4 w-4" />
+            <Maximize2 className="h-4 w-4" />
           </button>
         </div>
       </div>

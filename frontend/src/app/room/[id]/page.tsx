@@ -24,7 +24,8 @@ import {
   DndContext, 
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent
@@ -56,6 +57,7 @@ import type { Song } from "@frontend/types";
 import { toast } from "sonner";
 import Link from "next/link";
 import { QueueSongItem } from "@frontend/components/queue-song-item";
+import { LeaveRoomModal } from "@frontend/components/leave-room-modal";
 
 // Sortable Item Wrapper
 function SortableQueueItem({ song, index, isCurrent, onClick, isDJ }: any) {
@@ -79,8 +81,8 @@ function SortableQueueItem({ song, index, isCurrent, onClick, isDJ }: any) {
             <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/10 dark:hover:bg-white/10 transition-all duration-300 bg-card/50 dark:bg-white/[0.03] backdrop-blur-md border border-border dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5">
                  {/* Drag Handle */}
                  {isDJ && (
-                    <div {...attributes} {...listeners} className="cursor-grab hover:text-primary text-muted-foreground transition-colors p-1">
-                        <GripVertical className="h-4 w-4" />
+                    <div {...attributes} {...listeners} className="cursor-grab hover:text-primary text-muted-foreground transition-colors p-2 -ml-1 flex items-center justify-center">
+                        <GripVertical className="h-5 w-5" />
                     </div>
                  )}
                  {!isDJ && (
@@ -125,6 +127,9 @@ export default function RoomPage() {
 
   const [shared, setShared] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"chat" | "queue" | "members" | "now-playing">("chat");
+  const [showLyrics, setShowLyrics] = useState(false);
 
   const [roomSettings, setRoomSettings] = useState({
     name: "Midnight Vibes",
@@ -325,7 +330,17 @@ export default function RoomPage() {
   
   // DnD Sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 10,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -383,23 +398,21 @@ export default function RoomPage() {
   };
 
   const handleLeaveRoom = async () => {
-    const isHostLeaving = isHost;
-    const message = isHostLeaving
-      ? "Are you sure you want to leave and delete this room? This action cannot be undone."
-      : "Are you sure you want to leave this room?";
+    setShowLeaveModal(true);
+  };
 
-    if (confirm(message)) {
-      try {
-        // Only delete room if host is leaving and confirms
-        await apiClient.leaveRoom(roomId, isHostLeaving);
-        toast.success(
-          isHostLeaving ? "Room deleted successfully" : "Left room successfully"
-        );
-        router.push("/home");
-      } catch (error) {
-        toast.error("Failed to leave room");
-        router.push("/home");
-      }
+  const handleConfirmLeave = async (deleteRoom: boolean) => {
+    try {
+      await apiClient.leaveRoom(roomId, deleteRoom);
+      toast.success(
+        deleteRoom ? "Room deleted successfully" : "Left room successfully"
+      );
+      router.push("/home");
+    } catch (error) {
+      toast.error("Failed to leave room");
+      router.push("/home");
+    } finally {
+      setShowLeaveModal(false);
     }
   };
 
@@ -434,6 +447,31 @@ export default function RoomPage() {
     } catch (error) {
       toast.error("An error occurred while saving settings");
     }
+  };
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        toast.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  const handleToggleQueue = () => {
+    setActiveTab("queue");
+    // Scroll to the right column on mobile if needed
+    const rightCol = document.getElementById("right-tabs-column");
+    if (rightCol && window.innerWidth < 1280) {
+      rightCol.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const handleToggleLyrics = () => {
+    setShowLyrics(!showLyrics);
   };
 
   if (isLoadingRoom) {
@@ -512,6 +550,9 @@ export default function RoomPage() {
       setVolume(newVol);
       emitPlayerVolume(newVol);
     },
+    onToggleLyrics: handleToggleLyrics,
+    onToggleQueue: handleToggleQueue,
+    onToggleFullscreen: handleToggleFullscreen,
   };
 
   return (
@@ -750,8 +791,10 @@ export default function RoomPage() {
           </div>
 
           {/* Right Column: Chat/Tabs */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden min-h-[600px] flex flex-col">
+          <div id="right-tabs-column" className="bg-card rounded-xl border border-border overflow-hidden min-h-[600px] flex flex-col">
               <RoomTabs
+                 activeTab={activeTab}
+                 onTabChange={(tab: any) => setActiveTab(tab)}
                  queue={queue}
                  currentSong={currentSong}
                  chatMessages={chatMessages}
@@ -779,9 +822,52 @@ export default function RoomPage() {
         roomName={roomSettings.name}
         isPrivate={roomSettings.isPrivate}
         maxListeners={roomSettings.maxListeners}
+        mood={roomSettings.mood}
         cover={roomSettings.cover}
+        stats={{
+          totalListeners: socketListenerCount,
+          createdAt: roomData?.createdAt
+        }}
         onSave={handleSaveSettings}
       />
+
+      <LeaveRoomModal 
+        isOpen={showLeaveModal}
+        onClose={() => setShowLeaveModal(false)}
+        isHost={isHost}
+        onConfirm={handleConfirmLeave}
+      />
+
+      {/* Lyrics Overlay */}
+      {showLyrics && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+            <button 
+                onClick={() => setShowLyrics(false)}
+                className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"
+                title="Close"
+            >
+                <X className="h-8 w-8" />
+            </button>
+            <div className="max-w-2xl w-full text-center space-y-8 overflow-y-auto max-h-[80vh] scrollbar-hide px-4">
+                <div className="space-y-4">
+                    <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
+                        {currentSong?.title || "No Song Playing"}
+                    </h2>
+                    <p className="text-xl text-primary font-bold uppercase tracking-widest">{currentSong?.artist}</p>
+                </div>
+                
+                <div className="space-y-6 text-2xl md:text-3xl font-medium text-white/70 leading-relaxed italic">
+                    {/* Mock Lyrics - In a real app, these would come from an API */}
+                    <p className="text-white scale-110">This is where the magic happens</p>
+                    <p>When the bass drops low</p>
+                    <p>And the rhythm starts to flow</p>
+                    <p>SONIQ brings the vibe alive</p>
+                    <p>In the digital night, we thrive</p>
+                    <p className="text-white/40 text-lg not-italic mt-12">Lyrics are currently in beta</p>
+                </div>
+            </div>
+        </div>
+      )}
     </AppShell>
   );
 }

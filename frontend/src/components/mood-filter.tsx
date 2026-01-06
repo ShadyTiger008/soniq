@@ -22,10 +22,10 @@ export function MoodFilter({ onMoodChange }: MoodFilterProps) {
         <button
           key={mood}
           onClick={() => handleMoodChange(mood)}
-          className={`font-500 smooth-transition rounded-full px-4 py-2 whitespace-nowrap ${
+          className={`font-500 smooth-transition rounded-full px-4 py-2 whitespace-nowrap border ${
             activeMood === mood
-              ? "from-deep-purple to-electric-magenta text-soft-white neon-glow bg-gradient-to-r"
-              : "glass-card hover:border-electric-magenta text-muted-foreground hover:text-soft-white"
+              ? "from-primary to-electric-magenta text-white shadow-lg shadow-primary/20 bg-gradient-to-r border-transparent"
+              : "bg-muted/30 border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
           }`}
         >
           {mood}

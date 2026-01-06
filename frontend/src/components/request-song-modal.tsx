@@ -74,22 +74,22 @@ export function RequestSongModal({
       />
 
       {/* Modal */}
-      <div className="glass-card relative flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl sm:w-full sm:rounded-2xl">
+      <div className="bg-card relative flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl sm:w-full sm:rounded-2xl border border-border shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[rgba(108,43,217,0.2)] p-4">
-          <h2 className="font-heading font-700 text-soft-white text-xl">
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <h2 className="font-heading font-700 text-foreground text-xl">
             Request a Song
           </h2>
           <button
             onClick={onClose}
-            className="smooth-transition rounded-lg p-2 hover:bg-[rgba(108,43,217,0.2)]"
+            className="smooth-transition rounded-lg p-2 hover:bg-muted"
           >
             <X className="text-muted-foreground h-5 w-5" />
           </button>
         </div>
 
         {/* Search */}
-        <div className="border-b border-[rgba(108,43,217,0.2)] p-4">
+        <div className="border-b border-border p-4">
           <div className="relative">
             <Search className="text-muted-foreground absolute top-3.5 left-3 h-5 w-5" />
             <input
@@ -98,7 +98,7 @@ export function RequestSongModal({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by song title or artist..."
               autoFocus
-              className="text-soft-white placeholder-muted-foreground focus:border-electric-magenta focus:ring-electric-magenta smooth-transition w-full rounded-lg border border-[rgba(108,43,217,0.3)] bg-[rgba(26,22,51,0.6)] py-3 pr-4 pl-10 focus:ring-1 focus:outline-none"
+              className="text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary smooth-transition w-full rounded-lg border border-border bg-muted/30 py-3 pr-4 pl-10 focus:ring-1 focus:outline-none"
             />
           </div>
         </div>
@@ -107,25 +107,25 @@ export function RequestSongModal({
         <div className="flex-1 space-y-2 overflow-y-auto p-4 min-h-[300px]">
           {loading ? (
              <div className="flex items-center justify-center h-40">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-magenta"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
              </div>
           ) : results.length > 0 ? (
             results.map((song) => (
               <button
                 key={song.id}
                 onClick={() => handleRequestSong(song)}
-                className="glass-card hover:border-electric-magenta smooth-transition group w-full rounded-lg p-3 text-left"
+                className="bg-card hover:bg-muted border border-border hover:border-primary/50 smooth-transition group w-full rounded-lg p-3 text-left"
               >
                 <div className="flex items-center gap-3">
                    {song.thumbnail ? (
                       <img src={song.thumbnail} alt={song.title} className="h-10 w-10 rounded object-cover bg-black/50" />
                    ) : (
-                      <div className="h-10 w-10 rounded bg-white/10 flex items-center justify-center">
+                      <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
                         <Music className="h-5 w-5 text-muted-foreground" />
                       </div>
                    )}
                   <div className="flex-1 min-w-0">
-                    <p className="font-600 text-soft-white group-hover:text-electric-magenta smooth-transition truncate">
+                    <p className="font-600 text-foreground group-hover:text-primary smooth-transition truncate">
                       {song.title}
                     </p>
                     <p className="text-muted-foreground text-sm truncate">{song.artist}</p>
@@ -151,7 +151,7 @@ export function RequestSongModal({
         </div>
 
         {/* Footer */}
-        <div className="text-muted-foreground border-t border-[rgba(108,43,217,0.2)] p-4 text-center text-sm">
+        <div className="text-muted-foreground border-t border-border p-4 text-center text-sm bg-muted/20">
            All searches provided by YouTube
         </div>
       </div>

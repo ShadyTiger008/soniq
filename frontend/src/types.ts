@@ -58,6 +58,7 @@ export interface Room {
   queue?: Song[];
   songRequests?: Song[];
   listenerCount: number;
+  createdAt?: string;
 }
 
 export interface User {

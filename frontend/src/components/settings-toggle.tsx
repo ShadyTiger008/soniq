@@ -24,9 +24,9 @@ export function SettingsToggle({
   };
 
   return (
-    <div className="glass-card hover:border-electric-magenta/50 smooth-transition flex items-center justify-between rounded-lg p-4">
+    <div className="border border-border bg-muted/30 hover:border-primary/50 smooth-transition flex items-center justify-between rounded-lg p-4">
       <div>
-        <p className="font-500 text-soft-white">{label}</p>
+        <p className="font-500 text-foreground">{label}</p>
         {description && (
           <p className="text-muted-foreground text-sm">{description}</p>
         )}
@@ -35,12 +35,12 @@ export function SettingsToggle({
         onClick={handleChange}
         className={`smooth-transition relative h-7 w-12 rounded-full ${
           checked
-            ? "from-deep-purple to-electric-magenta bg-gradient-to-r"
-            : "bg-[rgba(108,43,217,0.2)]"
+            ? "bg-primary shadow-sm"
+            : "bg-muted-foreground/30"
         }`}
       >
         <div
-          className={`bg-soft-white smooth-transition absolute top-1 left-1 h-5 w-5 rounded-full ${
+          className={`bg-white shadow-sm smooth-transition absolute top-1 left-1 h-5 w-5 rounded-full ${
             checked ? "translate-x-5" : "translate-x-0"
           }`}
         />
