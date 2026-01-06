@@ -3,16 +3,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Radio, Globe, Users, Music2, History, Library, LogOut, User as UserIcon } from "lucide-react";
+import { Home, Search, Radio, Globe, Users, Music2, History, Library, LogOut, User as UserIcon, LifeBuoy } from "lucide-react";
 import { useAuth } from "@frontend/lib/auth-context";
 import { cn } from "@frontend/lib/utils";
 import { apiClient } from "@frontend/lib/api-client";
+import { SupportModal } from "@frontend/components/support-modal";
 
 export function Sidebar() {
   const pathname = usePathname();
   const [myRooms, setMyRooms] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
-  const { user, logout } = useAuth(); // Assume useAuth provides user and logout
+  const { user, logout } = useAuth();
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -152,8 +154,20 @@ export function Sidebar() {
             </div>
          </div>
          
+         {/* Help & Support */}
+         <div className="px-3 pb-2">
+            <button 
+              onClick={() => setIsSupportOpen(true)}
+              className="flex w-full items-center gap-4 px-4 py-3 text-sm font-semibold text-muted-foreground transition-all rounded-lg hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/5 group"
+            >
+                <LifeBuoy className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors hover:rotate-12" />
+                Help & Support
+            </button>
+         </div>
+
          {/* User Footer */}
          <div className="p-3 mt-auto border-t border-border/40 bg-muted/20">
+            <SupportModal isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} />
             <div className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border/50 shadow-sm">
                  <div className="h-9 w-9 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold shrink-0">
                      {user?.avatar ? <img src={user.avatar} className="h-full w-full rounded-full object-cover" /> : <UserIcon className="h-4 w-4" />}

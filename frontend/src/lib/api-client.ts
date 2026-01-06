@@ -276,6 +276,19 @@ class ApiClient {
       API_ENDPOINTS.UNSPLASH.SEARCH(query, page, perPage)
     );
   }
+
+  // Support
+  async submitSupport(data: {
+    name: string;
+    email: string;
+    type: "BUG" | "HELP" | "FEEDBACK";
+    message: string;
+  }) {
+    return this.request(API_ENDPOINTS.SUPPORT.SUBMIT, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

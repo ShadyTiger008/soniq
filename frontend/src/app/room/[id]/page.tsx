@@ -554,6 +554,9 @@ export default function RoomPage() {
             
              <div className="absolute top-0 right-0 p-4 flex gap-2">
                  <ThemeToggle />
+                 <button onClick={handleCopyInvite} className="p-2 hover:bg-accent rounded-full transition-colors text-foreground" title="Copy Room Code">
+                    {copied ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+                 </button>
                  <button onClick={handleShareRoom} className="p-2 hover:bg-accent rounded-full transition-colors text-foreground" title="Share">
                     <Share2 className="h-5 w-5" />
                  </button>

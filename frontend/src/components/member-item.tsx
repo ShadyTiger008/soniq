@@ -66,8 +66,16 @@ export function MemberItem({
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {/* Avatar */}
         <div className="relative flex-shrink-0">
-          <div className="from-deep-purple to-electric-magenta flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r text-lg font-bold">
-            {avatar}
+          <div className="from-deep-purple to-electric-magenta flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-gradient-to-r text-lg font-bold">
+            {avatar.startsWith("http") ? (
+              <img
+                src={avatar}
+                alt={name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              avatar
+            )}
           </div>
           {isOnline && (
             <div className="bg-neon-cyan border-midnight-black absolute right-0 bottom-0 h-3 w-3 animate-pulse rounded-full border-2" />

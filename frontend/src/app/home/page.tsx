@@ -17,8 +17,6 @@ interface Room {
   hostId?: any;
   listenerCount: number;
   mood: string;
-  listenerCount: number;
-  mood: string;
   isPrivate?: boolean;
   cover?: string;
 }
@@ -62,7 +60,14 @@ export default function HomePage() {
       toast.error("Please enter a room code or ID");
       return;
     }
-    router.push(`/room/${quickJoin.trim()}`);
+    
+    // Strip the "SONIQ-" prefix if it exists
+    let roomId = quickJoin.trim();
+    if (roomId.toUpperCase().startsWith("SONIQ-")) {
+      roomId = roomId.substring(6);
+    }
+    
+    router.push(`/room/${roomId}`);
   };
 
   if (isLoading || !isAuthenticated) {

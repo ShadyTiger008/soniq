@@ -62,6 +62,11 @@ export const API_ENDPOINTS = {
     SEARCH: (query: string, page: number = 1, perPage: number = 20) =>
       `/unsplash/search?query=${encodeURIComponent(query)}&page=${page}&perPage=${perPage}`,
   },
+
+  // Support endpoints
+  SUPPORT: {
+    SUBMIT: "/support",
+  },
 } as const;
 
 // Export BASE_URL for reference
