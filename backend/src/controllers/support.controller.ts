@@ -23,15 +23,16 @@ export const submitSupportRequest = async (req: Request, res: Response): Promise
       status: "PENDING"
     });
 
-    // 2. Send Email Notification
-    const isEmailSent = await emailService.sendSupportEmail({
-      name,
-      email,
-      type,
-      message
-    });
+    // 2. Send Emails in Parallel
+    // We execute both email tasks concurrently to reduce API response time
+    const [adminEmailResult] = await Promise.allSettled([
+      emailService.sendSupportEmail({ name, email, type, message }),
+      emailService.sendUserAutoReply({ name, email, type })
+    ]);
 
-    // 3. Update Email Sent Status in DB
+    // 3. Update Email Sent Status in DB based on Admin Email success
+    const isEmailSent = adminEmailResult.status === 'fulfilled' && adminEmailResult.value === true;
+
     if (isEmailSent) {
       supportRequest.isEmailSent = true;
       await supportRequest.save();
