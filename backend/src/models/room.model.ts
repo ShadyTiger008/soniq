@@ -4,6 +4,7 @@ export interface IRoom extends Document {
   name: string;
   description?: string;
   hostId: mongoose.Types.ObjectId;
+  cover?: string;
   mood: string;
   isPrivate: boolean;
   inviteCode?: string;
@@ -70,6 +71,10 @@ const roomSchema = new Schema<IRoom>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true
+    },
+    cover: {
+      type: String,
+      default: ""
     },
     mood: {
       type: String,

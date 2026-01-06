@@ -132,6 +132,7 @@ export default function RoomPage() {
     isPrivate: false,
     maxListeners: 1000,
     mood: "Chill",
+    cover: "",
   });
   const [roomData, setRoomData] = useState<any>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
@@ -189,6 +190,7 @@ export default function RoomPage() {
           isPrivate: response.data.isPrivate,
           maxListeners: response.data.maxListeners,
           mood: response.data.mood || "General",
+          cover: response.data.cover || "",
         });
         
         // Check if current user is host
@@ -406,6 +408,7 @@ export default function RoomPage() {
     isPrivate: boolean;
     maxListeners: number;
     mood: string;
+    cover?: string;
   }) => {
     try {
       const response = await apiClient.updateRoom(roomId, {
@@ -413,6 +416,7 @@ export default function RoomPage() {
         isPrivate: settings.isPrivate,
         maxListeners: settings.maxListeners,
         mood: settings.mood,
+        cover: settings.cover,
       });
 
       if (response.success) {
@@ -516,9 +520,16 @@ export default function RoomPage() {
       <div className="relative w-full bg-gradient-to-b from-primary/10 dark:from-indigo-600/30 via-background to-background p-8 pt-12 border-b border-border/50">
         <div className="flex flex-col md:flex-row items-center md:items-end gap-8 relative z-10 max-w-7xl mx-auto">
             {/* Room Avatar / Icon */}
+            {/* Room Avatar / Icon */}
             <div className="h-48 w-48 shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shrink-0 ring-1 ring-white/20 relative group overflow-hidden">
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <Music className="h-20 w-20 text-white drop-shadow-lg" />
+                {roomSettings.cover ? (
+                  <img src={roomSettings.cover} alt={roomSettings.name} className="h-full w-full object-cover" />
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Music className="h-20 w-20 text-white drop-shadow-lg" />
+                  </>
+                )}
             </div>
             
             <div className="flex flex-col gap-3 w-full text-center md:text-left">
@@ -765,6 +776,7 @@ export default function RoomPage() {
         roomName={roomSettings.name}
         isPrivate={roomSettings.isPrivate}
         maxListeners={roomSettings.maxListeners}
+        cover={roomSettings.cover}
         onSave={handleSaveSettings}
       />
     </AppShell>

@@ -1,6 +1,7 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { logger } from "../../utils/logger.js";
 import { RoomModel } from "../../models/room.model.js";
+import { HistoryModel } from "../../models/history.model.js";
 
 export function handleRoomEvents(
   io: SocketIOServer,
@@ -10,15 +11,21 @@ export function handleRoomEvents(
 ) {
   // Helper to enrich members with roles
   const getMembersWithRoles = (room: any) => {
+    const hostId = room.hostId.toString();
     return room.members.map((member: any) => {
       const memberObj = member.toObject ? member.toObject() : member;
       const memberId = memberObj._id.toString();
       
       let role = "listener";
-      if (room.hostId.toString() === memberId) {
+      if (hostId === memberId) {
         role = "host";
-      } else if (room.roles && room.roles.get(memberId)) {
-        role = room.roles.get(memberId);
+      } else if (room.roles) {
+        // Handle both Map (Mongoose doc) and Object (lean)
+        const roleValue = (room.roles instanceof Map || typeof room.roles.get === 'function')
+          ? room.roles.get(memberId)
+          : room.roles[memberId];
+          
+        if (roleValue) role = roleValue;
       }
 
       return {
@@ -90,14 +97,7 @@ export function handleRoomEvents(
          
          // Fix: Fetch document to use our helper properly? 
          // Performance wise, we can just use the POJO.
-         const membersWithRoles = updatedRoom.members.map((m: any) => {
-             const mId = m._id.toString();
-             let r = "listener";
-             if (updatedRoom.hostId.toString() === mId) r = "host";
-             else if (updatedRoom.roles && (updatedRoom.roles as any)[mId]) r = (updatedRoom.roles as any)[mId];
-             
-             return { ...m, role: r };
-         });
+         const membersWithRoles = getMembersWithRoles(updatedRoom);
 
         io.to(roomId).emit("room:members", {
           members: membersWithRoles,
@@ -128,6 +128,19 @@ export function handleRoomEvents(
       });
 
       logger.info(`User ${userId} joined room ${roomId}`);
+      
+      // Update Listen History
+      if (socket.handshake.auth?.userId) {
+          try {
+              await HistoryModel.findOneAndUpdate(
+                  { user: userId, room: roomId },
+                  { lastListened: new Date() },
+                  { upsert: true, new: true }
+              );
+          } catch (historyError) {
+              logger.error("Failed to update listen history:", historyError);
+          }
+      }
     } catch (error) {
       logger.error("Error in room:join:", error);
       socket.emit("room:error", { message: "Failed to join room" });
@@ -170,13 +183,7 @@ export function handleRoomEvents(
           .lean();
           
         if (updatedRoom) {
-            const membersWithRoles = updatedRoom.members.map((m: any) => {
-                 const mId = m._id.toString();
-                 let r = "listener";
-                 if (updatedRoom.hostId.toString() === mId) r = "host";
-                 else if (updatedRoom.roles && (updatedRoom.roles as any)[mId]) r = (updatedRoom.roles as any)[mId];
-                 return { ...m, role: r };
-            });
+            const membersWithRoles = getMembersWithRoles(updatedRoom);
 
           io.to(roomId).emit("room:members", {
             members: membersWithRoles,
@@ -205,13 +212,7 @@ export function handleRoomEvents(
         return;
       }
       
-      const membersWithRoles = room.members.map((m: any) => {
-             const mId = m._id.toString();
-             let r = "listener";
-             if (room.hostId.toString() === mId) r = "host";
-             else if (room.roles && (room.roles as any)[mId]) r = (room.roles as any)[mId];
-             return { ...m, role: r };
-      });
+      const membersWithRoles = getMembersWithRoles(room);
 
       socket.emit("room:members", {
         members: membersWithRoles,
@@ -258,13 +259,7 @@ export function handleRoomEvents(
             .lean();
             
           if (updatedRoom) {
-             const membersWithRoles = updatedRoom.members.map((m: any) => {
-                 const mId = m._id.toString();
-                 let r = "listener";
-                 if (updatedRoom.hostId.toString() === mId) r = "host";
-                 else if (updatedRoom.roles && (updatedRoom.roles as any)[mId]) r = (updatedRoom.roles as any)[mId];
-                 return { ...m, role: r };
-            });
+             const membersWithRoles = getMembersWithRoles(updatedRoom);
             
             io.to(roomId).emit("room:members", {
                 members: membersWithRoles,
@@ -329,13 +324,7 @@ export function handleRoomEvents(
             .lean();
             
           if (updatedRoom) {
-             const membersWithRoles = updatedRoom.members.map((m: any) => {
-                 const mId = m._id.toString();
-                 let r = "listener";
-                 if (updatedRoom.hostId.toString() === mId) r = "host";
-                 else if (updatedRoom.roles && (updatedRoom.roles as any)[mId]) r = (updatedRoom.roles as any)[mId];
-                 return { ...m, role: r };
-            });
+             const membersWithRoles = getMembersWithRoles(updatedRoom);
             
             io.to(roomId).emit("room:members", {
                 members: membersWithRoles,

@@ -1,5 +1,5 @@
 import { API_BASE_URL, API_ENDPOINTS } from "@frontend/config/api.config";
-import type { Room, Song } from "@frontend/types";
+import type { Room, Song, User } from "@frontend/types";
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -194,6 +194,7 @@ class ApiClient {
     name: string;
     description?: string;
     mood?: string;
+    cover?: string;
     isPrivate?: boolean;
     maxListeners?: number;
   }) {
@@ -209,6 +210,7 @@ class ApiClient {
       name: string;
       description: string;
       mood: string;
+      cover: string;
       isPrivate: boolean;
       maxListeners: number;
     }>
@@ -239,7 +241,7 @@ class ApiClient {
 
   // User endpoints
   async getCurrentUser() {
-    return this.request(API_ENDPOINTS.USER.ME);
+    return this.request<User>(API_ENDPOINTS.USER.ME);
   }
 
   async updateUser(
@@ -255,9 +257,24 @@ class ApiClient {
     });
   }
 
+  async getMyRooms() {
+    return this.request<Room[]>(API_ENDPOINTS.USER.MY_ROOMS);
+  }
+
+  async getHistory() {
+    return this.request<any[]>(API_ENDPOINTS.USER.HISTORY);
+  }
+
   // YouTube search
   async searchYouTube(query: string, maxResults: number = 10) {
     return this.request<Song[]>(API_ENDPOINTS.YOUTUBE.SEARCH(query, maxResults));
+  }
+
+  // Unsplash search
+  async searchPhotos(query: string, page: number = 1, perPage: number = 20) {
+    return this.request<any[]>(
+      API_ENDPOINTS.UNSPLASH.SEARCH(query, page, perPage)
+    );
   }
 }
 

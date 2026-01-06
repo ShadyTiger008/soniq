@@ -11,7 +11,7 @@ export async function createRoom(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { name, description, mood, isPrivate, maxListeners } = req.body;
+    const { name, description, mood, isPrivate, maxListeners, cover } = req.body;
 
     if (!name) {
       throw new CustomError("Room name is required", 400);
@@ -27,6 +27,7 @@ export async function createRoom(
       mood: mood || "Chill",
       isPrivate: isPrivate || false,
       maxListeners: maxListeners || 1000,
+      cover: cover || "",
       hostId: req.userId,
       listenerCount: 1, // Host is automatically a member
       members: [req.userId]
@@ -193,7 +194,7 @@ export async function joinRoom(
 ): Promise<void> {
   try {
     const { id } = req.params;
-    const room = await roomService.joinRoom(id, req.userId!, req.user!);
+    const room = await roomService.joinRoom(id, req.userId!);
 
     res.json({
       success: true,

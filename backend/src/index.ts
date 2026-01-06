@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { app, server } from "./app.js";
+import { server } from "./app.js";
 import { connectDatabase } from "./config/database.js";
 import { logger } from "./utils/logger.js";
 import { initializeSocketIO } from "./socket/index.js";

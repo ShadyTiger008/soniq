@@ -17,7 +17,10 @@ interface Room {
   hostId?: any;
   listenerCount: number;
   mood: string;
+  listenerCount: number;
+  mood: string;
   isPrivate?: boolean;
+  cover?: string;
 }
 
 export default function HomePage() {
@@ -91,7 +94,7 @@ export default function HomePage() {
         {/* Hero / Greeting Section */}
         <div className="mb-10">
             <h1 className="mb-8 text-4xl font-black text-foreground tracking-tight">
-                {greeting}
+                {greeting}, <span className="text-primary">{user?.username || "there"}</span>
             </h1>
             
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -161,6 +164,7 @@ export default function HomePage() {
                             listeners={room.listenerCount}
                             mood={room.mood}
                             host={typeof room.hostId === "object" ? room.hostId?.username || "Unknown" : "Unknown"}
+                            thumbnail={room.cover}
                             isLive={true} 
                          />
                     ))}

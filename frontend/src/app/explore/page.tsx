@@ -1,21 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Headphones, Moon, Heart, PartyPopper, Coffee, Users, Music2 } from "lucide-react";
+import { Search, Headphones, Moon, Heart, PartyPopper, Coffee, Users, Music2, Music } from "lucide-react";
 import { RoomCard } from "@frontend/components/room-card";
 import { BottomNowPlaying } from "@frontend/components/bottom-now-playing";
 import { apiClient } from "@frontend/lib/api-client";
 import { toast } from "sonner";
 import Link from "next/link";
-
-interface Room {
-  _id: string;
-  name: string;
-  hostId?: any;
-  listenerCount: number;
-  mood: string;
-  currentSong?: any;
-}
+import type { Room } from "@frontend/types";
 
 export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState("Featured");
@@ -56,7 +48,7 @@ export default function ExplorePage() {
     title: room.name,
     host: typeof room.hostId === "object" ? room.hostId?.username || "Unknown" : "Unknown",
     listeners: room.listenerCount,
-    thumbnail: "/api/placeholder/400/300",
+    thumbnail: room.cover,
     mood: room.mood,
   }));
 
@@ -68,6 +60,7 @@ export default function ExplorePage() {
     avatars: ["👤", "🎧", "🎵", "🎶"],
     mood: room.mood,
     timeAgo: "Recently",
+    cover: room.cover,
   }));
 
   const moods = [
@@ -84,6 +77,7 @@ export default function ExplorePage() {
     id: room._id,
     title: room.name,
     listeners: room.listenerCount,
+    cover: room.cover,
   }));
 
   return (
@@ -154,9 +148,13 @@ export default function ExplorePage() {
             >
               {/* Room Image */}
               <div className="from-primary/10 to-primary/5 relative aspect-[4/3] overflow-hidden bg-gradient-to-br">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Music2 className="text-primary/20 h-24 w-24" />
-                </div>
+                {room.thumbnail ? (
+                   <img src={room.thumbnail} alt={room.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Music2 className="text-primary/20 h-24 w-24" />
+                    </div>
+                )}
                 {/* Live Now Badge */}
                 <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-red-500/90 px-3 py-1.5 backdrop-blur-sm shadow-sm">
                   <div className="bg-white h-2 w-2 animate-pulse rounded-full" />
@@ -218,7 +216,16 @@ export default function ExplorePage() {
                 href={`/room/${room.id}`}
                 className="bg-card hover:bg-muted/50 border border-border shadow-sm smooth-transition group rounded-xl p-5 block"
               >
-              <div className="mb-4 flex items-start justify-between">
+              <div className="mb-4 flex items-start gap-3">
+                <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden shrink-0">
+                    {(room as any).cover ? (
+                        <img src={(room as any).cover} alt={room.title} className="h-full w-full object-cover" />
+                    ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary">
+                             <Music className="h-6 w-6" />
+                        </div>
+                    )}
+                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-foreground mb-1 text-base tracking-tight truncate">
                     {room.title}
@@ -311,8 +318,12 @@ export default function ExplorePage() {
               className="bg-card hover:bg-muted border border-border shadow-sm smooth-transition group flex items-center justify-between rounded-2xl p-5"
             >
               <div className="flex items-center gap-4">
-                 <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center text-primary border border-border">
-                    <Music className="h-5 w-5" />
+                 <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center text-primary border border-border overflow-hidden shrink-0">
+                    {(room as any).cover ? (
+                         <img src={(room as any).cover} alt={room.title} className="h-full w-full object-cover" />
+                    ) : (
+                        <Music className="h-5 w-5" />
+                    )}
                  </div>
                  <div>
                     <h3 className="font-bold text-foreground mb-0.5 text-base tracking-tight">

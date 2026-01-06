@@ -132,7 +132,8 @@ export class RoomService {
       "description",
       "mood",
       "isPrivate",
-      "maxListeners"
+      "maxListeners",
+      "cover"
     ];
     const filteredData: any = {};
 
@@ -173,7 +174,7 @@ export class RoomService {
     await RoomModel.findByIdAndDelete(id);
   }
 
-  async joinRoom(id: string, userId: string, user: any) {
+  async joinRoom(id: string, userId: string) {
     const room = await RoomModel.findById(id);
 
     if (!room) {

@@ -3,8 +3,9 @@
 import type React from "react";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Image as ImageIcon } from "lucide-react";
 import { SettingsSelect } from "./settings-select";
+import { UnsplashImagePicker } from "./ui/unsplash-picker";
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -25,7 +26,9 @@ export function CreateRoomModal({
     isPrivate: false,
     mood: "Chill",
     maxListeners: 1000,
+    cover: "",
   });
+  const [showPicker, setShowPicker] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -102,6 +105,45 @@ export function CreateRoomModal({
               rows={3}
               className="text-soft-white placeholder-muted-foreground focus:border-electric-magenta smooth-transition w-full resize-none rounded-lg border border-[rgba(108,43,217,0.3)] bg-[rgba(26,22,51,0.6)] px-4 py-2 focus:outline-none"
             />
+          </div>
+
+          {/* Cover Image */}
+          <div>
+             <label className="font-600 text-soft-white mb-2 block text-sm">
+               Room Cover
+             </label>
+             {formData.cover ? (
+                 <div className="relative aspect-video w-full rounded-lg overflow-hidden group">
+                     <img src={formData.cover} alt="Room cover" className="w-full h-full object-cover" />
+                     <button
+                        type="button"
+                        onClick={() => setShowPicker(!showPicker)}
+                        className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors"
+                     >
+                         Change Cover
+                     </button>
+                 </div>
+             ) : (
+                <button
+                    type="button"
+                    onClick={() => setShowPicker(!showPicker)}
+                    className="w-full border border-dashed border-[rgba(108,43,217,0.3)] bg-[rgba(26,22,51,0.6)] rounded-lg p-4 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-soft-white hover:border-electric-magenta transition-all"
+                >
+                    <ImageIcon className="h-6 w-6" />
+                    <span className="text-sm">Select Cover Image</span>
+                </button>
+             )}
+             
+             {showPicker && (
+                 <div className="mt-2 p-2 bg-black/20 rounded-lg">
+                     <UnsplashImagePicker 
+                        onSelect={(url) => {
+                            setFormData(prev => ({ ...prev, cover: url }));
+                            setShowPicker(false);
+                        }}
+                     />
+                 </div>
+             )}
           </div>
 
           {/* Mood */}

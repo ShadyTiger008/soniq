@@ -1,21 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { X, Lock, Users, Music, Volume2, Shield, Crown } from "lucide-react";
+
+import { X, Lock, Users, Music, Volume2, Shield, Crown, Image as ImageIcon } from "lucide-react";
 import { SettingsToggle } from "./settings-toggle";
 import { SettingsSelect } from "./settings-select";
+import { UnsplashImagePicker } from "./ui/unsplash-picker";
 
 interface RoomSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   roomName: string;
   isPrivate: boolean;
+
   maxListeners: number;
+  cover?: string;
   onSave?: (settings: {
     name: string;
     isPrivate: boolean;
     maxListeners: number;
+
     mood: string;
+    cover?: string;
   }) => void;
 }
 
@@ -25,12 +31,15 @@ export function RoomSettingsModal({
   roomName: initialRoomName,
   isPrivate: initialIsPrivate,
   maxListeners: initialMaxListeners,
+  cover: initialCover,
   onSave,
 }: RoomSettingsModalProps) {
   const [roomName, setRoomName] = useState(initialRoomName);
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
   const [maxListeners, setMaxListeners] = useState(initialMaxListeners);
+  const [cover, setCover] = useState(initialCover || "");
   const [mood, setMood] = useState("Chill");
+  const [showPicker, setShowPicker] = useState(false);
 
   if (!isOpen) return null;
 
@@ -39,7 +48,9 @@ export function RoomSettingsModal({
       name: roomName,
       isPrivate,
       maxListeners,
+
       mood,
+      cover,
     });
     onClose();
   };
@@ -85,6 +96,43 @@ export function RoomSettingsModal({
               maxLength={50}
               className="text-soft-white placeholder-muted-foreground focus:border-electric-magenta smooth-transition w-full rounded-lg border-2 border-deep-purple/30 bg-[rgba(26,22,51,0.6)] px-4 py-3 focus:outline-none"
             />
+          </div>
+
+          {/* Cover Image */}
+          <div>
+             <label className="font-600 text-soft-white mb-2 block text-sm">
+               Room Cover
+             </label>
+             {cover ? (
+                 <div className="relative aspect-video w-full rounded-lg overflow-hidden group">
+                     <img src={cover} alt="Room cover" className="w-full h-full object-cover" />
+                     <button
+                        onClick={() => setShowPicker(!showPicker)}
+                        className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors"
+                     >
+                         Change Cover
+                     </button>
+                 </div>
+             ) : (
+                <button
+                    onClick={() => setShowPicker(!showPicker)}
+                    className="w-full border border-dashed border-[rgba(108,43,217,0.3)] bg-[rgba(26,22,51,0.6)] rounded-lg p-4 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-soft-white hover:border-electric-magenta transition-all"
+                >
+                    <ImageIcon className="h-6 w-6" />
+                    <span className="text-sm">Select Cover Image</span>
+                </button>
+             )}
+             
+             {showPicker && (
+                 <div className="mt-2 p-2 bg-black/20 rounded-lg">
+                     <UnsplashImagePicker 
+                        onSelect={(url) => {
+                            setCover(url);
+                            setShowPicker(false);
+                        }}
+                     />
+                 </div>
+             )}
           </div>
 
           {/* Mood */}

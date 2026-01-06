@@ -49,6 +49,7 @@ export interface Room {
   name: string;
   description?: string;
   mood?: string;
+  cover?: string;
   isPrivate: boolean;
   maxListeners: number;
   hostId: string | RoomMember;
@@ -56,4 +57,15 @@ export interface Room {
   currentSong?: Song;
   queue?: Song[];
   songRequests?: Song[];
+  listenerCount: number;
+}
+
+export interface User {
+  _id: string;
+  username: string;
+  email: string;
+  avatar?: string;
+  role?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

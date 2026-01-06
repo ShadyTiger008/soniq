@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "../middleware/auth.js";
 import { UserService } from "../services/user.service.js";
+import { CustomError } from "../middleware/errorHandler.js";
 
 const userService = new UserService();
 
@@ -44,6 +45,38 @@ export async function updateUser(
     res.json({
       success: true,
       data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getMyRooms(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const rooms = await userService.getMyRooms(req.userId!);
+    res.json({
+      success: true,
+      data: rooms,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getHistory(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const history = await userService.getHistory(req.userId!);
+    res.json({
+      success: true,
+      data: history,
     });
   } catch (error) {
     next(error);

@@ -35,6 +35,8 @@ export const API_ENDPOINTS = {
   USER: {
     ME: "/users/me",
     UPDATE: "/users/me",
+    MY_ROOMS: "/users/me/rooms",
+    HISTORY: "/users/me/history",
   },
 
   // Room endpoints
@@ -53,6 +55,12 @@ export const API_ENDPOINTS = {
   YOUTUBE: {
     SEARCH: (query: string, maxResults: number = 10) =>
       `/youtube/search?q=${encodeURIComponent(query)}&maxResults=${maxResults}`,
+  },
+
+  // Unsplash requests
+  UNSPLASH: {
+    SEARCH: (query: string, page: number = 1, perPage: number = 20) =>
+      `/unsplash/search?query=${encodeURIComponent(query)}&page=${page}&perPage=${perPage}`,
   },
 } as const;
 

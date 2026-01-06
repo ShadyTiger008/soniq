@@ -3,27 +3,36 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Radio, Globe, Users, Music2 } from "lucide-react";
+import { Home, Search, Radio, Globe, Users, Music2, History, Library, LogOut, User as UserIcon } from "lucide-react";
+import { useAuth } from "@frontend/lib/auth-context";
 import { cn } from "@frontend/lib/utils";
 import { apiClient } from "@frontend/lib/api-client";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [trendingRooms, setTrendingRooms] = useState<any[]>([]);
+  const [myRooms, setMyRooms] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const { user, logout } = useAuth(); // Assume useAuth provides user and logout
 
   useEffect(() => {
-    const fetchTrending = async () => {
+    const fetchData = async () => {
       try {
-        const response = await apiClient.getRooms({ sort: 'trending', limit: 5 });
-        if (response.success && response.data) {
-          const data = response.data as any;
-          setTrendingRooms(data.rooms || data || []);
+        const [roomsRes, historyRes] = await Promise.all([
+             apiClient.getMyRooms(),
+             apiClient.getHistory()
+        ]);
+        
+        if (roomsRes.success && roomsRes.data) {
+           setMyRooms(roomsRes.data);
+        }
+        if (historyRes.success && historyRes.data) {
+            setHistory(historyRes.data);
         }
       } catch (error) {
-        console.error("Failed to fetch trending rooms", error);
+        console.error("Failed to fetch sidebar data", error);
       }
     };
-    fetchTrending();
+    fetchData();
   }, []);
 
   const routes = [
@@ -77,46 +86,93 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden bg-card rounded-lg flex flex-col border border-border/40 shadow-sm">
-        <div className="p-6 pb-2">
-            <div className="flex items-center justify-between mb-2">
-                <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group">
-                    <Globe className="h-4 w-4 group-hover:text-primary transition-colors" />
-                    <span className="font-bold text-sm tracking-wide uppercase">Trending Now</span>
-                </button>
+      <div className="flex-1 overflow-hidden bg-card rounded-lg flex flex-col border border-border/40 shadow-sm mt-2">
+         {/* My Rooms Section */}
+         <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+            <div className="p-4 pb-2 sticky top-0 bg-card z-10">
+                <div className="flex items-center gap-2 text-muted-foreground uppercase tracking-wider text-xs font-bold px-2">
+                    <Library className="h-3 w-3" />
+                    <span>My Rooms</span>
+                </div>
             </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-2">
-            {/* Trending Rooms List */}
-            <div className="space-y-1 p-2">
-                {trendingRooms.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-xs text-muted-foreground">
-                    No trending rooms
-                  </div>
+            <div className="px-2 pb-4 space-y-1">
+                {myRooms.length === 0 ? (
+                    <div className="px-4 text-xs text-muted-foreground py-2 italic">No rooms created</div>
                 ) : (
-                  trendingRooms.map((room) => (
-                    <Link 
-                      key={room._id} 
-                      href={`/room/${room._id}`}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 group transition-all text-left border border-transparent"
-                    >
-                         <div className="h-10 w-10 bg-muted rounded-lg shrink-0 flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
-                             <Users className="h-5 w-5" />
-                         </div>
-                         <div className="overflow-hidden flex-1">
-                            <p className="font-semibold text-foreground truncate text-sm">{room.name}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                <span className="group-hover:text-foreground transition-colors">{room.listenerCount} listening</span>
-                                <span>•</span>
-                                <span>{room.mood}</span>
+                    myRooms.map((room) => (
+                        <Link
+                            key={room._id}
+                            href={`/room/${room._id}`}
+                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 group transition-all"
+                        >
+                            <div className="h-8 w-8 bg-primary/10 rounded-md flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                                <Radio className="h-4 w-4" />
                             </div>
-                        </div>
-                    </Link>
-                  ))
+                            <div className="overflow-hidden">
+                                <p className="text-sm font-semibold truncate text-foreground">{room.name}</p>
+                            </div>
+                        </Link>
+                    ))
                 )}
             </div>
-        </div>
+
+            {/* Listen History Section */}
+             <div className="p-4 pb-2 sticky top-0 bg-card z-10 border-t border-border/40">
+                <div className="flex items-center gap-2 text-muted-foreground uppercase tracking-wider text-xs font-bold px-2">
+                    <History className="h-3 w-3" />
+                    <span>Listen History</span>
+                </div>
+            </div>
+            <div className="px-2 pb-4 space-y-1">
+                 {history.length === 0 ? (
+                    <div className="px-4 text-xs text-muted-foreground py-2 italic">No listening history</div>
+                ) : (
+                    history.map((item) => (
+                        <Link
+                            key={item._id}
+                            href={`/room/${item.room._id}`}
+                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 group transition-all opacity-80 hover:opacity-100"
+                        >
+                            <div className="h-8 w-8 bg-muted rounded-md flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors overflow-hidden">
+                                {item.room.cover ? (
+                                    <img src={item.room.cover} alt={item.room.name} className="h-full w-full object-cover" />
+                                ) : (
+                                    <Music2 className="h-4 w-4" />
+                                )}
+                            </div>
+                            <div className="overflow-hidden">
+                                <p className="text-sm font-medium truncate text-foreground">{item.room.name}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                    Last played {new Date(item.lastListened).toLocaleDateString()}
+                                </p>
+                            </div>
+                        </Link>
+                    ))
+                )}
+            </div>
+         </div>
+         
+         {/* User Footer */}
+         <div className="p-3 mt-auto border-t border-border/40 bg-muted/20">
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border/50 shadow-sm">
+                 <div className="h-9 w-9 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold shrink-0">
+                     {user?.avatar ? <img src={user.avatar} className="h-full w-full rounded-full object-cover" /> : <UserIcon className="h-4 w-4" />}
+                 </div>
+                 <div className="overflow-hidden flex-1 min-w-0">
+                     <p className="text-sm font-bold truncate">{user?.username || 'Guest'}</p>
+                     <Link href="/profile" className="text-xs text-muted-foreground hover:text-primary transition-colors truncate block">
+                        View Profile
+                     </Link>
+                 </div>
+                 <button 
+                    onClick={logout}
+                    className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    title="Logout"
+                 >
+                     <LogOut className="h-4 w-4" />
+                 </button>
+            </div>
+         </div>
       </div>
     </div>
   );
