@@ -18,7 +18,10 @@ import {
   ArrowLeft,
   Play,
   Pause,
-  GripVertical
+  GripVertical,
+  Radio,
+  Flame,
+  Sparkles
 } from "lucide-react";
 import {
   DndContext, 
@@ -38,6 +41,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { motion, AnimatePresence } from "framer-motion";
 
 import { ThemeToggle } from "@frontend/components/theme-toggle";
 import { AppShell } from "@frontend/components/layout/app-shell";
@@ -68,48 +72,76 @@ function SortableQueueItem({ song, index, isCurrent, onClick, isDJ }: any) {
         transform,
         transition,
         isDragging
-    } = useSortable({ id: song.id }); // Use direct stable ID
+    } = useSortable({ id: song.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0.3 : 1,
+        zIndex: isDragging ? 50 : 1,
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="relative group">
-            <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/10 dark:hover:bg-white/10 transition-all duration-300 bg-card/50 dark:bg-white/[0.03] backdrop-blur-md border border-border dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+        <motion.div 
+            ref={setNodeRef} 
+            style={style} 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative group mb-2"
+        >
+            <div className={cn(
+                "flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 border",
+                 isCurrent 
+                    ? "bg-primary/10 border-primary/20 shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]" 
+                    : "bg-surface-high/40 hover:bg-surface-highest/60 border-white/5 hover:border-white/10"
+            )}>
                  {/* Drag Handle */}
                  {isDJ && (
-                    <div {...attributes} {...listeners} className="cursor-grab hover:text-primary text-muted-foreground transition-colors p-2 -ml-1 flex items-center justify-center">
-                        <GripVertical className="h-5 w-5" />
+                    <div {...attributes} {...listeners} className="cursor-grab hover:text-primary text-muted-foreground transition-colors p-1 -ml-1">
+                        <GripVertical className="h-4 w-4" />
                     </div>
                  )}
                  {!isDJ && (
-                    <div className="text-muted-foreground w-4 text-center text-sm font-mono">{index + 1}</div>
+                    <div className="text-muted-foreground/40 w-4 text-center text-[10px] font-black">{index + 1}</div>
                  )}
                 
                  {/* Clickable Area for Play */}
                  <div className="flex-1 min-w-0 flex items-center gap-4 cursor-pointer" onClick={() => onClick(song)}>
-                     <div className="h-10 w-10 bg-muted rounded flex items-center justify-center shrink-0 overflow-hidden">
+                     <div className="h-12 w-12 rounded-xl bg-surface-highest flex items-center justify-center shrink-0 overflow-hidden relative group-hover:scale-105 transition-transform shadow-lg">
                         {song.thumbnail ? (
                             <img src={song.thumbnail} alt={song.title} className="h-full w-full object-cover" /> 
                         ) : <Music className="h-5 w-5 text-muted-foreground" />}
+                        {isCurrent && (
+                            <div className="absolute inset-0 bg-primary/40 flex items-center justify-center">
+                                <Radio className="h-5 w-5 text-white animate-pulse" />
+                            </div>
+                        )}
                      </div>
                       <div className="flex-1 min-w-0">
-                         <p className={`font-semibold truncate tracking-tight ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
+                         <p className={cn(
+                             "font-bold truncate tracking-tight text-sm",
+                             isCurrent ? 'text-primary' : 'text-white'
+                         )}>
                              {song.title}
                          </p>
-                         <p className="text-sm text-muted-foreground/80 truncate font-medium">{song.artist}</p>
+                         <p className="text-xs text-muted-foreground truncate font-medium mt-0.5">{song.artist}</p>
                       </div>
                       <div className="text-right whitespace-nowrap">
-                        <span className="text-xs font-mono text-muted-foreground/60 block mb-0.5">{song.duration}</span>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-bold">BY {song.requestedBy}</span>
+                        <span className="text-[10px] font-black text-muted-foreground/60 block mb-1 uppercase tracking-wider">{song.duration}</span>
+                        <div className="flex items-center justify-end gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/5">
+                            <span className="text-[8px] uppercase tracking-[0.1em] text-muted-foreground/40 font-black">REQ BY</span>
+                            <span className="text-[8px] uppercase tracking-[0.1em] text-primary/60 font-black">{song.requestedBy}</span>
+                        </div>
                       </div>
                  </div>
             </div>
-        </div>
+        </motion.div>
     );
+}
+
+// Helper inside file
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
 }
 
 export default function RoomPage() {
@@ -557,143 +589,234 @@ export default function RoomPage() {
 
   return (
     <AppShell playerProps={playerProps}>
-      {/* Room Header / Hero Section */}
-      <div className="relative w-full bg-gradient-to-b from-primary/10 dark:from-indigo-600/30 via-background to-background p-8 pt-12 border-b border-border/50">
-        <div className="flex flex-col md:flex-row items-center md:items-end gap-8 relative z-10 max-w-7xl mx-auto">
-            {/* Room Avatar / Icon */}
-            {/* Room Avatar / Icon */}
-            <div className="h-48 w-48 shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shrink-0 ring-1 ring-white/20 relative group overflow-hidden">
+      {/* Room Hero - Cinematic Editorial Header */}
+      <div className="relative w-full min-h-[40vh] flex items-end justify-center overflow-hidden">
+        {/* Cinematic Ambient Background */}
+        <div className="absolute inset-0 bg-background z-0" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,_rgba(var(--primary-rgb),0.15)_0%,_transparent_50%)] z-0" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,_rgba(var(--primary-rgb),0.1)_0%,_transparent_60%)] z-0" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent z-10" />
+
+        <div className="w-full max-w-7xl mx-auto px-8 pb-12 relative z-20">
+          <div className="flex flex-col md:flex-row items-center md:items-end gap-10">
+            {/* High-Fidelity Room Cover */}
+            <motion.div 
+               initial={{ opacity: 0, scale: 0.9, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               className="h-64 w-64 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] rounded-3xl bg-surface-highest flex items-center justify-center shrink-0 ring-1 ring-white/10 relative group overflow-hidden"
+            >
                 {roomSettings.cover ? (
-                  <img src={roomSettings.cover} alt={roomSettings.name} className="h-full w-full object-cover" />
+                  <img src={roomSettings.cover} alt={roomSettings.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 ) : (
-                  <>
-                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Music className="h-20 w-20 text-white drop-shadow-lg" />
-                  </>
+                  <div className="relative w-full h-full bg-gradient-to-br from-primary/20 via-primary/40 to-primary/20 flex items-center justify-center">
+                    <Music className="h-24 w-24 text-white drop-shadow-2xl" />
+                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent" />
+                  </div>
                 )}
-            </div>
+                <div className="absolute inset-0 border-[0.5px] border-white/20 rounded-3xl pointer-events-none" />
+            </motion.div>
             
-            <div className="flex flex-col gap-3 w-full text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-3">
-                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.2em] border border-primary/20">Live Room</span>
-                    {roomSettings.isPrivate && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
-                </div>
-                <h1 className="text-6xl font-black text-foreground tracking-tighter sm:text-7xl lg:text-8xl drop-shadow-sm dark:drop-shadow-xl">{roomSettings.name}</h1>
-                <div className="mt-2 flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground font-medium">
-                    <div className="flex items-center gap-1.5 bg-muted dark:bg-white/5 px-3 py-1.5 rounded-full border border-border dark:border-white/10">
+            <div className="flex flex-col gap-4 flex-1 text-center md:text-left">
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-center md:justify-start gap-4"
+                >
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">Live Session</span>
+                    </div>
+                    {roomSettings.isPrivate && (
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                        <Lock className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em]">Private</span>
+                      </div>
+                    )}
+                </motion.div>
+
+                <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="text-7xl font-black text-white tracking-tighter sm:text-8xl lg:text-9xl font-epilogue"
+                >
+                  {roomSettings.name}
+                </motion.h1>
+
+                <motion.div 
+                   initial={{ opacity: 0 }}
+                   animate={{ opacity: 1 }}
+                   transition={{ delay: 0.2 }}
+                   className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-sm"
+                >
+                    <div className="flex items-center gap-2 text-muted-foreground font-bold bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
                         <Users className="h-4 w-4 text-primary" />
-                        <span><strong className="text-foreground font-bold">{socketListenerCount.toLocaleString()}</strong> listening</span>
+                        <span><strong className="text-white font-black">{socketListenerCount.toLocaleString()}</strong> <span className="opacity-60">tuning in</span></span>
                     </div>
-                    <span className="text-muted-foreground/30 text-lg">•</span>
-                    <div className="flex items-center gap-1.5 bg-muted dark:bg-white/5 px-3 py-1.5 rounded-full border border-border dark:border-white/10">
-                        <span className="text-foreground font-bold">{roomSettings.mood}</span>
+                    <div className="flex items-center gap-2 text-muted-foreground font-bold bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <span className="text-white font-black uppercase tracking-widest text-[10px]">{roomSettings.mood}</span>
                     </div>
-                    <span className="text-muted-foreground/30 text-lg">•</span>
-                    <span className="text-muted-foreground">Host: <span className="text-foreground font-semibold">{isHost ? "You" : "The DJ"}</span></span>
-                </div>
+                    <div className="flex items-center gap-2 text-muted-foreground font-bold px-1">
+                        <span className="opacity-40 uppercase text-[10px] tracking-widest">Directed by</span>
+                        <span className="text-white font-black">{isHost ? "You" : "The DJ"}</span>
+                    </div>
+                </motion.div>
             </div>
             
-             <div className="absolute top-0 right-0 p-4 flex gap-2">
-                 <ThemeToggle />
-                 <button onClick={handleCopyInvite} className="p-2 hover:bg-accent rounded-full transition-colors text-foreground" title="Copy Room Code">
-                    {copied ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
-                 </button>
-                 <button onClick={handleShareRoom} className="p-2 hover:bg-accent rounded-full transition-colors text-foreground" title="Share">
-                    <Share2 className="h-5 w-5" />
-                 </button>
-                 <button onClick={() => setShowSettings(true)} className="p-2 hover:bg-accent rounded-full transition-colors text-foreground" title="Settings">
-                    <Settings className="h-5 w-5" />
-                 </button>
-                 <button onClick={handleLeaveRoom} className="p-2 hover:bg-destructive/10 text-destructive rounded-full transition-colors" title="Leave">
-                    <LogOut className="h-5 w-5" />
-                 </button>
-             </div>
+            {/* Header Actions */}
+            <motion.div 
+               initial={{ opacity: 0, x: 20 }}
+               animate={{ opacity: 1, x: 0 }}
+               className="flex md:flex-col gap-2 p-4"
+            >
+                 <div className="flex gap-2 mb-2">
+                    <button onClick={handleCopyInvite} className="h-12 w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-white" title="Copy Invite">
+                        {copied ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+                    </button>
+                    <button onClick={handleShareRoom} className="h-12 w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-white" title="Share Space">
+                        <Share2 className="h-5 w-5" />
+                    </button>
+                 </div>
+                 <div className="flex gap-2">
+                    <button onClick={() => setShowSettings(true)} className="h-12 w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-white" title="Settings">
+                        <Settings className="h-5 w-5" />
+                    </button>
+                    <button onClick={handleLeaveRoom} className="h-12 w-12 flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 rounded-2xl border border-rose-500/20 transition-all text-rose-500" title="Exit Room">
+                        <LogOut className="h-5 w-5" />
+                    </button>
+                 </div>
+            </motion.div>
+          </div>
         </div>
       </div>
 
       {/* Main Content Grid */}
-      <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-6 relative z-10">
+      <div className="max-w-7xl mx-auto w-full p-8 grid grid-cols-1 xl:grid-cols-3 gap-12 relative z-10">
           
           {/* Left Column: Player & Queue */}
-          <div className="xl:col-span-2 space-y-6">
+          <div className="xl:col-span-2 flex flex-col gap-10">
               
               {/* Playback Actions Row */}
-              <div className="flex items-center gap-6">
-                  <button onClick={handlePlayPause} className="h-16 w-16 bg-primary hover:scale-105 active:scale-95 transition-all rounded-full flex items-center justify-center shadow-lg shadow-primary/20 text-white group">
-                      {isPlaying ? <Pause className="h-8 w-8 fill-current" /> : <Play className="h-8 w-8 fill-current pl-1" />}
-                  </button>
-                  <button onClick={() => setShowSearch(!showSearch)} className="px-6 py-2.5 rounded-full bg-card hover:bg-muted dark:bg-white/5 border border-border dark:border-white/10 dark:hover:bg-white/10 transition-all text-xs font-bold text-foreground tracking-widest uppercase shadow-sm">
-                      {showSearch ? "Close Search" : "Add Songs"}
-                  </button>
-                   {isHost && (
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-bold border border-purple-500/20 uppercase tracking-wider">
-                            <Crown className="h-3 w-3" />
-                            {userRole}
-                        </div>
-                   )}
+              <div className="flex items-center gap-8">
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handlePlayPause} 
+                    className="h-20 w-20 bg-primary rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(var(--primary-rgb),0.3)] text-white relative group overflow-hidden"
+                  >
+                      <motion.div 
+                        animate={{ scale: isPlaying ? [1, 1.2, 1] : 1 }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" 
+                      />
+                      {isPlaying ? <Pause className="h-10 w-10 fill-current relative z-10" /> : <Play className="h-10 w-10 fill-current pl-1 relative z-10" />}
+                  </motion.button>
+
+                  <div className="flex flex-col gap-1">
+                      <button 
+                        onClick={() => setShowSearch(!showSearch)} 
+                        className="flex items-center gap-3 px-8 py-3 rounded-2xl bg-surface-high hover:bg-surface-highest border border-white/5 hover:border-primary/30 transition-all text-[10px] font-black text-white tracking-[0.2em] uppercase shadow-lg"
+                      >
+                          <Search className="h-4 w-4 text-primary" />
+                          {showSearch ? "Close Search" : "Enhance Queue"}
+                      </button>
+                      {isHost && (
+                           <div className="flex items-center gap-2 px-3 py-1 mt-1 opacity-60">
+                               <Crown className="h-3 w-3 text-primary" />
+                               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Master Control Active</span>
+                           </div>
+                      )}
+                  </div>
               </div>
 
-               {/* Search Overlay Inline */}
-              {showSearch && (
-                 <div className="bg-card backdrop-blur-xl rounded-2xl p-6 border border-border animate-in fade-in slide-in-from-top-4 shadow-xl z-20">
-                    <div className="relative mb-6">
-                      <Search className="text-primary absolute top-4 left-4 h-5 w-5" />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search for songs..."
-                        autoFocus
-                        className="w-full bg-muted text-foreground rounded-xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground transition-all border border-border"
-                      />
-                    </div>
-                     <div className="space-y-1 max-h-[300px] overflow-y-auto">
-                      {searchResults.map((song, index) => (
-                        <div
-                          key={`${song.id}-${index}`}
-                          className="flex items-center justify-between p-4 rounded-2xl hover:bg-muted group transition-all cursor-pointer border border-transparent hover:border-border"
-                        >
-                          <div className="flex items-center gap-5 overflow-hidden">
-                             <div className="h-14 w-14 bg-muted rounded-xl flex items-center justify-center shrink-0 border border-border shadow-inner">
-                                <Music className="h-7 w-7 text-primary/60" />
-                             </div>
-                             <div className="truncate">
-                                <p className="text-foreground font-black truncate tracking-tight text-lg">{song.title}</p>
-                                <p className="text-muted-foreground text-sm truncate font-bold">{song.artist}</p>
-                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                             <button
-                                onClick={() => handleSelectSong(song)}
-                                className="text-primary hover:text-primary/80 font-bold text-sm bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-full transition-all"
-                             >
-                                Play Now
-                             </button>
-                             <button
-                                onClick={() => {
-                                    if (isDJ) { // Host or DJ
-                                        handleAddToQueue(song);
-                                        toast.success("Added to queue");
-                                    } else {
-                                        requestSong(song);
-                                        toast.success("Request sent to host");
-                                    }
-                                    setShowSearch(false);
-                                }}
-                                className="text-foreground hover:text-foreground/80 font-medium text-sm px-3 py-1.5 rounded-full hover:bg-muted transition-all"
-                             >
-                                {isDJ ? "Add" : "Request"}
-                             </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                 </div>
-              )}
+               {/* Search Overlay Inline - Premium Glassmorphism */}
+              <AnimatePresence>
+                {showSearch && (
+                   <motion.div 
+                     initial={{ opacity: 0, y: -20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     exit={{ opacity: 0, y: -20 }}
+                     className="bg-surface-high/80 backdrop-blur-3xl rounded-[2rem] p-8 border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] z-50 overflow-hidden relative"
+                   >
+                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+                      
+                      <div className="relative mb-8">
+                        <Search className="text-primary absolute top-1/2 -translate-y-1/2 left-6 h-5 w-5" />
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="What's the next anthem?"
+                          autoFocus
+                          className="w-full bg-black/40 text-white rounded-2xl py-5 pl-16 pr-6 focus:outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground/40 transition-all border border-white/5 text-lg font-bold"
+                        />
+                      </div>
 
-              {/* Visualizer / Video */}
-              <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl relative group">
-                  <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide">
+                        {searchResults.length > 0 ? searchResults.map((song, index) => (
+                          <motion.div
+                            key={`${song.id}-${index}`}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 group transition-all cursor-pointer border border-transparent hover:border-white/5"
+                          >
+                            <div className="flex items-center gap-5 overflow-hidden">
+                               <div className="h-14 w-14 bg-surface-highest rounded-xl flex items-center justify-center shrink-0 border border-white/5 shadow-inner relative overflow-hidden">
+                                  {song.thumbnail ? (
+                                    <img src={song.thumbnail} alt="" className="h-full w-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                  ) : <Music className="h-7 w-7 text-primary/40" />}
+                               </div>
+                               <div className="truncate">
+                                  <p className="text-white font-black truncate tracking-tight text-base group-hover:text-primary transition-colors">{song.title}</p>
+                                  <p className="text-muted-foreground text-xs truncate font-bold uppercase tracking-widest mt-1 opacity-60">{song.artist}</p>
+                               </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                               <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleSelectSong(song)}
+                                  className="text-white font-black text-[10px] uppercase tracking-widest bg-primary/20 hover:bg-primary/40 px-4 py-2 rounded-xl transition-all border border-primary/20"
+                               >
+                                  Play
+                               </motion.button>
+                               <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => {
+                                      if (isDJ) {
+                                          handleAddToQueue(song);
+                                      } else {
+                                          requestSong(song);
+                                          toast.success("Vibe request sent");
+                                      }
+                                      setShowSearch(false);
+                                  }}
+                                  className="text-white font-black text-[10px] uppercase tracking-widest bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-all border border-white/5"
+                               >
+                                  {isDJ ? "Add" : "Request"}
+                               </motion.button>
+                            </div>
+                          </motion.div>
+                        )) : (
+                          <div className="py-12 text-center">
+                            <Flame className="h-12 w-12 text-primary/20 mx-auto mb-4" />
+                            <p className="text-muted-foreground font-black uppercase tracking-[0.2em] text-[10px]">Search for any track in the universe</p>
+                          </div>
+                        )}
+                      </div>
+                   </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Visualizer / Video - Cinematic Container */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.7)] relative group ring-1 ring-white/10"
+              >
                   <YouTubePlayer
                     videoId={currentVideoId}
                     isPlaying={isPlaying}
@@ -703,13 +826,10 @@ export default function RoomPage() {
                     onStateChange={(state) => {
                       if (state === 3) setIsBuffering(true);
                       else if (state === 1 || state === 2) setIsBuffering(false);
-                      
-                      // Auto-play next song when current one ends (State 0 is ENDED)
                       if (state === 0 && isHost) {
-                        toast.info("Song ended, playing next...");
+                        toast.info("Transitioning to next track...");
                         handleSkip("next");
                       }
-
                       if (!isHost) return;
                       
                       if (state === 1 && !isPlaying) {
@@ -724,9 +844,6 @@ export default function RoomPage() {
                     }}
                     onReady={() => {
                       playerReadyRef.current = true;
-                      // Include the sync logic here if needed or keep the original simplified
-                      // For brevity, assuming basic sync or copying the block if critical
-                      // Retaining essential sync:
                          if (socketPlayerState && currentVideoId) {
                             const player = (window as any).youtubePlayer;
                             if (player) {
@@ -745,21 +862,28 @@ export default function RoomPage() {
                     }}
                   />
 
-                  {/* Waveform Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 h-24 z-20 opacity-30 dark:opacity-30 pointer-events-none mix-blend-multiply dark:mix-blend-screen">
+                  {/* Ambient Lighting Overlay */}
+                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none opacity-60" />
+                  
+                  {/* Waveform Visualization */}
+                  <div className="absolute bottom-6 left-8 right-8 h-16 z-20 pointer-events-none mix-blend-screen opacity-40">
                      <WaveformVisualizer />
                   </div>
-              </div>
+              </motion.div>
 
-              {/* Queue List (Enhanced) */}
-              <div className="mt-8">
-                  <h3 className="text-xl font-bold text-foreground mb-4">Up Next</h3>
+              {/* Queue List (Editorial Grade) */}
+              <div className="mt-12">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-black text-white tracking-widest uppercase">The Lineup</h3>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">{queue.length} Tracks</span>
+                  </div>
                   
-                  <div className="py-2 bg-card rounded-xl border border-border">
+                  <div className="relative">
                       {queue.length === 0 ? (
-                        <div className="p-8 text-center text-muted-foreground">
-                            <p>Queue is empty</p>
-                            <button onClick={() => setShowSearch(true)} className="text-primary hover:underline mt-2">Add a song</button>
+                        <div className="py-20 text-center bg-surface-high/20 rounded-[2rem] border border-dashed border-white/10">
+                            <Music className="h-12 w-12 text-white/10 mx-auto mb-4" />
+                            <p className="text-muted-foreground font-black uppercase tracking-[0.2em] text-xs">Queue is currently silent</p>
+                            <button onClick={() => setShowSearch(true)} className="text-primary hover:text-white transition-colors mt-4 text-[10px] font-black uppercase tracking-widest bg-primary/10 px-6 py-2 rounded-xl">Ignite the Vibe</button>
                         </div>
                       ) : (
                           <DndContext
@@ -771,7 +895,14 @@ export default function RoomPage() {
                                 items={queue.map((s: Song) => s.id).filter((id): id is string => id !== undefined)}
                                 strategy={verticalListSortingStrategy}
                              >
-                                <div className="space-y-1 p-2">
+                                <motion.div 
+                                    initial="hidden"
+                                    animate="show"
+                                    variants={{
+                                        show: { transition: { staggerChildren: 0.1 } }
+                                    }}
+                                    className="space-y-3"
+                                >
                                    {queue.filter((s: Song) => s.id !== undefined).map((song: Song, i: number) => (
                                      <SortableQueueItem 
                                         key={song.id}
@@ -779,10 +910,10 @@ export default function RoomPage() {
                                         index={i}
                                         isCurrent={currentSong?.id === song.id}
                                         onClick={handleQueueItemClick}
-                                        isDJ={isDJ} // UI allows reordering if isDJ
+                                        isDJ={isDJ}
                                      />
                                    ))}
-                                </div>
+                                </motion.div>
                              </SortableContext>
                           </DndContext>
                       )}
@@ -790,8 +921,13 @@ export default function RoomPage() {
               </div>
           </div>
 
-          {/* Right Column: Chat/Tabs */}
-          <div id="right-tabs-column" className="bg-card rounded-xl border border-border overflow-hidden min-h-[600px] flex flex-col">
+          {/* Right Column: Chat/Tabs Container */}
+          <motion.div 
+            id="right-tabs-column" 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-surface-low border border-white/5 rounded-[2.5rem] overflow-hidden min-h-[700px] flex flex-col shadow-[0_30px_60px_rgba(0,0,0,0.3)] sticky top-8"
+          >
               <RoomTabs
                  activeTab={activeTab}
                  onTabChange={(tab: any) => setActiveTab(tab)}
@@ -813,7 +949,7 @@ export default function RoomPage() {
                  onUpdateRole={emitUpdateRole}
                  onKickMember={emitKickMember}
                />
-          </div>
+          </motion.div>
       </div>
 
       <RoomSettingsModal

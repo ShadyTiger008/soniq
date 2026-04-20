@@ -12,6 +12,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app: Express = express();
+app.set("trust proxy", 1);
 const server: HttpServer = createServer(app);
 
 // Security middleware

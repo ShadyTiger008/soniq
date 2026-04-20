@@ -4,11 +4,12 @@ import { Sidebar } from "./sidebar";
 import { PlayerBar } from "./player-bar";
 import { cn } from "@frontend/lib/utils";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AppShellProps {
   children: React.ReactNode;
   playerProps?: React.ComponentProps<typeof PlayerBar>;
-  className?: string; // For adding specific classes to the main content
+  className?: string;
 }
 
 export function AppShell({ children, playerProps, className }: AppShellProps) {
@@ -27,34 +28,42 @@ export function AppShell({ children, playerProps, className }: AppShellProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Hidden in Fullscreen */}
         {!isFullscreen && (
-          <div className="hidden md:block w-[280px] h-full shrink-0">
+          <motion.div 
+            initial={{ x: -300 }}
+            animate={{ x: 0 }}
+            className="hidden md:block w-[300px] h-full shrink-0"
+          >
             <Sidebar />
-          </div>
+          </motion.div>
         )}
 
         {/* Main Content Area */}
         <main className={cn(
-            "flex-1 h-full overflow-hidden bg-background relative border border-border/40 shadow-sm transition-all duration-300",
-            !isFullscreen && "md:rounded-lg md:my-2 md:mr-2",
-            isFullscreen && "border-none",
+            "flex-1 h-full overflow-hidden bg-background relative transition-all duration-500",
+            !isFullscreen && "md:rounded-[2rem] md:my-4 md:mr-4 bg-surface-low shadow-inner",
+            isFullscreen && "rounded-none m-0",
             className
         )}>
-           {/* Header gradient Overlay */}
-          <div className="absolute top-0 left-0 w-full h-80 bg-gradient-to-b from-primary/10 dark:from-primary/20 via-background to-background pointer-events-none z-0" />
-          
-          <div className="relative z-10 w-full h-full overflow-y-auto scrollbar-hide">
-             {children}
-          </div>
+           {/* Cinematic Radial Glow */}
+           <div className="absolute top-0 left-0 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--primary-glow)_0%,_transparent_70%)] pointer-events-none z-0 opacity-50" />
+           
+           <div className="relative z-10 w-full h-full overflow-y-auto scrollbar-hide">
+              {children}
+           </div>
         </main>
       </div>
 
       {/* Persistent Player Bar */}
-      <div className={cn(
-        "h-[90px] w-full shrink-0 z-50 border-t border-border/60 shadow-lg bg-card/95 backdrop-blur-md",
-        isFullscreen && "border-t-primary/20"
-      )}>
+      <motion.div 
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        className={cn(
+          "h-[100px] w-full shrink-0 z-50 bg-background/80 backdrop-blur-3xl border-t border-white/5",
+          isFullscreen && "absolute bottom-0 left-0 right-0 border-t-primary/20"
+        )}
+      >
         <PlayerBar {...playerProps} />
-      </div>
+      </motion.div>
     </div>
   );
 }

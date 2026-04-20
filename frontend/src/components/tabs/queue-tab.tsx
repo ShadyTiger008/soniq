@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Music, ListMusic, CheckCircle2, XCircle, Flame } from "lucide-react";
 import { QueueSongItem } from "../queue-song-item";
-
+import { motion, AnimatePresence } from "framer-motion";
 import type { Song } from "@frontend/types";
 
 interface QueueTabProps {
@@ -26,14 +26,12 @@ export function QueueTab({
   onReorderQueue,
   isHost = false,
   isDJ = false,
-  onRequestSong,
   onApproveRequest,
   onRejectRequest,
   onRemoveSong,
   onPlaySong,
   currentUserId,
 }: QueueTabProps) {
-  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -69,53 +67,76 @@ export function QueueTab({
   };
 
   return (
-    <div className="flex h-full flex-col p-4">
+    <div className="flex h-full flex-col p-6 bg-surface-low/30 overflow-y-auto scrollbar-hide">
       
-       {/* Pending Requests Section (Host/DJ only) */}
+       {/* Pending Requests Section - Premium Cinematic Style */}
        {(isHost || isDJ) && requests.length > 0 && (
-         <div className="mb-6 animate-in slide-in-from-top-2">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center justify-between">
-                <span>Pending Requests</span>
-                <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded text-[10px]">{requests.length}</span>
-            </h4>
-            <div className="space-y-2">
-                {requests.map((request) => (
-                    <div key={request.id} className="bg-muted/40 border border-border/50 rounded-lg p-3 flex items-center gap-3">
-                        <div className="h-10 w-10 bg-muted rounded flex items-center justify-center shrink-0 overflow-hidden">
+         <div className="mb-10 animate-in slide-in-from-top-4">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col gap-1">
+                    <h4 className="text-sm font-black text-white tracking-widest uppercase">The Queue Waitlist</h4>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-primary opacity-60">High Energy Requests Detected</span>
+                </div>
+                <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-[10px] font-black border border-primary/20">
+                    {requests.length} Requests
+                </div>
+            </div>
+
+            <div className="space-y-3">
+                {requests.map((request, idx) => (
+                    <motion.div 
+                        key={request.id} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="bg-surface-high/40 border border-white/5 rounded-2xl p-4 flex items-center gap-4 shadow-xl"
+                    >
+                        <div className="h-12 w-12 bg-surface-highest rounded-xl flex items-center justify-center shrink-0 overflow-hidden border border-white/5 shadow-inner">
                             {request.thumbnail ? (
                                 <img src={request.thumbnail} alt={request.title} className="h-full w-full object-cover opacity-80" /> 
-                            ) : <div className="h-3 w-3 rounded-full bg-primary/20" />}
+                            ) : <Music className="h-5 w-5 text-primary/40" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm truncate">{request.title}</p>
-                            <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                                {request.artist} • <span className="opacity-70">req by {request.requestedBy}</span>
+                            <p className="font-black text-white text-sm truncate tracking-tight">{request.title}</p>
+                            <p className="text-[10px] text-muted-foreground truncate font-bold uppercase tracking-widest mt-1">
+                                {request.artist} • <span className="text-primary italic">req by @{request.requestedBy}</span>
                             </p>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <button 
+                        <div className="flex items-center gap-2">
+                             <button 
                                 onClick={() => onApproveRequest?.(request.videoId)}
-                                className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-green-500/10 text-muted-foreground hover:text-green-500 transition-colors"
+                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all shadow-lg"
+                                title="Approve Vibe"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                <CheckCircle2 className="h-4 w-4" />
                             </button>
                             <button 
                                 onClick={() => onRejectRequest?.(request.videoId)}
-                                className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-lg"
+                                title="Reject"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                <XCircle className="h-4 w-4" />
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
             </div>
-            <div className="h-px bg-border/50 my-6" />
+            <div className="mt-8 mb-8 border-t border-dashed border-white/5" />
          </div>
        )}
 
-      {/* Queue list */}
-      <h3 className="text-xl font-bold text-foreground mb-4">Up Next</h3>
-      <div className="mb-4 flex-1 space-y-2 overflow-y-auto">
+      {/* Main Queue List Section */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-1">
+            <h3 className="text-xl font-black text-white tracking-widest uppercase italic">The Pulse Lineup</h3>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Synchronized and Live</span>
+        </div>
+        <div className="h-12 w-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+            <ListMusic className="h-5 w-5 text-white/40" />
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-3">
         {queue.length > 0 ? (
           queue.map((song, index) => (
             <div
@@ -125,21 +146,14 @@ export function QueueTab({
               onDragOver={(e) => handleDragOver(e, index)}
               onDrop={(e) => handleDrop(e, index)}
               onDragEnd={handleDragEnd}
-              className={`smooth-transition relative ${
-                draggedIndex === index
-                  ? "opacity-50"
-                  : dragOverIndex === index
-                  ? "translate-x-2"
-                  : ""
-              } ${isHost ? "cursor-move" : ""}`}
-            >
-              {isDJ && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 text-muted-foreground hover:text-foreground">
-                  <GripVertical className="h-4 w-4" />
-                </div>
+              className={cn(
+                "smooth-transition relative",
+                draggedIndex === index && "opacity-30 scale-95",
+                dragOverIndex === index && "translate-x-2 border-l-2 border-primary"
               )}
+            >
               <QueueSongItem
-                id={song.id || song.videoId} // Fallback to videoId if id is missing (e.g. from search)
+                id={song.id || song.videoId}
                 title={song.title}
                 artist={song.artist}
                 duration={song.duration.toString()}
@@ -153,15 +167,17 @@ export function QueueTab({
             </div>
           ))
         ) : (
-          <div className="text-muted-foreground py-8 text-center">
-            <p className="mb-2">No songs in queue</p>
-            <p className="text-sm">Request a song to add it to the queue</p>
+          <div className="flex flex-col h-64 items-center justify-center text-center opacity-40">
+            <Flame className="h-12 w-12 text-primary/40 mb-6" />
+            <p className="text-sm font-black uppercase tracking-[0.2em] text-white">The Atmosphere is Silent</p>
+            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Add a track to spark the fire</p>
           </div>
         )}
       </div>
-
-       {/* Request song button logic (if queue is empty or generic FAB) */}
-       {/* Removed modal logic here as we have search overlay globally */}
     </div>
   );
+}
+
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
 }

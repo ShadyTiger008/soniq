@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Flame, Heart, Music } from "lucide-react";
+import { Search, Plus, Sparkles, Zap, Radio, Music } from "lucide-react";
 import { RoomCard } from "@frontend/components/room-card";
-import { BottomNowPlaying } from "@frontend/components/bottom-now-playing";
 import { useAuth } from "@frontend/lib/auth-context";
 import { apiClient } from "@frontend/lib/api-client";
 import { toast } from "sonner";
-import Link from "next/link";
 import { AppShell } from "@frontend/components/layout/app-shell";
+import { motion } from "framer-motion";
 
 interface Room {
   _id: string;
@@ -60,120 +59,136 @@ export default function HomePage() {
       toast.error("Please enter a room code or ID");
       return;
     }
-    
-    // Strip the "SONIQ-" prefix if it exists
     let roomId = quickJoin.trim();
     if (roomId.toUpperCase().startsWith("SONIQ-")) {
       roomId = roomId.substring(6);
     }
-    
     router.push(`/room/${roomId}`);
   };
 
   if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+         <motion.div 
+           animate={{ rotate: 360, scale: [1, 1.2, 1] }} 
+           transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+           className="h-10 w-10 rounded-xl bg-primary shadow-[0_0_20px_var(--sonic-glow)] flex items-center justify-center"
+         >
+            <Radio className="text-primary-foreground h-6 w-6" />
+         </motion.div>
       </div>
     );
   }
 
-  // Time-based greeting
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
     <AppShell>
-      {/* Home Content Container */}
-      <div className="relative min-h-full w-full bg-background p-6 pb-32">
+      <div className="relative min-h-full w-full bg-background p-8 pb-40">
         
-        {/* Top Header / Search */}
-        <div className="mb-8 flex items-center justify-between">
-           <div className="flex items-center gap-4">
-              {/* Optional: Navigation Arrows could go here */}
-           </div>
-           <div className="relative w-full max-w-md hidden md:block">
-           </div>
-        </div>
-
-        {/* Hero / Greeting Section */}
-        <div className="mb-10">
-            <h1 className="mb-8 text-4xl font-black text-foreground tracking-tight">
-                {greeting}, <span className="text-primary">{user?.username || "there"}</span>
+        {/* Greetings Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12"
+        >
+            <h1 className="mb-10 flex items-center gap-4">
+                {greeting}, <span className="text-primary tracking-tighter italic">{user?.username || "Viber"}</span>
             </h1>
             
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {/* Create Room Card */}
-                <div 
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {/* Premium Create Card */}
+                <motion.div 
+                   whileHover={{ scale: 1.02, backgroundColor: "var(--surface-highest)" }}
+                   whileTap={{ scale: 0.98 }}
                    onClick={() => router.push('/room/create')}
-                   className="group flex cursor-pointer items-center gap-5 rounded-2xl bg-card p-5 transition-all hover:bg-muted border border-border/50 shadow-sm hover:shadow-md"
+                   className="group flex cursor-pointer items-center gap-6 rounded-2xl bg-surface-high p-6 transition-all shadow-xl"
                 >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg group-hover:scale-105 transition-transform">
-                        <Plus className="h-6 w-6 text-primary-foreground" />
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-2xl shadow-primary/30 group-hover:rotate-12 transition-transform">
+                        <Plus className="h-7 w-7 text-primary-foreground font-black" />
                     </div>
                     <div>
-                        <span className="block font-bold text-foreground">Create New Room</span>
-                        <span className="text-xs text-muted-foreground font-medium">Start your own session</span>
+                        <span className="block text-lg font-black text-white uppercase tracking-tight">Create Session</span>
+                        <span className="text-xs text-muted-foreground font-bold tracking-widest uppercase opacity-70">Start the pulse</span>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* Quick Join Card (Input) */}
-                <div className="col-span-1 md:col-span-2 lg:col-span-2 flex items-center gap-3 rounded-2xl bg-card p-4 transition-all focus-within:ring-2 focus-within:ring-primary/20 border border-border/50 shadow-sm">
+                {/* Quick Join Search Layout */}
+                <div className="col-span-1 md:col-span-2 flex items-center gap-4 rounded-2xl bg-surface-low p-4 border border-white/5 shadow-inner focus-within:bg-surface-high transition-colors">
                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <Search className="h-6 w-6" />
+                        <Zap className="h-6 w-6" />
                      </div>
                      <input 
                         type="text"
-                        placeholder="Enter room code to join..."
+                        placeholder="Drop a room code..."
                         value={quickJoin}
                         onChange={(e) => setQuickJoin(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleQuickJoin()}
-                        className="w-full bg-transparent text-lg font-bold text-foreground placeholder-muted-foreground focus:outline-none"
+                        className="w-full bg-transparent text-lg font-black text-white placeholder-white/20 focus:outline-none tracking-tight"
                      />
-                     <button 
+                     <motion.button 
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={handleQuickJoin}
-                        className="shrink-0 rounded-xl bg-primary px-8 py-3 font-black text-primary-foreground text-sm uppercase tracking-widest transition-all hover:scale-105 shadow-lg shadow-primary/20"
+                        className="shrink-0 rounded-xl bg-white px-10 py-3.5 font-black text-black text-xs uppercase tracking-[0.2em] shadow-2xl"
                      >
                         Join
-                     </button>
+                     </motion.button>
                 </div>
             </div>
-        </div>
+        </motion.div>
 
-        {/* Trending Section */}
+        {/* Trending Section with Staggered Reveal */}
         <section>
-            <div className="mb-6 flex items-end justify-between">
-                <h2 className="text-2xl font-black text-foreground tracking-tight hover:text-primary transition-colors cursor-pointer">
-                    Trending Rooms
-                </h2>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                    Show All
+            <div className="mb-8 flex items-baseline justify-between border-b border-white/5 pb-4">
+                <div className="flex items-center gap-3">
+                   <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                   <h2 className="text-2xl font-black uppercase tracking-tight text-white">Trending Vibes</h2>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+                    Discovery Mode
                 </span>
             </div>
             
             {isLoadingRooms ? (
-                <div className="flex h-40 items-center justify-center text-muted-foreground font-bold italic tracking-widest">
-                   Loading vibes...
+                <div className="flex h-60 items-center justify-center text-muted-foreground font-black uppercase tracking-[0.4em] italic opacity-50">
+                   Syncing...
                 </div>
             ) : trendingRooms.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-12 text-center text-muted-foreground font-medium">
-                    No public rooms active right now. Start the party!
+                <div className="rounded-[2.5rem] border border-dashed border-white/10 bg-white/[0.02] p-20 text-center">
+                    <Music className="mx-auto h-12 w-12 text-white/10 mb-6" />
+                    <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">No active waves. Be the first.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                <motion.div 
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    visible: { transition: { staggerChildren: 0.08 } }
+                  }}
+                  className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+                >
                     {trendingRooms.map((room) => (
-                         <RoomCard
-                            key={room._id}
-                            id={room._id}
-                            title={room.name}
-                            listeners={room.listenerCount}
-                            mood={room.mood}
-                            host={typeof room.hostId === "object" ? room.hostId?.username || "Unknown" : "Unknown"}
-                            thumbnail={room.cover}
-                            isLive={true} 
-                         />
+                         <motion.div 
+                           key={room._id}
+                           variants={{
+                             hidden: { opacity: 0, y: 20 },
+                             visible: { opacity: 1, y: 0 }
+                           }}
+                         >
+                           <RoomCard
+                              id={room._id}
+                              title={room.name}
+                              listeners={room.listenerCount}
+                              mood={room.mood}
+                              host={typeof room.hostId === "object" ? room.hostId?.username || "Anon" : "Anon"}
+                              thumbnail={room.cover}
+                              isLive={true} 
+                           />
+                         </motion.div>
                     ))}
-                </div>
+                </motion.div>
             )}
         </section>
       </div>

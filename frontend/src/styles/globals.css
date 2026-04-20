@@ -6,73 +6,53 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* SONIQ Premium Palette - Light Mode */
-  --background: #ffffff;
-  --foreground: #020617; /* Slate 950 for better contrast on white */
+  /* SONIQ Elite - Premium "Cinematic Pulse" Tokens */
+  --background: #0e0e0e;
+  --foreground: #ffffff;
   
-  --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card: #131313;
+  --card-foreground: #ffffff;
   
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover: #0e0e0e;
+  --popover-foreground: #ffffff;
   
-  --primary: #1DB954; /* Spotify Green */
-  --primary-foreground: #ffffff;
+  --primary: #72fe8f; /* Soniq Green */
+  --primary-foreground: #005f26;
+  --primary-container: #1cb853;
   
-  --secondary: #f1f5f9; /* Slate 100 */
-  --secondary-foreground: #1e293b; /* Slate 800 */
+  --secondary: #7cfbb5;
+  --secondary-foreground: #005e39;
   
-  --muted: #f1f5f9; /* Slate 100 */
-  --muted-foreground: #64748b; /* Slate 500 */
+  --muted: #131313;
+  --muted-foreground: #adaaaa;
   
-  --accent: #f8fafc; /* Slate 50 */
-  --accent-foreground: #1e293b;
+  --accent: #201f1f;
+  --accent-foreground: #ffffff;
   
-  --destructive: #ef4444; /* Red 500 */
-  --destructive-foreground: #ffffff;
+  --destructive: #ff7351;
+  --destructive-foreground: #450900;
   
-  --border: #e2e8f0; /* Slate 200 */
-  --input: #e2e8f0;
-  --ring: #1DB954;
+  --border: #48484726; /* Outline Variant @ 15% - "Ghost Border" */
+  --input: #131313;
+  --ring: #72fe8f;
   
-  --radius: 0.75rem;
+  --radius: 1.5rem; /* rounded-xl by default for cards */
 
-  /* Custom Sonic Brand Colors */
+  /* Extra Tonal Layers */
+  --surface-low: #131313;
+  --surface-high: #201f1f;
+  --surface-highest: #262626;
+  
+  /* Brand Specifics */
   --brand-violet: #7c3aed;
   --brand-magenta: #d946ef;
-  --brand-cyan: #06b6d4;
-  --brand-navy: #1e1b4b;
+  --sonic-glow: rgba(114, 254, 143, 0.4);
 }
 
 .dark {
-  /* SONIQ Premium Palette - Dark Mode */
-  --background: #000000; /* Pure Black */
-  --foreground: #f8fafc; /* Slate 50 */
-  
-  --card: #121212; /* Spotify Dark Gray */
-  --card-foreground: #f8fafc;
-  
-  --popover: #121212;
-  --popover-foreground: #f8fafc;
-  
-  --primary: #1DB954; /* Spotify Green */
-  --primary-foreground: #000000;
-  
-  --secondary: #282828; /* Spotify Light Gray */
-  --secondary-foreground: #f8fafc;
-  
-  --muted: #282828;
-  --muted-foreground: #a1a1aa; /* Zinc 400 */
-  
-  --accent: #282828;
-  --accent-foreground: #f8fafc;
-  
-  --destructive: #7f1d1d; /* Red 900 */
-  --destructive-foreground: #f8fafc;
-  
-  --border: #282828;
-  --input: #282828;
-  --ring: #1DB954;
+  /* Dark mode is the primary experience */
+  --background: #0e0e0e;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -84,6 +64,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-container: var(--primary-container);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -95,47 +76,41 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
   
-  /* Spotify-like Brand Colors */
-  --color-spotify-green: #1DB954;
-  --color-spotify-black: #191414;
-  --color-spotify-dark-gray: #121212;
-  --color-spotify-light-gray: #282828;
-
-  /* SONIQ Brand Colors */
-  --color-deep-purple: #7c3aed;
-  --color-electric-magenta: #d946ef;
-  --color-soft-white: #f8fafc;
-  --color-ocean-blue: #06b6d4;
-  --color-neon-pink: #f472b6;
-  --color-deep-blue: #1e1b4b;
+  --color-surface-low: var(--surface-low);
+  --color-surface-high: var(--surface-high);
+  --color-surface-highest: var(--surface-highest);
+  
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
 }
-
-
-
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border/10 outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-outfit), "Inter", system-ui, -apple-system, sans-serif;
+    @apply bg-background text-foreground selection:bg-primary selection:text-primary-foreground;
+    font-family: var(--font-manrope), system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
   }
 
-  /* Premium Typography */
+  /* Premium Editorial Typography */
   h1, h2, h3, h4, h5, h6 {
-    font-family: "Poppins", system-ui, -apple-system, sans-serif;
-    @apply tracking-tight;
+    font-family: var(--font-epilogue), system-ui, -apple-system, sans-serif;
+    @apply tracking-tight font-black;
   }
-  h1 { @apply text-4xl font-bold lg:text-5xl; }
-  h2 { @apply text-3xl font-semibold; }
-  h3 { @apply text-2xl font-semibold; }
-  h4 { @apply text-xl font-medium; }
+  
+  h1 { @apply text-5xl md:text-7xl lg:text-8xl leading-[0.95]; }
+  h2 { @apply text-3xl md:text-5xl leading-tight; }
+  h3 { @apply text-2xl md:text-3xl font-bold; }
+  
+  /* Disable standard dividers globally to force tonal hierarchy */
+  hr { @apply hidden; }
 }
 
 @layer components {
@@ -197,4 +172,43 @@
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Apple-style Masking & Reflections */
+.mask-radial {
+  mask-image: radial-gradient(circle at center, black 0%, transparent 100%);
+}
+
+.mask-edge-fade {
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.reflection-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 25%,
+    transparent 50%,
+    transparent 100%
+  );
+}
+
+.sonic-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(114, 254, 143, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.perspective-1000 {
+  perspective: 1000px;
 }

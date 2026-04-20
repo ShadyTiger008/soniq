@@ -3,6 +3,8 @@
 import { MemberItem } from "../member-item";
 import { toast } from "sonner";
 import type { RoomMember } from "@frontend/types";
+import { Users, UserCheck } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface MembersTabProps {
   members?: RoomMember[];
@@ -21,8 +23,6 @@ export function MembersTab({
   onDemote,
   onKick,
 }: MembersTabProps) {
-  // Convert room members to MemberItem format
-  // Filter out duplicates to avoid key collisions
   const uniqueMembers = Array.from(
     new Map(members.map((m) => [m._id || m.id, m])).values()
   );
@@ -31,14 +31,11 @@ export function MembersTab({
     const memberId = member._id || member.id || "";
     const isSelf = memberId === currentUserId;
     
-    // Determine detailed role
-    // Now we rely on the backend provided `role` property (host, dj, listener)
     let role = "listener";
     if (member.role) {
         if (member.role === 'host') role = 'admin';
         else role = member.role;
     } else {
-        // Fallback for logic if role missing (older backend)
         if (member.isHost || (isHost && isSelf)) role = "admin"; 
     }
 
@@ -72,18 +69,21 @@ export function MembersTab({
   };
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-4">
-      <div className="mb-4">
-        <h3 className="font-heading font-700 text-soft-white mb-2 text-lg">
-          Room Members ({formattedMembers.length})
-        </h3>
-        <div className="flex gap-4 text-sm text-muted-foreground">
-            <span>{formattedMembers.filter((m) => m.isOnline).length} Online</span>
-            <span>0 Offline</span>
+    <div className="flex h-full flex-col p-6 bg-surface-low/30 overflow-y-auto scrollbar-hide">
+      <div className="mb-8 flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+            <h3 className="text-xl font-black text-white tracking-widest uppercase">The Audience</h3>
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary opacity-60">
+                <UserCheck className="h-3 w-3" />
+                <span>{formattedMembers.filter((m) => m.isOnline).length} Active Now</span>
+            </div>
+        </div>
+        <div className="h-12 w-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+            <Users className="h-5 w-5 text-white/40" />
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {formattedMembers.length > 0 ? (
           formattedMembers.map((member) => (
             <MemberItem
@@ -91,15 +91,15 @@ export function MembersTab({
               {...member}
               currentUserRole={currentUserRole}
               onPromoteDJ={() => handlePromoteDJ(member.id, member.name)}
-              // onPromoteModerator={() => console.log(`Promote ${member.name} to Moderator`)} // Mod not implemented
               onDemote={() => handleDemote(member.id, member.name)}
               onKick={() => handleKick(member.id, member.name)}
             />
           ))
         ) : (
-          <div className="text-muted-foreground py-8 text-center">
-            <p className="mb-2">No members yet</p>
-            <p className="text-sm">Members will appear here when they join</p>
+          <div className="flex flex-col h-full items-center justify-center text-center opacity-40 py-20">
+            <Users className="h-12 w-12 text-primary/40 mb-6" />
+            <p className="text-sm font-black uppercase tracking-[0.2em] text-white">Wait for the Crowd</p>
+            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Members will appear here once they tune in</p>
           </div>
         )}
       </div>

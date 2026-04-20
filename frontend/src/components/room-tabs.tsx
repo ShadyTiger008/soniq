@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Music, MessageCircle, List, Users } from "lucide-react";
+import { Music, MessageCircle, List, Users, Sparkles } from "lucide-react";
 import { NowPlayingTab } from "./tabs/now-playing-tab";
 import { ChatTab } from "./tabs/chat-tab";
 import { QueueTab } from "./tabs/queue-tab";
 import { MembersTab } from "./tabs/members-tab";
+import { motion, AnimatePresence } from "framer-motion";
 
 type TabType = "now-playing" | "chat" | "queue" | "members";
 
@@ -66,16 +67,16 @@ export function RoomTabs({
   };
 
   const tabs = [
-    { id: "now-playing", label: "Now Playing", icon: Music, emoji: "♫" },
-    { id: "chat", label: "Chat", icon: MessageCircle, emoji: "💬" },
-    { id: "queue", label: "Up Next", icon: List, emoji: "📋" },
-    { id: "members", label: "Members", icon: Users, emoji: "👥" },
+    { id: "now-playing", label: "Live", icon: Music },
+    { id: "chat", label: "Pulse", icon: MessageCircle },
+    { id: "queue", label: "Lineup", icon: List },
+    { id: "members", label: "Vibe", icon: Users },
   ] as const;
 
   return (
-    <div className="flex h-full w-full flex-col bg-card">
-      {/* Tab navigation with Premium Design */}
-      <div className="flex gap-2 overflow-x-auto border-b border-border p-2 scrollbar-hide bg-muted/30">
+    <div className="flex h-full w-full flex-col bg-surface-high/50 backdrop-blur-xl">
+      {/* Premium Tab Navigation */}
+      <div className="relative flex items-center justify-between gap-1 p-2 bg-black/20 border-b border-white/5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -83,59 +84,78 @@ export function RoomTabs({
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id as TabType)}
-              className={`smooth-transition flex items-center gap-2 rounded-lg px-4 py-3 whitespace-nowrap font-medium text-sm flex-1 justify-center ${
-                isActive
-                  ? "bg-background text-foreground shadow-sm border border-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
+              className={cn(
+                "relative flex-1 flex flex-col items-center gap-1.5 py-4 transition-all duration-300",
+                isActive ? "text-primary" : "text-muted-foreground hover:text-white"
+              )}
             >
-              <Icon className={`h-4 w-4 ${isActive ? 'text-primary' : ''}`} />
-              <span>{tab.label}</span>
+              {isActive && (
+                <motion.div 
+                  layoutId="active-tab-glow"
+                  className="absolute inset-x-2 inset-y-1 bg-primary/10 rounded-xl border border-primary/20 shadow-[0_0_15px_var(--sonic-glow)]"
+                />
+              )}
+              <Icon className={cn("h-5 w-5 relative z-10", isActive ? "animate-pulse" : "")} />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] relative z-10">{tab.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Tab content with proper overflow handling */}
+      {/* Content Area with Staggered Entrance */}
       <div className="flex-1 overflow-hidden relative">
-        <div className="absolute inset-0 overflow-y-auto">
-          {activeTab === "now-playing" && (
-            <NowPlayingTab currentSong={currentSong} />
-          )}
-          {activeTab === "chat" && (
-            <ChatTab
-              messages={chatMessages}
-              onSendMessage={onSendMessage}
-              currentUserId={currentUserId}
-              isConnected={isConnected}
-            />
-          )}
-          {activeTab === "queue" && (
-            <QueueTab
-              queue={queue}
-              requests={requests}
-              onReorderQueue={onReorderQueue}
-              isHost={isHost}
-              onRequestSong={onRequestSong}
-              onApproveRequest={onApproveRequest}
-              onRejectRequest={onRejectRequest}
-              onRemoveSong={onRemoveSong}
-              onPlaySong={onPlaySong}
-              currentUserId={currentUserId}
-            />
-          )}
-          {activeTab === "members" && (
-            <MembersTab
-              members={roomMembers}
-              currentUserId={currentUserId}
-              isHost={isHost}
-              onPromoteDJ={(id) => onUpdateRole?.(id, 'dj')}
-              onDemote={(id) => onUpdateRole?.(id, 'listener')}
-              onKick={onKickMember}
-            />
-          )}
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="absolute inset-0 overflow-y-auto scrollbar-hide py-4"
+          >
+            {activeTab === "now-playing" && (
+              <NowPlayingTab currentSong={currentSong} />
+            )}
+            {activeTab === "chat" && (
+              <ChatTab
+                messages={chatMessages}
+                onSendMessage={onSendMessage}
+                currentUserId={currentUserId}
+                isConnected={isConnected}
+              />
+            )}
+            {activeTab === "queue" && (
+              <QueueTab
+                queue={queue}
+                requests={requests}
+                onReorderQueue={onReorderQueue}
+                isHost={isHost}
+                onRequestSong={onRequestSong}
+                onApproveRequest={onApproveRequest}
+                onRejectRequest={onRejectRequest}
+                onRemoveSong={onRemoveSong}
+                onPlaySong={onPlaySong}
+                currentUserId={currentUserId}
+              />
+            )}
+            {activeTab === "members" && (
+              <MembersTab
+                members={roomMembers}
+                currentUserId={currentUserId}
+                isHost={isHost}
+                onPromoteDJ={(id) => onUpdateRole?.(id, 'dj')}
+                onDemote={(id) => onUpdateRole?.(id, 'listener')}
+                onKick={onKickMember}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
+}
+
+// Small helper for CN inside this file
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
 }

@@ -1,21 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins, Outfit } from "next/font/google";
+import { Epilogue, Manrope } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@frontend/lib/auth-context";
 import { ToastProvider } from "@frontend/components/toast-provider";
 import { ThemeProvider } from "@frontend/components/theme-provider";
 import "../styles/globals.css";
 
-const _inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const _poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-poppins",
-  display: "swap"
+const _epilogue = Epilogue({ 
+  subsets: ["latin"], 
+  variable: "--font-epilogue", 
+  display: "swap" 
 });
-const _outfit = Outfit({
+
+const _manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-manrope",
   display: "swap"
 });
 
@@ -105,7 +104,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${_inter.variable} ${_poppins.variable} ${_outfit.variable} bg-background font-sans antialiased`}
+        className={`${_epilogue.variable} ${_manrope.variable} bg-background font-sans antialiased`}
       >
         <ThemeProvider
           attribute="class"
