@@ -68,10 +68,11 @@ export function initializeSocketIO(server: HttpServer): SocketIOServer {
   });
 
   // Use Redis adapter for scaling (optional)
-  if (process.env.REDIS_URL) {
+  if (redisClient) {
     const pubClient = redisClient.duplicate();
     const subClient = redisClient.duplicate();
     io.adapter(createAdapter(pubClient, subClient));
+    logger.info("📡 Socket.IO Redis adapter initialized");
   }
 
   io.on("connection", (socket) => {
