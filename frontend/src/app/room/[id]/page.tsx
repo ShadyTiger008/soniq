@@ -62,6 +62,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { QueueSongItem } from "@frontend/components/queue-song-item";
 import { LeaveRoomModal } from "@frontend/components/leave-room-modal";
+import { MoodPlaylistModal } from "@frontend/components/mood-playlist-modal";
 
 // Sortable Item Wrapper
 function SortableQueueItem({ song, index, isCurrent, onClick, isDJ }: any) {
@@ -147,7 +148,7 @@ function cn(...classes: (string | boolean | undefined)[]) {
 export default function RoomPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const roomId = (params?.id as string) || "default";
 
   // State formerly handled manually is now in the hook
@@ -162,6 +163,7 @@ export default function RoomPage() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "queue" | "members" | "now-playing">("chat");
   const [showLyrics, setShowLyrics] = useState(false);
+  const [showMoodAI, setShowMoodAI] = useState(false);
 
   const [roomSettings, setRoomSettings] = useState({
     name: "Midnight Vibes",
@@ -253,10 +255,10 @@ export default function RoomPage() {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!authLoading) {
       fetchRoomData();
     }
-  }, [roomId, isAuthenticated]);
+  }, [roomId, authLoading]);
 
   // Socket for Chat & Presence (Player logic is in useRoomPlayer)
   const {
@@ -481,6 +483,12 @@ export default function RoomPage() {
     }
   };
 
+  const handleGenerateMoodPlaylist = (data: any) => {
+    console.log("Generating AI Playlist with data:", data);
+    // This will be implemented in the backend later
+    toast.success("Soniq AI Buddy is curating your vibe! This feature is coming soon to the backend.");
+  };
+
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(err => {
@@ -506,7 +514,7 @@ export default function RoomPage() {
     setShowLyrics(!showLyrics);
   };
 
-  if (isLoadingRoom) {
+  if (authLoading || (isLoadingRoom && !roomData)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -514,11 +522,15 @@ export default function RoomPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!roomData && !isLoadingRoom) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6 text-center">
+            <h1 className="text-4xl font-black text-white mb-4">ROOM NOT FOUND</h1>
+            <p className="text-muted-foreground mb-8">The vibe you're looking for doesn't exist or has been deleted.</p>
+            <Link href="/home" className="px-8 py-3 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-transform">
+                Return Home
+            </Link>
+        </div>
     );
   }
 
@@ -714,13 +726,23 @@ export default function RoomPage() {
                   </motion.button>
 
                   <div className="flex flex-col gap-1">
-                      <button 
-                        onClick={() => setShowSearch(!showSearch)} 
-                        className="flex items-center gap-3 px-8 py-3 rounded-2xl bg-surface-high hover:bg-surface-highest border border-white/5 hover:border-primary/30 transition-all text-[10px] font-black text-white tracking-[0.2em] uppercase shadow-lg"
-                      >
-                          <Search className="h-4 w-4 text-primary" />
-                          {showSearch ? "Close Search" : "Enhance Queue"}
-                      </button>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => setShowSearch(!showSearch)} 
+                          className="flex items-center gap-3 px-8 py-3 rounded-2xl bg-surface-high hover:bg-surface-highest border border-white/5 hover:border-primary/30 transition-all text-[10px] font-black text-white tracking-[0.2em] uppercase shadow-lg"
+                        >
+                            <Search className="h-4 w-4 text-primary" />
+                            {showSearch ? "Close Search" : "Enhance Queue"}
+                        </button>
+                        <button 
+                          onClick={() => setShowMoodAI(true)} 
+                          className="flex items-center gap-3 px-8 py-3 rounded-2xl bg-gradient-to-r from-primary to-electric-magenta hover:shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] transition-all text-[10px] font-black text-white tracking-[0.2em] uppercase shadow-lg group relative overflow-hidden"
+                        >
+                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                            <Sparkles className="h-4 w-4 text-white relative z-10 animate-pulse" />
+                            <span className="relative z-10">Ask Soniq</span>
+                        </button>
+                      </div>
                       {isHost && (
                            <div className="flex items-center gap-2 px-3 py-1 mt-1 opacity-60">
                                <Crown className="h-3 w-3 text-primary" />
@@ -972,6 +994,12 @@ export default function RoomPage() {
         onClose={() => setShowLeaveModal(false)}
         isHost={isHost}
         onConfirm={handleConfirmLeave}
+      />
+
+      <MoodPlaylistModal 
+        isOpen={showMoodAI}
+        onClose={() => setShowMoodAI(false)}
+        onGenerate={handleGenerateMoodPlaylist}
       />
 
       {/* Lyrics Overlay */}

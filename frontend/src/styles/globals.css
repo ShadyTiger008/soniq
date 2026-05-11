@@ -46,6 +46,7 @@
   /* Brand Specifics */
   --brand-violet: #7c3aed;
   --brand-magenta: #d946ef;
+  --electric-magenta: #ff2975;
   --sonic-glow: rgba(114, 254, 143, 0.4);
 }
 
@@ -80,6 +81,9 @@
   --color-surface-low: var(--surface-low);
   --color-surface-high: var(--surface-high);
   --color-surface-highest: var(--surface-highest);
+  --color-electric-magenta: var(--electric-magenta);
+  --color-brand-magenta: var(--brand-magenta);
+  --color-brand-violet: var(--brand-violet);
   
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;

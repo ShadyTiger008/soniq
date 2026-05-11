@@ -28,7 +28,7 @@ export function errorHandler(
   const message = err.message || "Internal Server Error";
 
   // Log error with more details
-  logger.error({
+  logger.error(`API Error: ${message}`, {
     error: err.message,
     stack: err.stack,
     path: req.path,

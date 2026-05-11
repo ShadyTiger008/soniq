@@ -2,6 +2,70 @@ import { Server as SocketIOServer, Socket } from "socket.io";
 import { logger } from "../../utils/logger.js";
 import { RoomModel } from "../../models/room.model.js";
 
+
+// In-memory state for performance (Layer 2)
+interface ActivePlayerState {
+  isPlaying: boolean;
+  currentTime: number;
+  lastUpdated: number;
+  currentSong: any;
+  queue: any[];
+  repeatMode: string;
+  shuffle: boolean;
+  volume: number;
+  updatedAt: number;
+}
+
+const activeRoomStates = new Map<string, ActivePlayerState>();
+
+// Helper to get or initialize room state
+const getActiveRoomState = async (roomId: string): Promise<ActivePlayerState | null> => {
+  if (activeRoomStates.has(roomId)) {
+    return activeRoomStates.get(roomId)!;
+  }
+
+  // Fallback to DB
+  const room = await RoomModel.findById(roomId).populate("queue.requestedBy", "username email").lean();
+  if (!room) return null;
+
+  const state: ActivePlayerState = {
+    isPlaying: room.playerState?.isPlaying || false,
+    currentTime: room.playerState?.currentTime || 0,
+    lastUpdated: room.playerState?.lastUpdated?.getTime() || Date.now(),
+    currentSong: room.currentSong,
+    queue: room.queue || [],
+    repeatMode: room.playerState?.repeatMode || 'none',
+    shuffle: room.playerState?.shuffle || false,
+    volume: room.playerState?.volume || 80,
+    updatedAt: Date.now()
+  };
+
+  activeRoomStates.set(roomId, state);
+  return state;
+};
+
+// Background save helper
+const persistRoomState = (roomId: string, state: ActivePlayerState) => {
+  RoomModel.updateOne(
+    { _id: roomId },
+    {
+      $set: {
+        playerState: {
+          isPlaying: state.isPlaying,
+          currentTime: state.currentTime,
+          volume: state.volume,
+          shuffle: state.shuffle,
+          repeatMode: state.repeatMode,
+          lastUpdated: new Date(state.lastUpdated)
+        },
+        currentSong: state.currentSong,
+        queue: state.queue
+      }
+    }
+  ).catch(err => logger.error(`Failed to persist room ${roomId}:`, err));
+};
+
+
 // Helper to check permissions
 const hasPermission = (
   room: any,
@@ -11,7 +75,8 @@ const hasPermission = (
   // Owner always has permission
   if (room.hostId.toString() === userId) return true;
 
-  const role = room.roles?.get(userId);
+  const roles = room.roles;
+  const role = roles instanceof Map ? roles.get(userId) : roles?.[userId];
   const permissionLevel = room.permissions?.[action] || "everyone";
 
   if (permissionLevel === "everyone") return true;
@@ -31,56 +96,42 @@ export function handlePlayerEvents(
     async (data: { roomId: string; isPlaying: boolean; userId: string; currentTime?: number }) => {
       try {
         const { roomId, isPlaying, userId } = data;
+        const state = await getActiveRoomState(roomId);
+        if (!state) return;
 
-        // Verify room exists
-        const room = await RoomModel.findById(roomId);
-        if (!room) {
-          socket.emit("player:error", { message: "Room not found" });
-          return;
-        }
-
-        // Check Permissions
-        if (!hasPermission(room, userId, "playPause")) {
-            socket.emit("player:error", { message: "You don't have permission to control playback" });
+        // Check Permissions (Simple check for speed, full room object from DB for deep permission check if needed)
+        // For performance, we can skip permission check if it's high-frequency or trust client role
+        // but let's keep it somewhat safe.
+        const room = await RoomModel.findById(roomId).select("hostId roles permissions");
+        if (!room || !hasPermission(room, userId, "playPause")) {
+            socket.emit("player:error", { message: "Permission denied" });
             return;
         }
 
-        // Update player state in database
-        if (!room.playerState) {
-          room.playerState = {
-            isPlaying: false,
-            currentTime: 0,
-            volume: 80,
-            shuffle: false,
-            repeatMode: 'none',
-            lastUpdated: new Date()
-          };
-        }
-        
         const now = Date.now();
-        room.playerState.isPlaying = isPlaying;
         
-        // If client provided a specific time, update it strictly
+        // Update in-memory
+        state.isPlaying = isPlaying;
         if (typeof data.currentTime === 'number') {
-             room.playerState.currentTime = Math.max(0, data.currentTime);
+             state.currentTime = Math.max(0, data.currentTime);
         }
-        
-        room.playerState.lastUpdated = new Date(now);
-        await room.save();
+        state.lastUpdated = now;
+        state.updatedAt = now;
 
-        // Broadcast to room with EXACT server timestamp for sync
+        // 1. Broadcast IMMEDIATELY (Lean Pipeline)
         io.to(roomId).emit("player:state-changed", {
           isPlaying,
-          currentTime: room.playerState.currentTime,
+          currentTime: state.currentTime,
+          serverTimeAtEmit: now, // Layer 2 Key
           timestamp: now
         });
 
-        logger.info(
-          `Player ${isPlaying ? "playing" : "paused"} in room ${roomId} by ${userId}`
-        );
+        // 2. Persist in background (Async)
+        persistRoomState(roomId, state);
+
+        logger.info(`Player ${isPlaying ? "playing" : "paused"} in room ${roomId} by ${userId}`);
       } catch (error) {
         logger.error("Error in player:play-pause:", error);
-        socket.emit("player:error", { message: "Failed to control playback" });
       }
     }
   );
@@ -95,101 +146,58 @@ export function handlePlayerEvents(
     }) => {
       try {
         const { roomId, direction, userId } = data;
+        const state = await getActiveRoomState(roomId);
+        if (!state) return;
 
-        const room = await RoomModel.findById(roomId);
-        if (!room) {
-          socket.emit("player:error", { message: "Room not found" });
-          return;
-        }
-
-        if (!hasPermission(room, userId, "skip")) {
-             socket.emit("player:error", { message: "You don't have permission to skip songs" });
+        const room = await RoomModel.findById(roomId).select("hostId roles permissions");
+        if (!room || !hasPermission(room, userId, "skip")) {
              return;
         }
 
-        const playerState = room.playerState || {
-          isPlaying: false,
-          currentTime: 0,
-          volume: 80,
-          shuffle: false,
-          repeatMode: 'none',
-          lastUpdated: new Date()
-        };
-
         if (direction === "next") {
-          // Handle Repeat One
-          if (playerState.repeatMode === 'one' && room.currentSong) {
-            // Re-play the same song
-            playerState.currentTime = 0;
-            playerState.isPlaying = true;
-            playerState.lastUpdated = new Date();
-          } else if (room.queue.length > 0) {
+          if (state.repeatMode === 'one' && state.currentSong) {
+            state.currentTime = 0;
+            state.isPlaying = true;
+          } else if (state.queue.length > 0) {
             let nextSongIndex = 0;
+            if (state.shuffle) {
+              nextSongIndex = Math.floor(Math.random() * state.queue.length);
+            }
+            const nextSong = state.queue[nextSongIndex];
             
-            // Handle Shuffle
-            if (playerState.shuffle) {
-              nextSongIndex = Math.floor(Math.random() * room.queue.length);
+            if (state.repeatMode === 'all' && state.currentSong) {
+              state.queue.push({ ...state.currentSong });
             }
 
-            const nextSong = room.queue[nextSongIndex];
-            
-            // Handle Repeat All: Put current song back to queue
-            if (playerState.repeatMode === 'all' && room.currentSong) {
-              room.queue.push({
-                videoId: room.currentSong.videoId,
-                title: room.currentSong.title,
-                artist: room.currentSong.artist,
-                duration: room.currentSong.duration,
-                thumbnail: room.currentSong.thumbnail,
-                requestedBy: userId as any // Or keep original requester if available
-              });
-            }
-
-            room.currentSong = {
-              videoId: nextSong.videoId,
-              title: nextSong.title,
-              artist: nextSong.artist,
-              duration: nextSong.duration,
-              thumbnail: (nextSong as any).thumbnail
-            };
-            
-            room.queue.splice(nextSongIndex, 1);
-            
-            playerState.currentTime = 0;
-            playerState.isPlaying = true;
-            playerState.lastUpdated = new Date();
-          } else if (playerState.repeatMode === 'all' && room.currentSong) {
-            // Repeat current song if queue is empty but repeat all is on
-            playerState.currentTime = 0;
-            playerState.isPlaying = true;
-            playerState.lastUpdated = new Date();
+            state.currentSong = { ...nextSong };
+            state.queue.splice(nextSongIndex, 1);
+            state.currentTime = 0;
+            state.isPlaying = true;
           }
         } else {
-          // Skip Previous: Just reset current song to 0 for now
-          // A more complex implementation would keep track of history
-          playerState.currentTime = 0;
-          playerState.lastUpdated = new Date();
+          state.currentTime = 0;
         }
 
-        room.playerState = playerState as any;
-        await room.save();
-
-        // Populate requestedBy before emitting
-        const populatedRoomForSkip = await RoomModel.findById(roomId)
-          .populate("queue.requestedBy", "username email")
-          .lean();
-        const queueForSkip = populatedRoomForSkip?.queue || room.queue;
+        const now = Date.now();
+        state.lastUpdated = now;
+        state.updatedAt = now;
 
         io.to(roomId).emit("player:song-changed", {
-          currentSong: room.currentSong,
-          queue: queueForSkip,
-          playerState: room.playerState
+          currentSong: state.currentSong,
+          queue: state.queue,
+          playerState: {
+            isPlaying: state.isPlaying,
+            currentTime: state.currentTime,
+            volume: state.volume,
+            shuffle: state.shuffle,
+            repeatMode: state.repeatMode
+          },
+          serverTimeAtEmit: now
         });
 
-        logger.info(`Song skipped in room ${roomId} by ${userId}`);
+        persistRoomState(roomId, state);
       } catch (error) {
         logger.error("Error in player:skip:", error);
-        socket.emit("player:error", { message: "Failed to skip song" });
       }
     }
   );
@@ -200,26 +208,22 @@ export function handlePlayerEvents(
     async (data: { roomId: string; shuffle: boolean; userId: string }) => {
       try {
         const { roomId, shuffle, userId } = data;
-        const room = await RoomModel.findById(roomId);
-        if (!room) return;
+        const state = await getActiveRoomState(roomId);
+        if (!state) return;
 
-        if (!hasPermission(room, userId, "skip")) {
-          socket.emit("player:error", { message: "Permission denied" });
-          return;
-        }
+        const room = await RoomModel.findById(roomId).select("hostId roles permissions");
+        if (!room || !hasPermission(room, userId, "skip")) return;
 
-        if (!room.playerState) {
-          room.playerState = { isPlaying: false, currentTime: 0, volume: 80, shuffle: false, repeatMode: 'none', lastUpdated: new Date() };
-        }
+        state.shuffle = shuffle;
+        state.lastUpdated = Date.now();
+        state.updatedAt = Date.now();
         
-        room.playerState!.shuffle = shuffle;
-        room.playerState!.lastUpdated = new Date();
-        await room.save();
-
         io.to(roomId).emit("player:shuffle-changed", {
-          shuffle: room.playerState.shuffle,
+          shuffle: state.shuffle,
           timestamp: Date.now()
         });
+
+        persistRoomState(roomId, state);
       } catch (error) {
         logger.error("Error in player:shuffle:", error);
       }
@@ -232,26 +236,22 @@ export function handlePlayerEvents(
     async (data: { roomId: string; repeatMode: 'none' | 'one' | 'all'; userId: string }) => {
       try {
         const { roomId, repeatMode, userId } = data;
-        const room = await RoomModel.findById(roomId);
-        if (!room) return;
+        const state = await getActiveRoomState(roomId);
+        if (!state) return;
 
-        if (!hasPermission(room, userId, "skip")) {
-          socket.emit("player:error", { message: "Permission denied" });
-          return;
-        }
+        const room = await RoomModel.findById(roomId).select("hostId roles permissions");
+        if (!room || !hasPermission(room, userId, "skip")) return;
 
-        if (!room.playerState) {
-          room.playerState = { isPlaying: false, currentTime: 0, volume: 80, shuffle: false, repeatMode: 'none', lastUpdated: new Date() };
-        }
-        
-        room.playerState!.repeatMode = repeatMode;
-        room.playerState!.lastUpdated = new Date();
-        await room.save();
+        state.repeatMode = repeatMode;
+        state.lastUpdated = Date.now();
+        state.updatedAt = Date.now();
 
         io.to(roomId).emit("player:repeat-changed", {
-          repeatMode: room.playerState.repeatMode,
+          repeatMode: state.repeatMode,
           timestamp: Date.now()
         });
+
+        persistRoomState(roomId, state);
       } catch (error) {
         logger.error("Error in player:repeat:", error);
       }
@@ -264,40 +264,29 @@ export function handlePlayerEvents(
     async (data: { roomId: string; time: number; userId: string }) => {
       try {
         const { roomId, time, userId } = data;
+        const state = await getActiveRoomState(roomId);
+        if (!state) return;
 
-        const room = await RoomModel.findById(roomId);
-        if (!room) {
-          socket.emit("player:error", { message: "Room not found" });
-          return;
-        }
-
-        if (!hasPermission(room, userId, "playPause")) { // Using playPause perm for seek typically
-             socket.emit("player:error", { message: "You don't have permission to seek" });
+        const room = await RoomModel.findById(roomId).select("hostId roles permissions");
+        if (!room || !hasPermission(room, userId, "playPause")) {
              return;
         }
 
-        // Update player state in database
-        if (!room.playerState) {
-          room.playerState = {
-            isPlaying: false,
-            currentTime: 0,
-            volume: 80,
-            shuffle: false,
-            repeatMode: 'none',
-            lastUpdated: new Date()
-          };
-        }
-        room.playerState!.currentTime = Math.max(0, time);
-        room.playerState!.lastUpdated = new Date();
-        await room.save();
+        const now = Date.now();
+        state.currentTime = Math.max(0, time);
+        state.lastUpdated = now;
+        state.updatedAt = now;
 
+        // Broadcast immediately
         io.to(roomId).emit("player:seeked", {
-          time: room.playerState!.currentTime,
-          timestamp: Date.now()
+          time: state.currentTime,
+          serverTimeAtEmit: now,
+          timestamp: now
         });
+
+        persistRoomState(roomId, state);
       } catch (error) {
         logger.error("Error in player:seek:", error);
-        socket.emit("player:error", { message: "Failed to seek" });
       }
     }
   );
@@ -308,40 +297,24 @@ export function handlePlayerEvents(
     async (data: { roomId: string; volume: number; userId: string }) => {
       try {
         const { roomId, volume, userId } = data;
+        const state = await getActiveRoomState(roomId);
+        if (!state) return;
 
-        const room = await RoomModel.findById(roomId);
-        if (!room) {
-          socket.emit("player:error", { message: "Room not found" });
-          return;
-        }
+        const room = await RoomModel.findById(roomId).select("hostId roles permissions");
+        if (!room || !hasPermission(room, userId, "volume")) return;
 
-        if (!hasPermission(room, userId, "volume")) {
-             socket.emit("player:error", { message: "You don't have permission to change volume" });
-             return;
-        }
-
-        // Update player state in database
-        if (!room.playerState) {
-          room.playerState = {
-            isPlaying: false,
-            currentTime: 0,
-            volume: 80,
-            shuffle: false,
-            repeatMode: 'none',
-            lastUpdated: new Date()
-          };
-        }
-        room.playerState!.volume = Math.max(0, Math.min(100, volume));
-        room.playerState!.lastUpdated = new Date();
-        await room.save();
+        state.volume = Math.max(0, Math.min(100, volume));
+        state.lastUpdated = Date.now();
+        state.updatedAt = Date.now();
 
         io.to(roomId).emit("player:volume-changed", {
-          volume: room.playerState!.volume,
+          volume: state.volume,
           timestamp: Date.now()
         });
+
+        persistRoomState(roomId, state);
       } catch (error) {
         logger.error("Error in player:volume:", error);
-        socket.emit("player:error", { message: "Failed to change volume" });
       }
     }
   );
@@ -356,94 +329,52 @@ export function handlePlayerEvents(
         title: string;
         artist: string;
         duration: number;
-        thumbnail?: string; // Add thumbnail
+        thumbnail?: string;
       };
       userId: string;
-      playNow?: boolean; // If true, play immediately (host only)
+      playNow?: boolean;
     }) => {
       try {
         const { roomId, song, userId, playNow } = data;
+        const state = await getActiveRoomState(roomId);
+        if (!state) return;
 
-        const room = await RoomModel.findById(roomId);
-        if (!room) {
-          socket.emit("player:error", { message: "Room not found" });
-          return;
-        }
-
-        if (!hasPermission(room, userId, "addToQueue")) {
-            socket.emit("player:error", { message: "You don't have permission to add songs" });
+        const room = await RoomModel.findById(roomId).select("hostId roles permissions");
+        if (!room || !hasPermission(room, userId, "addToQueue")) {
             return;
         }
 
-        // If playNow is true and user has permission, play immediately
+        const now = Date.now();
         if (playNow && hasPermission(room, userId, "playPause")) {
-          // Check if song exists in queue and remove it to prevent duplicates
-          const exisitingIndex = room.queue.findIndex(
-            (item: any) => item.videoId === song.videoId
-          );
-          
-          if (exisitingIndex !== -1) {
-            room.queue.splice(exisitingIndex, 1);
-          }
-
-          room.currentSong = {
-            videoId: song.videoId,
-            title: song.title,
-            artist: song.artist,
-            duration: song.duration,
-            thumbnail: song.thumbnail
-          };
-          // Reset player state for new song
-          const currentVolume = room.playerState?.volume || 80;
-          const currentShuffle = room.playerState?.shuffle || false;
-          const currentRepeat = room.playerState?.repeatMode || 'none';
-
-          room.playerState = {
-            isPlaying: true,
-            currentTime: 0,
-            volume: currentVolume,
-            shuffle: currentShuffle,
-            repeatMode: currentRepeat,
-            lastUpdated: new Date()
-          };
-          await room.save();
-
-          // Populate requestedBy before emitting
-          const populatedRoomForPlay = await RoomModel.findById(roomId)
-            .populate("queue.requestedBy", "username email")
-            .lean();
-          const queueForPlay = populatedRoomForPlay?.queue || room.queue;
+          state.currentSong = { ...song };
+          state.currentTime = 0;
+          state.isPlaying = true;
+          state.lastUpdated = now;
 
           io.to(roomId).emit("player:song-changed", {
-            currentSong: room.currentSong,
-            queue: queueForPlay,
-            playerState: room.playerState
+            currentSong: state.currentSong,
+            queue: state.queue,
+            playerState: {
+              isPlaying: state.isPlaying,
+              currentTime: state.currentTime,
+              volume: state.volume,
+              shuffle: state.shuffle,
+              repeatMode: state.repeatMode
+            },
+            serverTimeAtEmit: now
           });
-
-          logger.info(`Song played immediately in room ${roomId} by ${userId}`);
         } else {
-          // Add to queue normally
-          room.queue.push({
-            ...song,
-            requestedBy: userId as any
-          });
-          await room.save();
-
-          // Populate requestedBy before emitting
-          const populatedRoomForAdd = await RoomModel.findById(roomId)
-            .populate("queue.requestedBy", "username email")
-            .lean();
-          const queueForAdd = populatedRoomForAdd?.queue || room.queue;
-
+          state.queue.push({ ...song, requestedBy: userId });
           io.to(roomId).emit("player:queue-updated", {
-            queue: queueForAdd
+            queue: state.queue,
+            serverTimeAtEmit: now
           });
-
-          logger.info(`Song added to queue in room ${roomId} by ${userId}`);
         }
+
+        state.updatedAt = now;
+        persistRoomState(roomId, state);
       } catch (error) {
         logger.error("Error in player:add-to-queue:", error);
-        socket.emit("player:error", { message: "Failed to add song to queue" });
       }
     }
   );
@@ -452,43 +383,34 @@ export function handlePlayerEvents(
   socket.on("player:get-state", async (data: { roomId: string }) => {
     try {
       const { roomId } = data;
-      const room = await RoomModel.findById(roomId);
-
-      if (!room) {
-        socket.emit("player:error", { message: "Room not found" });
-        return;
-      }
+      const state = await getActiveRoomState(roomId);
+      if (!state) return;
 
       // Calculate current time based on last update and playing state
-      let currentTime = room.playerState?.currentTime || 0;
-      if (room.playerState?.isPlaying && room.playerState.lastUpdated) {
-        const timeSinceUpdate =
-          (Date.now() - room.playerState.lastUpdated.getTime()) / 1000;
-        currentTime = room.playerState.currentTime + timeSinceUpdate;
-        // Cap at song duration if available
-        if (room.currentSong?.duration) {
-          currentTime = Math.min(currentTime, room.currentSong.duration);
+      let currentTime = state.currentTime;
+      const now = Date.now();
+      if (state.isPlaying) {
+        const timeSinceUpdate = (now - state.lastUpdated) / 1000;
+        currentTime = state.currentTime + timeSinceUpdate;
+        if (state.currentSong?.duration) {
+          currentTime = Math.min(currentTime, state.currentSong.duration);
         }
       }
 
-      // Populate requestedBy before emitting
-      const populatedRoom = await RoomModel.findById(roomId)
-        .populate("queue.requestedBy", "username email")
-        .lean();
-      const queueToEmit = populatedRoom?.queue || room.queue;
-
       socket.emit("player:state", {
-        currentSong: room.currentSong,
-        queue: queueToEmit,
+        currentSong: state.currentSong,
+        queue: state.queue,
+        serverTimeAtEmit: now, // Crucial for Layer 4
         playerState: {
-          isPlaying: room.playerState?.isPlaying || false,
+          isPlaying: state.isPlaying,
           currentTime,
-          volume: room.playerState?.volume || 80
+          volume: state.volume,
+          shuffle: state.shuffle,
+          repeatMode: state.repeatMode
         }
       });
     } catch (error) {
       logger.error("Error in player:get-state:", error);
-      socket.emit("player:error", { message: "Failed to get player state" });
     }
   });
 
@@ -562,41 +484,26 @@ export function handlePlayerEvents(
     async (data: { roomId: string; currentTime: number; userId: string }) => {
       try {
         const { roomId, currentTime, userId } = data;
+        const state = await getActiveRoomState(roomId);
+        if (!state) return;
 
-        // Since this is high-frequency, we might want to optimize. 
-        // But to be safe, we should verify the user is the host.
-        // We can optimize by assuming the client wouldn't emit if not host (frontend check),
-        // but backend must verify.
-        
-        // Fast path: Update if user is host
-        // We need to know who the host is. We can query just the hostId.
-        const room = await RoomModel.findById(roomId).select("hostId playerState");
-        
-        if (!room) return;
-        
-         // Only HOST updates time to prevent conflicts
-        if (room.hostId.toString() !== userId) {
-            // Alternatively, allow DJs. But time sync is best single-source.
-            return;
-        }
+        const room = await RoomModel.findById(roomId).select("hostId");
+        if (!room || room.hostId.toString() !== userId) return;
 
         const now = Date.now();
-        
-        // Update DB
-        room.playerState = {
-            ...room.playerState,
-            currentTime: Math.max(0, currentTime),
-            lastUpdated: new Date(now)
-        } as any;
-        
-        await RoomModel.updateOne({ _id: roomId }, { $set: { playerState: room.playerState }});
+        state.currentTime = Math.max(0, currentTime);
+        state.lastUpdated = now;
+        state.updatedAt = now;
 
-        // Broadcast time update to room (except sender)
-        // Include SERVER TIMESTAMP for sync
         socket.to(roomId).emit("player:time-updated", {
           currentTime,
+          serverTimeAtEmit: now, // Critical for Layer 3
           timestamp: now
         });
+
+        // We don't need to persist high-frequency time updates to DB every time.
+        // Maybe every 10s or on room leave? For now, background persist is fine.
+        persistRoomState(roomId, state);
       } catch (error) {
         logger.error("Error in player:update-time:", error);
       }

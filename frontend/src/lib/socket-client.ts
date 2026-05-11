@@ -77,9 +77,11 @@ export function useSocket(roomId: string | null) {
         userId: user._id || user.id,
         token,
       },
-      transports: ["websocket", "polling"],
+      transports: ["websocket"],
       reconnection: true,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 2000,
+      timeout: 5000,
       reconnectionAttempts: 5,
     });
 

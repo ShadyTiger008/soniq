@@ -13,10 +13,26 @@ const logFormat = winston.format.combine(
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-  winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    let msg = `${timestamp} [${level}]: ${message}`;
+  winston.format.printf((info) => {
+    const { timestamp, level, message, ...meta } = info;
+    
+    // Handle message being an object
+    let mainMsg = message;
+    if (typeof message === "object") {
+      mainMsg = JSON.stringify(message, null, 2);
+    }
+    
+    let msg = `${timestamp} [${level}]: ${mainMsg}`;
+    
+    // Handle remaining meta
     if (Object.keys(meta).length > 0) {
-      msg += ` ${JSON.stringify(meta)}`;
+      // Exclude service if it's the default and nothing else is there
+      const filteredMeta = { ...meta };
+      if (filteredMeta.service === "soniq-backend" && Object.keys(filteredMeta).length === 1) {
+        // Just return msg
+      } else {
+        msg += `\n${JSON.stringify(filteredMeta, null, 2)}`;
+      }
     }
     return msg;
   })

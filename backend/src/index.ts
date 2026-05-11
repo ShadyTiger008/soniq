@@ -47,7 +47,15 @@ process.on("unhandledRejection", (err: Error) => {
 // Handle uncaught exceptions
 process.on("uncaughtException", (err: Error) => {
   logger.error("Uncaught Exception:", err);
-  process.exit(1);
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+    // Force exit after 1s if close hangs
+    setTimeout(() => process.exit(1), 1000);
+  } else {
+    process.exit(1);
+  }
 });
 
 // Graceful shutdown

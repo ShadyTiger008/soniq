@@ -20,6 +20,12 @@ export function useRoomPlayer(roomId: string, userId: string | undefined, isHost
 
   const lastUserActionRef = useRef<number>(0);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const playerStateRef = useRef<PlayerState>(playerState);
+
+  // Keep ref in sync
+  useEffect(() => {
+    playerStateRef.current = playerState;
+  }, [playerState]);
 
   const {
     socket,
@@ -146,75 +152,47 @@ export function useRoomPlayer(roomId: string, userId: string | undefined, isHost
     }
   }, [requestsUpdate]);
 
-  // --- Socket Event Handling: Sync Player State (Time, Play/Pause) ---
+  // --- Layer 3: Precise Sync Correction ---
   useEffect(() => {
     if (!socketPlayerState) return;
 
-    // Check if user recently interacted (User Action Protection)
+    // 1. Skip if user recently interacted (Optimistic Lock)
     const timeSinceUserAction = Date.now() - lastUserActionRef.current;
-    if (timeSinceUserAction < 1000) {
-      // Ignore socket updates immediately after user action to prevent jumps/glitches
-      return;
-    }
+    if (timeSinceUserAction < 800) return;
 
+    const serverTimeAtEmit = (socketPlayerState as any).serverTimeAtEmit || (socketPlayerState as any).timestamp || Date.now();
+    
+    // 2. Calculate Correction (elapsed time since server emitted)
+    const elapsed = (Date.now() - serverTimeAtEmit) / 1000;
+    const correctedPosition = socketPlayerState.currentTime + (socketPlayerState.isPlaying ? elapsed : 0);
+    
     setPlayerState((prev) => {
-      const serverTimestamp = (socketPlayerState as any).timestamp || Date.now();
-      // Calculate one-way network latency (approximate)
-      // We assume the event took some time to reach us.
-      // If we don't have perfect clock sync, we rely on the relative diff? 
-      // Ideally we use Date.now() - serverVideoTime... but keeping it simple:
-      const latency = (Date.now() - serverTimestamp) / 1000;
+      const drift = Math.abs(prev.currentTime - correctedPosition);
       
-      // Calculate adjusted time based on server playing state
-      let adjustedTime = socketPlayerState.currentTime;
-      if (socketPlayerState.isPlaying) {
-          adjustedTime += latency;
+      // 3. Apply correction based on drift threshold
+      // Host: Trust local unless massive drift (> 5s)
+      // Listener: Correct if drift > 0.3s (premium responsiveness)
+      const threshold = isHost ? 5.0 : 0.3;
+      
+      if (drift > threshold || prev.isPlaying !== socketPlayerState.isPlaying) {
+        return {
+          ...prev,
+          isPlaying: socketPlayerState.isPlaying,
+          volume: socketPlayerState.volume,
+          currentTime: correctedPosition,
+          shuffle: socketPlayerState.shuffle,
+          repeatMode: socketPlayerState.repeatMode,
+        };
       }
       
-      // Drift threshold: How far off before we seek?
-      // Host: Trust local more unless MASSIVE drift (>5s) or initial sync
-      // Guest: Strict sync if drift > 0.5s (audible)
-      
-      const timeDiff = Math.abs(prev.currentTime - adjustedTime);
-
-      let newTime = prev.currentTime;
-
-      if (isHost) {
-          // As host, we ARE the source of truth usually. 
-          // Only sync if we are way off (e.g. page reload, other admin changed it)
-          if (timeDiff > 2.0) {
-             newTime = adjustedTime;
-          }
-      } else {
-          // As guest, sync if drift is noticeable
-          if (timeDiff > 0.5) {
-             newTime = adjustedTime;
-          } else {
-             // If drift is small, we can let it slide OR do a micro-adjustment if using a sophisticated player.
-             // For state-based UI, we just update the number. The YouTube player component handles the visual seek.
-             // We update state to match server (smooth correction)
-             // Actually, if we update state constantly, React might re-render. 
-             // But we want the UI slider to be accurate.
-             // If we are within 0.5s, let's just stick to our local interpolation or pull closer slowly?
-             // For simplicity: If drift < 0.5s, don't force seek, but update internal state reference.
-             
-             // NOTE: The `YouTubePlayer` effect usually seeks if `props.currentTime` changes significantly.
-             // We need to ensure we don't trigger a seek loop.
-             // We'll update state, but `YouTubePlayer` checks diff before seeking.
-             newTime = adjustedTime;
-          }
-      }
-
       return {
         ...prev,
         isPlaying: socketPlayerState.isPlaying,
         volume: socketPlayerState.volume,
-        currentTime: newTime,
         shuffle: socketPlayerState.shuffle,
         repeatMode: socketPlayerState.repeatMode,
       };
     });
-    
   }, [socketPlayerState, isHost]);
 
 
@@ -247,11 +225,30 @@ export function useRoomPlayer(roomId: string, userId: string | undefined, isHost
 
   const skipForward = useCallback(() => {
     lastUserActionRef.current = Date.now();
+    
+    // Layer 1: Optimistic UI
+    setPlayerState(prev => {
+      if (prev.queue.length === 0) return prev;
+      const nextSong = prev.queue[0];
+      const newQueue = prev.queue.slice(1);
+      if (prev.repeatMode === 'all' && prev.currentSong) {
+        newQueue.push(prev.currentSong);
+      }
+      return {
+        ...prev,
+        currentSong: nextSong || null,
+        queue: newQueue,
+        currentTime: 0,
+        isPlaying: true
+      };
+    });
+    
     emitPlayerSkip("next");
   }, [emitPlayerSkip]);
 
   const skipBackward = useCallback(() => {
     lastUserActionRef.current = Date.now();
+    setPlayerState(prev => ({ ...prev, currentTime: 0 }));
     emitPlayerSkip("prev");
   }, [emitPlayerSkip]);
 
@@ -268,13 +265,29 @@ export function useRoomPlayer(roomId: string, userId: string | undefined, isHost
   }, [playerState.repeatMode, emitPlayerRepeat]);
 
   const addToQueue = useCallback((song: Song) => {
-      emitAddToQueue({
-          videoId: song.videoId || song.id,
-          title: song.title,
-          artist: song.artist,
-          duration: typeof song.duration === 'string' ? parseDuration(song.duration) : song.duration,
-          thumbnail: song.thumbnail,
-      });
+    // Layer 1: Optimistic UI
+    const songData: Song = {
+      id: song.id || song.videoId,
+      videoId: song.videoId || song.id || "",
+      title: song.title,
+      artist: song.artist,
+      duration: typeof song.duration === "string" ? song.duration : formatDuration(song.duration),
+      thumbnail: song.thumbnail,
+      requestedBy: "You",
+    };
+
+    setPlayerState(prev => ({
+      ...prev,
+      queue: [...prev.queue, songData]
+    }));
+
+    emitAddToQueue({
+      videoId: songData.videoId,
+      title: songData.title,
+      artist: songData.artist,
+      duration: typeof song.duration === 'string' ? parseDuration(song.duration) : song.duration,
+      thumbnail: songData.thumbnail,
+    });
   }, [emitAddToQueue]);
 
   const requestSong = useCallback((song: Song) => {
@@ -311,18 +324,17 @@ export function useRoomPlayer(roomId: string, userId: string | undefined, isHost
       emitReorderQueue(fromIndex, toIndex);
   }, [emitReorderQueue]);
 
-  // --- Host Authority: Periodic Time Sync ---
+  // --- Layer 5: Passive Drift Correction ---
   useEffect(() => {
-      if (!isHost || !playerState.isPlaying || !playerState.currentSong || !socket) return;
+      if (!playerState.isPlaying || !playerState.currentSong || !socket) return;
 
       const syncInterval = setInterval(() => {
-          // As host, we periodically broadcast our local currentTime to keep guests in sync
-          // This handles slow drifts that aren't large enough to trigger event-based sync
-          emitUpdateTime(playerState.currentTime);
-      }, 5000); // Every 5 seconds
+          // Request current state from server for drift check
+          socket.emit("player:get-state", { roomId });
+      }, 5000); 
 
       return () => clearInterval(syncInterval);
-  }, [isHost, playerState.isPlaying, playerState.currentSong, playerState.currentTime, socket, emitUpdateTime]);
+  }, [playerState.isPlaying, playerState.currentSong, socket, roomId]);
 
   const handleTimeUpdate = useCallback((time: number, duration: number) => {
       // Update local state by merging with prev state to avoid overwrites
@@ -342,17 +354,16 @@ export function useRoomPlayer(roomId: string, userId: string | undefined, isHost
 
   // Sync Logic: Host Authority
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !isHost) return;
     
     // Listen for new members to sync them immediately
     const handleMemberJoined = () => {
-        if (isHost && playerState.currentSong) { // Only sync if there is something playing
-            // Broadcast current state to ensure new member gets fresh time
-            console.log("Host broadcasting sync for new member");
-            emitUpdateTime(playerState.currentTime);
-            // Also force a play state emit if it's supposed to be playing
-            if(playerState.isPlaying) {
-                 emitPlayerPlayPause(true, playerState.currentTime);
+        const currentState = playerStateRef.current;
+        if (currentState.currentSong) { 
+            console.log("Host broadcasting sync for new member at", currentState.currentTime);
+            emitUpdateTime(currentState.currentTime);
+            if(currentState.isPlaying) {
+                 emitPlayerPlayPause(true, currentState.currentTime);
             }
         }
     };
@@ -362,14 +373,34 @@ export function useRoomPlayer(roomId: string, userId: string | undefined, isHost
     return () => {
         socket.off("room:member-joined", handleMemberJoined);
     };
-  }, [socket, isHost, playerState.currentTime, playerState.isPlaying, playerState.currentSong, emitUpdateTime, emitPlayerPlayPause]);
+  }, [socket, isHost, emitUpdateTime, emitPlayerPlayPause]);
 
 
   const removeFromQueue = useCallback((videoId: string) => {
+      // Layer 1: Optimistic UI
+      setPlayerState(prev => ({
+          ...prev,
+          queue: prev.queue.filter(item => item.videoId !== videoId)
+      }));
       emitRemoveFromQueue(videoId);
   }, [emitRemoveFromQueue]);
 
   const playQueueItem = useCallback((videoId: string) => {
+      // Layer 1: Optimistic UI
+      setPlayerState(prev => {
+          const songIndex = prev.queue.findIndex(item => item.videoId === videoId);
+          if (songIndex === -1) return prev;
+          const songToPlay = prev.queue[songIndex];
+          const newQueue = [...prev.queue];
+          newQueue.splice(songIndex, 1);
+          return {
+              ...prev,
+              currentSong: songToPlay || null,
+              queue: newQueue,
+              currentTime: 0,
+              isPlaying: true
+          };
+      });
       emitPlayQueueItem(videoId);
   }, [emitPlayQueueItem]);
 

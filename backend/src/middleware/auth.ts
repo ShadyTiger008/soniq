@@ -46,20 +46,10 @@ export async function authenticate(
     // Verify JWT token
     const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
     
-    // Log in development for debugging (remove in production)
-    if (process.env.NODE_ENV === "development") {
-      console.log("JWT_SECRET set:", !!process.env.JWT_SECRET);
-      console.log("Token length:", token.length);
-      console.log("Token preview:", token.substring(0, 20) + "...");
-    }
-    
     let decoded: { userId: string; email: string; username: string };
     try {
       decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; username: string };
     } catch (jwtError) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("JWT verification error:", jwtError);
-      }
       if (jwtError instanceof jwt.JsonWebTokenError) {
         throw new CustomError(`Invalid authentication token: ${jwtError.message}`, 401);
       } else if (jwtError instanceof jwt.TokenExpiredError) {
@@ -141,9 +131,6 @@ export async function optionalAuth(
         }
       } catch (error) {
         // Invalid token, continue without authentication
-        if (process.env.NODE_ENV === "development") {
-          console.log("Optional auth failed (continuing without auth):", error instanceof Error ? error.message : "Unknown error");
-        }
       }
     }
     next();

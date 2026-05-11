@@ -116,14 +116,18 @@ export function handleRoomEvents(
         }
       }
 
-      // Send room data to client with player state
+      // Send room data to client with player state (including serverTimeAtEmit for Layer 4)
+      const now = Date.now();
       socket.emit("room:joined", {
         room: room.toObject(),
         listenerCount: room.listenerCount,
+        serverTimeAtEmit: now,
         playerState: {
           isPlaying: room.playerState?.isPlaying || false,
           currentTime,
-          volume: room.playerState?.volume || 80
+          volume: room.playerState?.volume || 80,
+          shuffle: room.playerState?.shuffle || false,
+          repeatMode: room.playerState?.repeatMode || 'none'
         }
       });
 

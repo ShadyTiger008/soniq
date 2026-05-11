@@ -64,7 +64,11 @@ export function initializeSocketIO(server: HttpServer): SocketIOServer {
       credentials: true,
       methods: ["GET", "POST"],
     },
-    transports: ["websocket", "polling"],
+    transports: ["websocket"],
+    pingInterval: 10000,
+    pingTimeout: 5000,
+    perMessageDeflate: false,
+    maxHttpBufferSize: 1e6,
   });
 
   // Use Redis adapter for scaling (optional)
