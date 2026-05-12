@@ -60,8 +60,8 @@ export default function HomePage() {
       return;
     }
     let roomId = quickJoin.trim();
-    if (roomId.toUpperCase().startsWith("SONIQ-")) {
-      roomId = roomId.substring(6);
+    if (roomId.toUpperCase().startsWith("VIBECUE-")) {
+      roomId = roomId.substring(8);
     }
     router.push(`/room/${roomId}`);
   };
@@ -72,7 +72,7 @@ export default function HomePage() {
          <motion.div 
            animate={{ rotate: 360, scale: [1, 1.2, 1] }} 
            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-           className="h-10 w-10 rounded-xl bg-primary shadow-[0_0_20px_var(--sonic-glow)] flex items-center justify-center"
+           className="h-10 w-10 rounded-xl bg-primary shadow-[0_0_20px_var(--vibecue-glow)] flex items-center justify-center"
          >
             <Radio className="text-primary-foreground h-6 w-6" />
          </motion.div>

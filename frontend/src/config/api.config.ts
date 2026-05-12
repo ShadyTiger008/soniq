@@ -7,12 +7,13 @@
 
 // Base URL configuration
 // For local development: http://localhost:5001
-// For production: https://soniq-88py.onrender.com
+// For production (VPS): https://api.vibecue.xyz
+// For production (Render): https://vibecue-88py.onrender.com
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
   (process.env.NODE_ENV === "production"
-    ? "https://soniq-88py.onrender.com"
+    ? "https://api.vibecue.xyz"
     : "http://localhost:5001");
 
 // API Base URL (includes /api prefix)
@@ -66,6 +67,9 @@ export const API_ENDPOINTS = {
   // Support endpoints
   SUPPORT: {
     SUBMIT: "/support",
+  },
+  PLAYLIST: {
+    GENERATE: "/ai/playlist/generate",
   },
 } as const;
 

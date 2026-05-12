@@ -92,7 +92,7 @@ export function RoomTabs({
               {isActive && (
                 <motion.div 
                   layoutId="active-tab-glow"
-                  className="absolute inset-x-2 inset-y-1 bg-primary/10 rounded-xl border border-primary/20 shadow-[0_0_15px_var(--sonic-glow)]"
+                  className="absolute inset-x-2 inset-y-1 bg-primary/10 rounded-xl border border-primary/20 shadow-[0_0_15px_var(--vibecue-glow)]"
                 />
               )}
               <Icon className={cn("h-5 w-5 relative z-10", isActive ? "animate-pulse" : "")} />

@@ -22,7 +22,10 @@ export function initializeSocketIO(server: HttpServer): SocketIOServer {
     const defaults = [
       "http://localhost:3000",
       "http://localhost:3001",
-      "https://soniq-lime.vercel.app",
+      "https://vibecue.xyz",
+      "https://www.vibecue.xyz",
+      "https://vibecue-88py.onrender.com",
+      "https://vibecue-lime.vercel.app",
     ];
 
     if (process.env.NODE_ENV === "production") {

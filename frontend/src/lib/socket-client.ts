@@ -66,7 +66,7 @@ export function useSocket(roomId: string | null) {
     }
 
     // Get token from localStorage
-    const token = localStorage.getItem("soniq_token");
+    const token = localStorage.getItem("vibecue_token");
     if (!token) {
       return;
     }

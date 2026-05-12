@@ -162,7 +162,7 @@ export default function SettingsPage() {
         </section>
 
         <div className="text-muted-foreground py-8 text-center text-sm">
-          <p>SONIQ v1.0.0 • Last updated: December 1, 2024</p>
+          <p>Vibecue v1.0.0 • Last updated: December 1, 2024</p>
         </div>
       </div>
     </div>

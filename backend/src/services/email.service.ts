@@ -40,14 +40,14 @@ class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <span class="logo">SONIQ</span>
+            <span class="logo">Vibecue</span>
           </div>
           <div class="content">
             <h2 style="color: #6C2BD9;">${title}</h2>
             ${content}
           </div>
           <div class="footer">
-            &copy; ${new Date().getFullYear()} SONIQ. All rights reserved.<br>
+            &copy; ${new Date().getFullYear()} Vibecue. All rights reserved.<br>
             Automated Notification System
           </div>
         </div>
@@ -85,9 +85,9 @@ class EmailService {
       );
 
       const info = await this.transporter.sendMail({
-        from: `"SONIQ Support" <${process.env.SMTP_USER}>`,
+        from: `"Vibecue Support" <${process.env.SMTP_USER}>`,
         to: "chatterjeesoumyajeet@gmail.com",
-        subject: `[SONIQ Support] New ${data.type} Reported by ${data.name}`,
+        subject: `[Vibecue Support] New ${data.type} Reported by ${data.name}`,
         html,
         replyTo: data.email
       });
@@ -111,17 +111,17 @@ class EmailService {
         "We Received Your Request",
         `
         <p>Hi ${data.name},</p>
-        <p>Thanks for reaching out to SONIQ Support. We have received your query regarding <strong>"${data.type}"</strong>.</p>
+        <p>Thanks for reaching out to Vibecue Support. We have received your query regarding <strong>"${data.type}"</strong>.</p>
         <p>Our team is reviewing your request and will get back to you shortly if any further information is needed.</p>
         <p>In the meantime, feel free to explore more rooms or create your own vibe!</p>
         <div style="text-align: center;">
-           <a href="https://soniq-lime.vercel.app" class="button">Back to SONIQ</a>
+           <a href="https://vibecue.xyz" class="button">Back to Vibecue</a>
         </div>
         `
       );
 
       const info = await this.transporter.sendMail({
-        from: `"SONIQ Support" <${process.env.SMTP_USER}>`,
+        from: `"Vibecue Support" <${process.env.SMTP_USER}>`,
         to: data.email,
         subject: `We received your request: ${data.type}`,
         html

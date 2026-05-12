@@ -1,10 +1,10 @@
-# SONIQ Frontend 🎨
+# Vibecue Frontend 🎨
 
-The premium frontend experience for **SONIQ** - Listen together, vibe together. Built with **Next.js 15**, **React 19**, and **Radix UI**.
+The premium frontend experience for **Vibecue** - Listen together, vibe together. Built with **Next.js 15**, **React 19**, and **Radix UI**.
 
 ## ✨ Visual Excellence
 
-SONIQ is designed with a "Premium-First" philosophy:
+Vibecue is designed with a "Premium-First" philosophy:
 - **Glassmorphism**: Sleek, transparent UI elements with background blur.
 - **Dynamic Accent Colors**: Mood-based themes (Chill, Party, Lofi, etc.).
 - **Micro-animations**: Powered by `framer-motion` for a fluid user experience.
@@ -31,7 +31,7 @@ The application state is decentralized into focused stores:
 - `useChatStore`: Manages real-time messages and notification status.
 
 ### YouTube Synchronization
-The core of SONIQ is the synchronized YouTube player:
+The core of Vibecue is the synchronized YouTube player:
 - **Custom Player Wrapper**: An abstraction over the YouTube IFrame API.
 - **Event Handling**: Listens for Socket.IO events (`player:state-changed`, `player:seeked`) and adjusts the internal player state accordingly.
 - **Drift Correction**: Periodically syncs the player's `currentTime` with the server's reference timestamp to prevent audio drift.
@@ -80,7 +80,7 @@ frontend/
 
 ## 🎨 Design System
 
-SONIQ uses a custom design system based on Tailwind CSS:
+Vibecue uses a custom design system based on Tailwind CSS:
 - **Colors**: Deep obsidians and vibrant greens (`#1ED760`).
 - **Typography**: Inter for standard text, Orbitron or similar for headings.
 - **Shapes**: High-radius corners (12px - 24px) for a modern look.

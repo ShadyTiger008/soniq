@@ -1,7 +1,7 @@
 {
-  "name": "soniq-backend",
+  "name": "vibecue-backend",
   "version": "1.0.0",
-  "description": "SONIQ - Premium Social Music Streaming Backend",
+  "description": "Vibecue - Premium Social Music Streaming Backend",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

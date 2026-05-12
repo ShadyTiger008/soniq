@@ -218,7 +218,7 @@ const roomSchema = new Schema<IRoom>(
 // Generate invite code before saving
 roomSchema.pre("save", function (next) {
   if (this.isPrivate && !this.inviteCode) {
-    this.inviteCode = `SONIQ-${Math.random()
+    this.inviteCode = `VIBECUE-${Math.random()
       .toString(36)
       .substring(2, 8)
       .toUpperCase()}`;

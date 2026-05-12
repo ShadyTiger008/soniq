@@ -396,7 +396,7 @@ export default function RoomPage() {
   const handleShareRoom = async () => {
     const url = window.location.href;
     const shareData = {
-      title: `Join ${roomSettings.name} on SONIQ`,
+      title: `Join ${roomSettings.name} on Vibecue`,
       text: `Listen to music together in ${roomSettings.name}. Join now!`,
       url: url,
     };
@@ -421,7 +421,7 @@ export default function RoomPage() {
   };
 
   const handleCopyInvite = async () => {
-    const inviteCode = `SONIQ-${roomId.toUpperCase()}`;
+    const inviteCode = `VIBECUE-${roomId.toUpperCase()}`;
     try {
       await navigator.clipboard.writeText(inviteCode);
       setCopied(true);
@@ -486,7 +486,7 @@ export default function RoomPage() {
   const handleGenerateMoodPlaylist = (data: any) => {
     console.log("Generating AI Playlist with data:", data);
     // This will be implemented in the backend later
-    toast.success("Soniq AI Buddy is curating your vibe! This feature is coming soon to the backend.");
+    toast.success("Vibecue AI Buddy is curating your vibe! This feature is coming soon to the backend.");
   };
 
   const handleToggleFullscreen = () => {
@@ -740,7 +740,7 @@ export default function RoomPage() {
                         >
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                             <Sparkles className="h-4 w-4 text-white relative z-10 animate-pulse" />
-                            <span className="relative z-10">Ask Soniq</span>
+                            <span className="relative z-10">Ask Vibecue</span>
                         </button>
                       </div>
                       {isHost && (
@@ -1025,7 +1025,7 @@ export default function RoomPage() {
                     <p className="text-white scale-110">This is where the magic happens</p>
                     <p>When the bass drops low</p>
                     <p>And the rhythm starts to flow</p>
-                    <p>SONIQ brings the vibe alive</p>
+                    <p>Vibecue brings the vibe alive</p>
                     <p>In the digital night, we thrive</p>
                     <p className="text-white/40 text-lg not-italic mt-12">Lyrics are currently in beta</p>
                 </div>

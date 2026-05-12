@@ -1,15 +1,15 @@
-# SONIQ - Premium Real-time Social Music Streaming
+# Vibecue - Premium Real-time Social Music Streaming
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Socket.io](https://img.shields.io/badge/Socket.io-4.8-orange)](https://socket.io/)
 
-Experience premium real-time social music streaming with SONIQ. Listen together, vibe together.
+Experience premium real-time social music streaming with Vibecue. Listen together, vibe together.
 
-SONIQ lets you listen to YouTube music together in real time — perfectly synced, no delays, no awkward “play now?” moments. Create or join rooms, manage queues, chat live, and assign roles like Admin, DJ, or Moderator to control the vibe.
+Vibecue lets you listen to YouTube music together in real time — perfectly synced, no delays, no awkward “play now?” moments. Create or join rooms, manage queues, chat live, and assign roles like Admin, DJ, or Moderator to control the vibe.
 
-![SONIQ Banner](docs/screenshots/hero-1.png)
+![Vibecue Banner](docs/screenshots/hero-1.png)
 
 ## ✨ Features
 
@@ -58,8 +58,8 @@ SONIQ lets you listen to YouTube music together in real time — perfectly synce
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/soniq.git
-cd soniq
+git clone https://github.com/your-username/vibecue.git
+cd vibecue
 ```
 
 ### 2. Backend Setup
@@ -81,7 +81,7 @@ pnpm dev
 ## 🏗️ Project Structure
 
 ```bash
-soniq/
+vibecue/
 ├── backend/            # Express server & Socket handlers
 │   ├── src/
 │   │   ├── controllers/# API endpoint logic

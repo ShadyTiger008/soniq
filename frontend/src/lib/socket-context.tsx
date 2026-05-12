@@ -72,7 +72,7 @@ export function SocketProvider({ roomId, children }: { roomId: string | null; ch
       return;
     }
 
-    const token = localStorage.getItem("soniq_token");
+    const token = localStorage.getItem("vibecue_token");
     if (!token) return;
 
     const newSocket = io(SOCKET_URL, {

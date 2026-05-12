@@ -27,17 +27,17 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "SONIQ | Premium Social Music Experience",
-    template: "%s | SONIQ"
+    default: "Vibecue | Premium Social Music Experience",
+    template: "%s | Vibecue"
   },
-  description: "Experience premium real-time social music streaming with SONIQ. Listen together, vibe together.",
-  applicationName: "SONIQ",
-  authors: [{ name: "SONIQ Team" }],
+  description: "Experience premium real-time social music streaming with Vibecue. Listen together, vibe together.",
+  applicationName: "Vibecue",
+  authors: [{ name: "Vibecue Team" }],
   generator: "Next.js",
-  keywords: ["music streaming", "social music", "shared rooms", "real-time audio", "SONIQ"],
+  keywords: ["music streaming", "social music", "shared rooms", "real-time audio", "Vibecue"],
   referrer: "origin-when-cross-origin",
-  creator: "SONIQ Team",
-  publisher: "SONIQ",
+  creator: "Vibecue Team",
+  publisher: "Vibecue",
   formatDetection: {
     email: false,
     address: false,
@@ -63,25 +63,25 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://soniq.music",
-    siteName: "SONIQ",
-    title: "SONIQ | Premium Social Music Experience",
+    url: "https://vibecue.xyz",
+    siteName: "Vibecue",
+    title: "Vibecue | Premium Social Music Experience",
     description: "Real-time social music streaming. Join rooms, listen together, and discover new vibes.",
     images: [
       {
         url: "/assets/og-image.png",
         width: 1200,
         height: 630,
-        alt: "SONIQ - Shared Music Rooms",
+        alt: "Vibecue - Shared Music Rooms",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SONIQ | Premium Social Music Experience",
+    title: "Vibecue | Premium Social Music Experience",
     description: "Real-time social music streaming. Join rooms and listen together.",
     images: ["/assets/og-image.png"],
-    creator: "@soniq_music",
+    creator: "@vibecue_xyz",
   },
   robots: {
     index: true,

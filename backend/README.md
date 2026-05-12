@@ -1,6 +1,6 @@
-# SONIQ Backend 🚀
+# Vibecue Backend 🚀
 
-Production-grade backend server for **SONIQ** - Premium Social Music Streaming Platform. This server handles authentication, room state management, and real-time synchronization using Socket.IO.
+Production-grade backend server for **Vibecue** - Premium Social Music Streaming Platform. This server handles authentication, room state management, and real-time synchronization using Socket.IO.
 
 ## 🏗️ Architecture
 
@@ -21,7 +21,7 @@ The backend follows a modular architecture:
 
 ## 📋 Role & Permission System
 
-SONIQ features a sophisticated permission system built into the Socket handlers:
+Vibecue features a sophisticated permission system built into the Socket handlers:
 
 | Role | Permissions |
 | :--- | :--- |
@@ -38,7 +38,7 @@ Hosts can dynamically configure room permissions:
 
 ## 🔄 Real-time Synchronization
 
-SONIQ uses a high-precision sync algorithm:
+Vibecue uses a high-precision sync algorithm:
 1. **Server Timestamping**: All player events include a server-side timestamp.
 2. **State Broadcasting**: When a state changes (e.g., skip), the server broadcasts the exact `currentTime` and `timestamp`.
 3. **Client Adjustment**: Clients calculate the network latency and adjust the playback time to match the room state down to the millisecond.

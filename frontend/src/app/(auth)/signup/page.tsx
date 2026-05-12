@@ -35,7 +35,7 @@ function SignupContent() {
             </div>
           </div>
           <h1 className="text-4xl font-black text-foreground tracking-tighter mb-2">
-            SONIQ
+            Vibecue
           </h1>
           <p className="text-muted-foreground font-medium uppercase tracking-widest text-xs">Join the Music Revolution</p>
         </div>

@@ -79,7 +79,7 @@ export function ChatTab({
       {/* Connection status overlay */}
       {!isConnected && (
         <div className="absolute top-0 left-0 right-0 z-20 py-1 bg-yellow-500/10 border-b border-yellow-500/20 text-center text-[9px] font-black uppercase tracking-widest text-yellow-500">
-          Syncing with SONIQ Pulse...
+          Syncing with Vibecue Pulse...
         </div>
       )}
 

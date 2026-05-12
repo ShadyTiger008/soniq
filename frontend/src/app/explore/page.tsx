@@ -99,7 +99,7 @@ export default function ExplorePage() {
               Pulse <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-electric-magenta to-indigo-400">Network.</span>
             </h1>
             <p className="text-slate-400 text-lg md:text-xl font-medium max-w-2xl mb-10 leading-relaxed">
-              Join thousands of listeners in live social rooms. Search by mood, genre, or activity and find your sonic community.
+              Join thousands of listeners in live social rooms. Search by mood, genre, or activity and find your vibecue community.
             </p>
 
             {/* Search Bar */}
@@ -221,7 +221,7 @@ export default function ExplorePage() {
                     title={room.name}
                     listeners={room.listenerCount}
                     mood={room.mood || "Mixed"}
-                    host={typeof room.hostId === "object" ? room.hostId?.username || "Soniq Host" : "Soniq Host"}
+                    host={typeof room.hostId === "object" ? room.hostId?.username || "Vibecue Host" : "Vibecue Host"}
                     thumbnail={room.cover}
                     isLive={true}
                   />

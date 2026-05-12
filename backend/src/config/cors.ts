@@ -12,8 +12,10 @@ const parseAllowedOrigins = (): string[] => {
   const defaults = [
     "http://localhost:3000",
     "http://localhost:3001",
-    "https://soniq-lime.vercel.app",
-    "https://soniq-124amfgst-shadytiger008s-projects.vercel.app",
+    "https://vibecue.xyz",
+    "https://www.vibecue.xyz",
+    "https://vibecue-88py.onrender.com",
+    "https://vibecue-lime.vercel.app",
     
   ];
 

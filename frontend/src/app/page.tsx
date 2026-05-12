@@ -49,7 +49,7 @@ export default function Home() {
             <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(114,254,143,0.3)] group-hover:scale-110 transition-transform duration-500">
                <Music className="text-black h-7 w-7" />
             </div>
-            <span className="text-3xl font-black tracking-tighter uppercase italic font-epilogue">SONIQ</span>
+            <span className="text-3xl font-black tracking-tighter uppercase italic font-space-grotesk">Vibecue</span>
           </div>
           
           <div className="hidden md:flex items-center gap-12 text-[11px] font-black uppercase tracking-[0.3em]">
@@ -130,7 +130,7 @@ export default function Home() {
                   <div className="relative rounded-[2.5rem] overflow-hidden bg-[#111] aspect-[16/10]">
                      <img 
                         src="/assets/shot.png" 
-                        alt="SONIQ Elite Interface" 
+                        alt="Vibecue Elite Interface" 
                         className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-1000"
                      />
                      <div className="absolute inset-0 reflection-overlay pointer-events-none" />
@@ -221,7 +221,7 @@ export default function Home() {
                       Connect with listeners across the globe in milliseconds. Scaling from private sessions to stadium-level audiences.
                    </p>
                 </div>
-                <div className="absolute inset-0 sonic-shimmer opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <div className="absolute inset-0 vibecue-shimmer opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
              </motion.div>
 
              {/* Vertical Bento Item */}
@@ -295,7 +295,7 @@ export default function Home() {
                    <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(114,254,143,0.3)]">
                       <Music className="text-black w-7 h-7" />
                    </div>
-                   <span className="font-black tracking-tighter text-3xl uppercase italic font-epilogue">SONIQ</span>
+                   <span className="font-black tracking-tighter text-3xl uppercase italic font-space-grotesk">Vibecue</span>
                 </div>
                 <p className="text-white/40 font-medium leading-relaxed">The pinnacle of shared audio. Engineered for the next generation of listeners.</p>
              </div>
@@ -324,7 +324,7 @@ export default function Home() {
           
           <div className="flex flex-col md:flex-row items-center justify-between gap-12 pt-12 border-t border-white/5 opacity-40">
              <p className="text-[10px] font-black uppercase tracking-[0.3em]">
-               © 2026 SONIQ. DESIGNED IN SEOUL. BUILT IN SF.
+               © 2026 Vibecue. DESIGNED IN SEOUL. BUILT IN SF.
              </p>
              <div className="flex items-center gap-8">
                 <a href="#" className="text-[10px] font-black uppercase tracking-[0.3em]">Twitter</a>

@@ -15,16 +15,16 @@ class ApiClient {
   constructor(baseURL: string) {
     this.baseURL = baseURL;
     if (typeof window !== "undefined") {
-      this.token = localStorage.getItem("soniq_token");
+      this.token = localStorage.getItem("vibecue_token");
     }
   }
 
   setToken(token: string | null) {
     this.token = token;
     if (token) {
-      localStorage.setItem("soniq_token", token);
+      localStorage.setItem("vibecue_token", token);
     } else {
-      localStorage.removeItem("soniq_token");
+      localStorage.removeItem("vibecue_token");
     }
   }
 
@@ -40,7 +40,7 @@ class ApiClient {
 
     // Refresh token from localStorage if available (in case it was updated)
     if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("soniq_token");
+      const storedToken = localStorage.getItem("vibecue_token");
       if (storedToken && storedToken !== this.token) {
         this.token = storedToken;
       }

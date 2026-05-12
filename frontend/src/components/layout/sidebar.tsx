@@ -66,12 +66,12 @@ export function Sidebar() {
           <Link href="/home" className="flex items-center gap-4 group">
             <motion.div 
                whileHover={{ rotate: 10, scale: 1.1 }}
-               className="bg-primary flex h-11 w-11 items-center justify-center rounded-2xl shadow-[0_0_20px_var(--sonic-glow)]"
+               className="bg-primary flex h-11 w-11 items-center justify-center rounded-2xl shadow-[0_0_20px_var(--vibecue-glow)]"
             >
               <Music2 className="text-primary-foreground h-7 w-7" />
             </motion.div>
-            <span className="text-white text-3xl font-black tracking-tighter uppercase italic">
-              SONIQ
+            <span className="text-white text-lg font-black tracking-tighter uppercase italic font-space-grotesk">
+              Vibecue
             </span>
           </Link>
       </div>

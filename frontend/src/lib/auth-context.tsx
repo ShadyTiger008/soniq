@@ -13,7 +13,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initAuth = async () => {
-        const token = localStorage.getItem("soniq_token");
+        const token = localStorage.getItem("vibecue_token");
         if (token) {
             apiClient.setToken(token);
             await refreshUser();
