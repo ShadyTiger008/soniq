@@ -71,7 +71,7 @@ export const getRooms = asyncHandler(async (req: AuthRequest, res: Response) => 
  * Gets a single room by ID
  */
 export const getRoom = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   if (!id) {
     throw new BadRequestError("Room ID is required");
@@ -117,7 +117,7 @@ export const getRoom = asyncHandler(async (req: AuthRequest, res: Response) => {
  * Updates an existing room
  */
 export const updateRoom = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const room = await roomService.updateRoom(id as string, req.userId!, req.body);
   return ApiResponse.success(res, room, "Room updated successfully");
 });
@@ -126,7 +126,7 @@ export const updateRoom = asyncHandler(async (req: AuthRequest, res: Response) =
  * Deletes a room
  */
 export const deleteRoom = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   await roomService.deleteRoom(id as string, req.userId!);
   return ApiResponse.success(res, null, "Room deleted successfully");
 });
@@ -135,7 +135,7 @@ export const deleteRoom = asyncHandler(async (req: AuthRequest, res: Response) =
  * Joins a room
  */
 export const joinRoom = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const room = await roomService.joinRoom(id as string, req.userId!);
   return ApiResponse.success(res, room, "Joined room successfully");
 });
@@ -144,7 +144,7 @@ export const joinRoom = asyncHandler(async (req: AuthRequest, res: Response) => 
  * Leaves a room
  */
 export const leaveRoom = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const deleteIfHost = req.query.delete === "true";
   await roomService.leaveRoom(id as string, req.userId!, deleteIfHost);
   return ApiResponse.success(res, null, "Left room successfully");

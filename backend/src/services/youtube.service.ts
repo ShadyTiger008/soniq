@@ -30,7 +30,7 @@ export class YouTubeService {
         throw new Error(`YouTube API error: ${response.statusText}`);
       }
 
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
       
       if (!data.items || data.items.length === 0) {
         return [];
@@ -41,7 +41,7 @@ export class YouTubeService {
       const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${this.apiKey}`;
       
       const detailsResponse = await fetch(detailsUrl);
-      const detailsData = await detailsResponse.json() as any;
+      const detailsData = (await detailsResponse.json()) as any;
 
       return data.items.map((item: any, index: number) => {
         const details = detailsData.items[index];
@@ -81,7 +81,7 @@ export class YouTubeService {
         throw new Error(`YouTube API error: ${response.statusText}`);
       }
 
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
       console.log(`[YOUTUBE] Found ${data.items?.length || 0} initial items for "${query}"`);
       
       if (!data.items || data.items.length === 0) {
@@ -93,7 +93,7 @@ export class YouTubeService {
       const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds}&key=${this.apiKey}`;
       
       const detailsResponse = await fetch(detailsUrl);
-      const detailsData = await detailsResponse.json() as any;
+      const detailsData = (await detailsResponse.json()) as any;
       console.log(`[YOUTUBE] Details API Status: ${detailsResponse.status} for ${data.items.length} videos`);
 
       const results = data.items.map((item: any) => {
