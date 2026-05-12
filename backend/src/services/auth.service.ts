@@ -1,5 +1,5 @@
 import { UserModel } from "../models/user.model.js";
-import { CustomError } from "../middleware/errorHandler.js";
+import { BadRequestError, UnauthorizedError } from "../utils/errors.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -11,7 +11,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new CustomError("User already exists", 400);
+      throw new BadRequestError("User already exists");
     }
 
     // Hash password
@@ -35,13 +35,13 @@ export class AuthService {
     const user = await UserModel.findOne({ email });
 
     if (!user) {
-      throw new CustomError("Invalid credentials", 401);
+      throw new UnauthorizedError("Invalid credentials");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new CustomError("Invalid credentials", 401);
+      throw new UnauthorizedError("Invalid credentials");
     }
 
     // Generate JWT token
@@ -90,7 +90,7 @@ export class AuthService {
 
       return newToken;
     } catch (error) {
-      throw new CustomError("Invalid or expired token", 401);
+      throw new UnauthorizedError("Invalid or expired token");
     }
   }
 }

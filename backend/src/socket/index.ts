@@ -64,7 +64,7 @@ export function initializeSocketIO(server: HttpServer): SocketIOServer {
       credentials: true,
       methods: ["GET", "POST"],
     },
-    transports: ["websocket"],
+    transports: ["websocket", "polling"],
     pingInterval: 10000,
     pingTimeout: 5000,
     perMessageDeflate: false,

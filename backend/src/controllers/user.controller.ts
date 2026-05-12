@@ -1,85 +1,50 @@
-import { Response, NextFunction } from "express";
+import { Response } from "express";
 import { AuthRequest } from "../middleware/auth.js";
 import { UserService } from "../services/user.service.js";
-import { CustomError } from "../middleware/errorHandler.js";
+import { ApiResponse, asyncHandler } from "../utils/apiResponse.js";
+import { BadRequestError } from "../utils/errors.js";
 
 const userService = new UserService();
 
-export async function getUser(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const user = await userService.getUserById(req.userId!);
+/**
+ * Get current user profile
+ */
+export const getUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const user = await userService.getUserById(req.userId!);
+  return ApiResponse.success(res, user, "User profile retrieved");
+});
 
-    res.json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    next(error);
+/**
+ * Update current user profile
+ */
+export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { username, email, avatar } = req.body;
+  const updateData: any = {};
+
+  if (username !== undefined) updateData.username = username;
+  if (email !== undefined) updateData.email = email;
+  if (avatar !== undefined) updateData.avatar = avatar;
+
+  if (Object.keys(updateData).length === 0) {
+    throw new BadRequestError("No valid fields to update");
   }
-}
 
-export async function updateUser(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { username, email, avatar } = req.body;
-    const updateData: any = {};
+  const user = await userService.updateUser(req.userId!, updateData);
+  return ApiResponse.success(res, user, "User profile updated");
+});
 
-    // Only allow updating specific fields
-    if (username !== undefined) updateData.username = username;
-    if (email !== undefined) updateData.email = email;
-    if (avatar !== undefined) updateData.avatar = avatar;
+/**
+ * Get rooms hosted by current user
+ */
+export const getMyRooms = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const rooms = await userService.getMyRooms(req.userId!);
+  return ApiResponse.success(res, rooms, "My rooms retrieved");
+});
 
-    if (Object.keys(updateData).length === 0) {
-      throw new CustomError("No valid fields to update", 400);
-    }
-
-    const user = await userService.updateUser(req.userId!, updateData);
-
-    res.json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function getMyRooms(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const rooms = await userService.getMyRooms(req.userId!);
-    res.json({
-      success: true,
-      data: rooms,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function getHistory(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const history = await userService.getHistory(req.userId!);
-    res.json({
-      success: true,
-      data: history,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
+/**
+ * Get listening history
+ */
+export const getHistory = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const history = await userService.getHistory(req.userId!);
+  return ApiResponse.success(res, history, "Listening history retrieved");
+});

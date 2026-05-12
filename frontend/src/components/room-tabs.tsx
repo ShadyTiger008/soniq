@@ -76,7 +76,7 @@ export function RoomTabs({
   return (
     <div className="flex h-full w-full flex-col bg-surface-high/50 backdrop-blur-xl">
       {/* Premium Tab Navigation */}
-      <div className="relative flex items-center justify-between gap-1 p-2 bg-black/20 border-b border-white/5">
+      <div className="relative flex items-center justify-between gap-1 p-1.5 bg-black/20 border-b border-white/5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -85,18 +85,18 @@ export function RoomTabs({
               key={tab.id}
               onClick={() => handleTabChange(tab.id as TabType)}
               className={cn(
-                "relative flex-1 flex flex-col items-center gap-1.5 py-4 transition-all duration-300",
+                "relative flex-1 flex flex-col items-center gap-1 py-2 transition-all duration-300",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-white"
               )}
             >
               {isActive && (
                 <motion.div 
                   layoutId="active-tab-glow"
-                  className="absolute inset-x-2 inset-y-1 bg-primary/10 rounded-xl border border-primary/20 shadow-[0_0_15px_var(--sonic-glow)]"
+                  className="absolute inset-x-1.5 inset-y-0.5 bg-primary/10 rounded-lg border border-primary/20 shadow-[0_0_15px_var(--sonic-glow)]"
                 />
               )}
-              <Icon className={cn("h-5 w-5 relative z-10", isActive ? "animate-pulse" : "")} />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] relative z-10">{tab.label}</span>
+              <Icon className={cn("h-3.5 w-3.5 relative z-10", isActive ? "animate-pulse" : "")} />
+              <span className="text-[7px] font-black uppercase tracking-[0.2em] relative z-10">{tab.label}</span>
             </button>
           );
         })}

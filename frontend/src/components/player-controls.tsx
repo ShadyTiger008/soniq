@@ -165,7 +165,7 @@ export function PlayerControls({
               if(canPlay) onPlayPause?.();
           }}
           disabled={!canPlay}
-          className={`bg-gradient-to-r from-primary to-electric-magenta shadow-lg shadow-primary/20 smooth-transition rounded-full p-4 ${!canPlay ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:scale-105 active:scale-95'}`}
+          className={`bg-primary text-primary-foreground shadow-[0_0_30px_rgba(29,185,84,0.3)] smooth-transition rounded-full p-4 ${!canPlay ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:scale-105 active:scale-95'}`}
           title={isPlaying ? "Pause" : "Play"}
         >
           {isPlaying ? (

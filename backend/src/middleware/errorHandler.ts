@@ -1,45 +1,43 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger.js";
+import { ApiError } from "../utils/errors.js";
 
-export interface AppError extends Error {
-  statusCode?: number;
-  isOperational?: boolean;
-}
-
-export class CustomError extends Error implements AppError {
-  statusCode: number;
-  isOperational: boolean;
-
-  constructor(message: string, statusCode: number = 500) {
-    super(message);
-    this.statusCode = statusCode;
-    this.isOperational = true;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
+/**
+ * Global Error Handler Middleware
+ */
 export function errorHandler(
-  err: AppError,
+  err: any,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
-  const statusCode = err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
+  let statusCode = err.statusCode || 500;
+  let message = err.message || "Internal Server Error";
 
-  // Log error with more details
-  logger.error(`API Error: ${message}`, {
-    error: err.message,
+  // Standardize non-ApiError exceptions (like MongoDB or JWT errors)
+  if (!(err instanceof ApiError)) {
+    if (err.name === "ValidationError") {
+      statusCode = 400;
+      message = "Validation Error";
+    } else if (err.name === "CastError") {
+      statusCode = 400;
+      message = "Invalid ID format";
+    } else if (err.name === "JsonWebTokenError") {
+      statusCode = 401;
+      message = "Invalid token";
+    } else if (err.name === "TokenExpiredError") {
+      statusCode = 401;
+      message = "Token expired";
+    }
+  }
+
+  // Log error with context
+  logger.error(`${req.method} ${req.path} - ${statusCode} - ${message}`, {
     stack: err.stack,
-    path: req.path,
-    method: req.method,
-    statusCode,
-    body: req.body,
-    query: req.query,
-    params: req.params,
+    userId: (req as any).user?._id,
   });
 
-  // Send error response
+  // Unified Error Response
   res.status(statusCode).json({
     success: false,
     message,
@@ -47,4 +45,3 @@ export function errorHandler(
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 }
-

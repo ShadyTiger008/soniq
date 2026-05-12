@@ -1,106 +1,73 @@
-import { Request, Response, NextFunction } from "express";
-import { CustomError } from "../middleware/errorHandler.js";
+import { Request, Response } from "express";
 import { AuthService } from "../services/auth.service.js";
+import { ApiResponse, asyncHandler } from "../utils/apiResponse.js";
+import { BadRequestError, UnauthorizedError } from "../utils/errors.js";
 
 const authService = new AuthService();
 
-export async function signup(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { email, password, username } = req.body;
+/**
+ * Register a new user
+ */
+export const signup = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password, username } = req.body;
 
-    if (!email || !password || !username) {
-      throw new CustomError("Email, password, and username are required", 400);
-    }
-
-    const user = await authService.signup(email, password, username);
-
-    res.status(201).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    next(error);
+  if (!email || !password || !username) {
+    throw new BadRequestError("Email, password, and username are required");
   }
-}
 
-export async function login(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { email, password } = req.body;
+  const user = await authService.signup(email, password, username);
+  return ApiResponse.created(res, user, "User registered successfully");
+});
 
-    if (!email || !password) {
-      throw new CustomError("Email and password are required", 400);
-    }
+/**
+ * Log in a user
+ */
+export const login = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
 
-    const result = await authService.login(email, password);
-
-    // Set auth token in cookie
-    res.cookie("authToken", result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    res.json({
-      success: true,
-      data: result,
-    });
-  } catch (error) {
-    next(error);
+  if (!email || !password) {
+    throw new BadRequestError("Email and password are required");
   }
-}
 
-export async function logout(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    res.clearCookie("authToken");
-    res.json({
-      success: true,
-      message: "Logged out successfully",
-    });
-  } catch (error) {
-    next(error);
+  const result = await authService.login(email, password);
+
+  // Set auth token in cookie
+  res.cookie("authToken", result.token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  return ApiResponse.success(res, result, "Logged in successfully");
+});
+
+/**
+ * Log out a user
+ */
+export const logout = asyncHandler(async (_req: Request, res: Response) => {
+  res.clearCookie("authToken");
+  return ApiResponse.success(res, null, "Logged out successfully");
+});
+
+/**
+ * Refresh authentication token
+ */
+export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
+  const token = req.cookies?.authToken || req.headers.authorization?.replace("Bearer ", "");
+
+  if (!token) {
+    throw new UnauthorizedError("Authentication token required");
   }
-}
 
-export async function refreshToken(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const token = req.cookies?.authToken || req.headers.authorization?.replace("Bearer ", "");
+  const newToken = await authService.refreshToken(token);
 
-    if (!token) {
-      throw new CustomError("Token required", 401);
-    }
+  res.cookie("authToken", newToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 
-    const newToken = await authService.refreshToken(token);
-
-    res.cookie("authToken", newToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.json({
-      success: true,
-      data: { token: newToken },
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
+  return ApiResponse.success(res, { token: newToken }, "Token refreshed successfully");
+});

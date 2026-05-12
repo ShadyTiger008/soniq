@@ -102,14 +102,14 @@ export function PlayerBar({
                     <p className="font-semibold text-xs md:text-sm text-foreground truncate hover:underline cursor-pointer">
                         {currentSong.title}
                     </p>
-                    <div className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground truncate">
+                    <div className="flex items-center gap-1.5 text-[11px] md:text-xs text-muted-foreground truncate">
                         <span className="hover:text-foreground hover:underline cursor-pointer transition-colors truncate">
                            {currentSong.artist}
                         </span>
                         {roomName && (
                             <>
-                                <span className="hidden xs:inline">•</span>
-                                <span className="text-primary font-bold truncate hidden xs:inline">
+                                <span className="hidden xs:inline opacity-30">•</span>
+                                <span className="text-primary font-bold truncate hidden xs:inline tracking-tight">
                                     {roomName}
                                 </span>
                             </>
@@ -123,7 +123,7 @@ export function PlayerBar({
                     No song playing
                  </div>
                  {roomName && (
-                    <div className="text-[10px] md:text-xs text-primary font-bold uppercase tracking-wider truncate">
+                    <div className="text-[11px] md:text-xs text-primary font-bold uppercase tracking-wider truncate">
                         {roomName}
                     </div>
                  )}
@@ -154,7 +154,7 @@ export function PlayerBar({
              
              <button 
                 onClick={() => canPlay && onPlayPause?.()}
-                className={`bg-foreground text-background dark:bg-white dark:text-black rounded-full p-2 md:p-2.5 shadow-md transition-all active:scale-95 flex items-center justify-center ${canPlay ? "hover:scale-110" : "opacity-30 cursor-not-allowed hover:scale-100"}`}
+                className={`bg-primary text-primary-foreground rounded-full p-2 md:p-2.5 shadow-[0_0_20px_rgba(29,185,84,0.3)] transition-all active:scale-95 flex items-center justify-center ${canPlay ? "hover:scale-110" : "opacity-30 cursor-not-allowed hover:scale-100"}`}
                 disabled={!canPlay}
              >
                 {isPlaying ? (
@@ -186,11 +186,11 @@ export function PlayerBar({
              </button>
         </div>
         
-        <div className="w-full flex items-center gap-1.5 md:gap-2 text-[9px] md:text-[10px] font-bold tracking-tighter text-muted-foreground tabular-nums">
-            <span className="w-8 text-right">{formatTime(currentTime)}</span>
+        <div className="w-full flex items-center gap-2 md:gap-3 text-[11px] font-bold tracking-tight text-muted-foreground tabular-nums opacity-60">
+            <span className="w-10 text-right">{formatTime(currentTime)}</span>
             <div className={`relative h-1 bg-muted rounded-full flex-1 group ${canSeek ? "cursor-pointer" : "cursor-default"}`}>
                  <div 
-                    className={`absolute h-full bg-primary md:bg-foreground md:dark:bg-white rounded-full ${canSeek ? "group-hover:bg-primary" : "opacity-50"}`}
+                    className={`absolute h-full bg-primary rounded-full ${canSeek ? "" : "opacity-50"}`}
                     style={{ width: `${progress}%` }}
                  />
                  <input 

@@ -67,6 +67,12 @@ export const API_ENDPOINTS = {
   SUPPORT: {
     SUBMIT: "/support",
   },
+
+  // Playlist endpoints
+  PLAYLIST: {
+    GENERATE: "/playlist/generate",
+    GET_MY: "/playlist/me",
+  },
 } as const;
 
 // Export BASE_URL for reference
