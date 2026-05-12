@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { CustomError } from "./errorHandler.js";
+import { UnauthorizedError, NotFoundError, ApiError } from "../utils/errors.js";
 import jwt from "jsonwebtoken";
 import { UserModel } from "../models/user.model.js";
 
@@ -15,7 +15,7 @@ export interface AuthRequest extends Request {
 // JWT authentication middleware
 export async function authenticate(
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
@@ -36,11 +36,11 @@ export async function authenticate(
     const token = tokenFromHeader || tokenFromCookie;
 
     if (!token) {
-      throw new CustomError("Authentication required - no token provided", 401);
+      throw new UnauthorizedError("Authentication required - no token provided");
     }
 
     if (typeof token !== "string" || token.length === 0) {
-      throw new CustomError("Invalid token format", 401);
+      throw new UnauthorizedError("Invalid token format");
     }
 
     // Verify JWT token
@@ -51,22 +51,22 @@ export async function authenticate(
       decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; username: string };
     } catch (jwtError) {
       if (jwtError instanceof jwt.JsonWebTokenError) {
-        throw new CustomError(`Invalid authentication token: ${jwtError.message}`, 401);
+        throw new UnauthorizedError(`Invalid authentication token: ${jwtError.message}`);
       } else if (jwtError instanceof jwt.TokenExpiredError) {
-        throw new CustomError("Token expired", 401);
+        throw new UnauthorizedError("Token expired");
       } else {
-        throw new CustomError(`Token verification failed: ${jwtError instanceof Error ? jwtError.message : "Unknown error"}`, 401);
+        throw new UnauthorizedError(`Token verification failed: ${jwtError instanceof Error ? jwtError.message : "Unknown error"}`);
       }
     }
 
     if (!decoded.userId) {
-      throw new CustomError("Invalid token payload - missing userId", 401);
+      throw new UnauthorizedError("Invalid token payload - missing userId");
     }
 
     // Fetch user from database
     const user = await UserModel.findById(decoded.userId).select("-password");
     if (!user) {
-      throw new CustomError(`User not found with ID: ${decoded.userId}`, 404);
+      throw new NotFoundError(`User not found with ID: ${decoded.userId}`);
     }
 
     req.userId = String(user._id);
@@ -78,14 +78,13 @@ export async function authenticate(
 
     next();
   } catch (error) {
-    if (error instanceof CustomError) {
+    if (error instanceof ApiError) {
       next(error);
     } else {
       // Log unexpected errors for debugging
       console.error("Authentication error:", error);
-      next(new CustomError(
-        `Authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-        401
+      next(new UnauthorizedError(
+        `Authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`
       ));
     }
   }
@@ -94,7 +93,7 @@ export async function authenticate(
 // Optional authentication - doesn't throw error if no token
 export async function optionalAuth(
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {

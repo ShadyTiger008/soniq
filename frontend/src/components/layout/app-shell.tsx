@@ -29,9 +29,9 @@ export function AppShell({ children, playerProps, className }: AppShellProps) {
         {/* Sidebar - Hidden in Fullscreen */}
         {!isFullscreen && (
           <motion.div 
-            initial={{ x: -300 }}
+            initial={{ x: -260 }}
             animate={{ x: 0 }}
-            className="hidden md:block w-[300px] h-full shrink-0"
+            className="hidden md:block w-[260px] h-full shrink-0"
           >
             <Sidebar />
           </motion.div>
@@ -40,14 +40,14 @@ export function AppShell({ children, playerProps, className }: AppShellProps) {
         {/* Main Content Area */}
         <main className={cn(
             "flex-1 h-full overflow-hidden bg-background relative transition-all duration-500",
-            !isFullscreen && "md:rounded-[2rem] md:my-4 md:mr-4 bg-surface-low shadow-inner",
+            !isFullscreen && "md:rounded-[2.5rem] md:my-3 md:mr-3 bg-black shadow-inner border border-white/5",
             isFullscreen && "rounded-none m-0",
             className
         )}>
-           {/* Cinematic Radial Glow */}
-           <div className="absolute top-0 left-0 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--primary-glow)_0%,_transparent_70%)] pointer-events-none z-0 opacity-50" />
+           {/* Cinematic Radial Glow - Moved to z-[-1] to avoid trapping content */}
+           <div className="absolute top-0 left-0 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_rgba(29,185,84,0.05)_0%,_transparent_70%)] pointer-events-none z-[-1] opacity-50" />
            
-           <div className="relative z-10 w-full h-full overflow-y-auto scrollbar-hide">
+           <div className="w-full h-full overflow-y-auto scrollbar-hide">
               {children}
            </div>
         </main>
@@ -58,7 +58,7 @@ export function AppShell({ children, playerProps, className }: AppShellProps) {
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         className={cn(
-          "h-[100px] w-full shrink-0 z-50 bg-background/80 backdrop-blur-3xl border-t border-white/5",
+          "h-[85px] w-full shrink-0 z-50 bg-background/80 backdrop-blur-3xl border-t border-white/5",
           isFullscreen && "absolute bottom-0 left-0 right-0 border-t-primary/20"
         )}
       >

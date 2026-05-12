@@ -6,48 +6,48 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* SONIQ Elite - Premium "Cinematic Pulse" Tokens */
-  --background: #0e0e0e;
+  /* SONIQ Onyx - Elite Premium Black/Green Design */
+  --background: #000000;
   --foreground: #ffffff;
   
-  --card: #131313;
+  --card: #080808;
   --card-foreground: #ffffff;
   
-  --popover: #0e0e0e;
+  --popover: #000000;
   --popover-foreground: #ffffff;
   
-  --primary: #72fe8f; /* Soniq Green */
-  --primary-foreground: #005f26;
-  --primary-container: #1cb853;
+  --primary: #1db954; /* Soniq Green (Spotify Style) */
+  --primary-foreground: #000000;
+  --primary-container: #004d40;
   
-  --secondary: #7cfbb5;
-  --secondary-foreground: #005e39;
+  --secondary: #00ffa3; /* Neon Secondary */
+  --secondary-foreground: #000000;
   
-  --muted: #131313;
-  --muted-foreground: #adaaaa;
+  --muted: #080808;
+  --muted-foreground: #b3b3b3;
   
-  --accent: #201f1f;
+  --accent: #121212;
   --accent-foreground: #ffffff;
   
-  --destructive: #ff7351;
-  --destructive-foreground: #450900;
+  --destructive: #ff4d4d;
+  --destructive-foreground: #ffffff;
   
-  --border: #48484726; /* Outline Variant @ 15% - "Ghost Border" */
-  --input: #131313;
-  --ring: #72fe8f;
+  --border: rgba(255, 255, 255, 0.08); /* 1px Ghost Border */
+  --input: #080808;
+  --ring: #1db954;
   
-  --radius: 1.5rem; /* rounded-xl by default for cards */
+  --radius: 1.5rem;
 
   /* Extra Tonal Layers */
-  --surface-low: #131313;
-  --surface-high: #201f1f;
-  --surface-highest: #262626;
+  --surface-low: #080808;
+  --surface-high: #121212;
+  --surface-highest: #181818;
   
   /* Brand Specifics */
   --brand-violet: #7c3aed;
   --brand-magenta: #d946ef;
   --electric-magenta: #ff2975;
-  --sonic-glow: rgba(114, 254, 143, 0.4);
+  --sonic-glow: rgba(29, 185, 84, 0.3);
 }
 
 .dark {
@@ -56,7 +56,7 @@
   --foreground: #ffffff;
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -178,6 +178,26 @@
   display: none;
 }
 
+/* Premium Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.02);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.05) transparent;
+}
+
 /* Apple-style Masking & Reflections */
 .mask-radial {
   mask-image: radial-gradient(circle at center, black 0%, transparent 100%);
@@ -211,6 +231,15 @@
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
 }
 
 .perspective-1000 {

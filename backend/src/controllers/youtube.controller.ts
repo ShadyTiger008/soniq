@@ -1,31 +1,18 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { youtubeService } from "../services/youtube.service.js";
-import { CustomError } from "../middleware/errorHandler.js";
+import { ApiResponse, asyncHandler } from "../utils/apiResponse.js";
+import { BadRequestError } from "../utils/errors.js";
 
-export async function searchYouTube(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { q, maxResults = 10 } = req.query;
+/**
+ * Search YouTube for music videos
+ */
+export const searchYouTube = asyncHandler(async (req: Request, res: Response) => {
+  const { q, maxResults = 10 } = req.query;
 
-    if (!q || typeof q !== "string") {
-      throw new CustomError("Search query is required", 400);
-    }
-
-    if (q.trim().length === 0) {
-      throw new CustomError("Search query cannot be empty", 400);
-    }
-
-    const results = await youtubeService.search(q, Number(maxResults));
-
-    res.json({
-      success: true,
-      data: results,
-    });
-  } catch (error) {
-    next(error);
+  if (!q || typeof q !== "string" || q.trim().length === 0) {
+    throw new BadRequestError("A valid search query is required");
   }
-}
 
+  const results = await youtubeService.search(q, Number(maxResults));
+  return ApiResponse.success(res, results, "YouTube search results retrieved");
+});

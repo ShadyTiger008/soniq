@@ -1,13 +1,13 @@
 import { UserModel } from "../models/user.model.js";
 import { RoomModel } from "../models/room.model.js";
 import { HistoryModel } from "../models/history.model.js";
-import { CustomError } from "../middleware/errorHandler.js";
+import { NotFoundError } from "../utils/errors.js";
 
 export class UserService {
   async getUserById(id: string) {
     const user = await UserModel.findById(id).select("-password");
     if (!user) {
-      throw new CustomError("User not found", 404);
+      throw new NotFoundError("User not found");
     }
     return user;
   }
@@ -20,7 +20,7 @@ export class UserService {
     ).select("-password");
     
     if (!user) {
-      throw new CustomError("User not found", 404);
+      throw new NotFoundError("User not found");
     }
     
     return user;
