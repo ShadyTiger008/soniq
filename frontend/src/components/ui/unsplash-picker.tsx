@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Image, Loader2, Check } from "lucide-react";
 import { apiClient } from "@frontend/lib/api-client";
-import { useDebounce } from "@frontend/hooks/use-debounce"; // Assuming this hook exists or I'll implement a simple one
+// import { useDebounce } from "@frontend/hooks/use-debounce"; // Removed as it uses local useDebounceValue
 
 // Simple debounce hook implementation if not available
 function useDebounceValue<T>(value: T, delay: number): T {

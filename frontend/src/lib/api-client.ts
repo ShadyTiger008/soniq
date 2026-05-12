@@ -28,6 +28,13 @@ class ApiClient {
     }
   }
 
+  async post<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
+    return this.request(endpoint, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
