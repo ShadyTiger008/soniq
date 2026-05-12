@@ -122,7 +122,7 @@ export class RoomService {
     }
 
     if (room.hostId.toString() !== userId) {
-      throw new CustomError("Unauthorized", 403);
+      throw new ForbiddenError("Unauthorized");
     }
 
     // Only allow updating specific fields
