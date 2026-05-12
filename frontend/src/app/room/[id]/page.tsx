@@ -48,6 +48,7 @@ import { AppShell } from "@frontend/components/layout/app-shell";
 import { WaveformVisualizer } from "@frontend/components/waveform-visualizer";
 import { PlayerControls } from "@frontend/components/player-controls";
 import { RoomTabs } from "@frontend/components/room-tabs";
+import { AIPlaylistGenerator } from "@frontend/components/ai-playlist-generator";
 import {
   YouTubePlayer,
   extractVideoId,
@@ -62,7 +63,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { QueueSongItem } from "@frontend/components/queue-song-item";
 import { LeaveRoomModal } from "@frontend/components/leave-room-modal";
-import { MoodPlaylistModal } from "@frontend/components/mood-playlist-modal";
+
 
 // Sortable Item Wrapper
 function SortableQueueItem({ song, index, isCurrent, onClick, isDJ }: any) {
@@ -163,7 +164,6 @@ export default function RoomPage() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "queue" | "members" | "now-playing">("chat");
   const [showLyrics, setShowLyrics] = useState(false);
-  const [showMoodAI, setShowMoodAI] = useState(false);
 
   const [roomSettings, setRoomSettings] = useState({
     name: "Midnight Vibes",
@@ -483,11 +483,7 @@ export default function RoomPage() {
     }
   };
 
-  const handleGenerateMoodPlaylist = (data: any) => {
-    console.log("Generating AI Playlist with data:", data);
-    // This will be implemented in the backend later
-    toast.success("Vibecue AI Buddy is curating your vibe! This feature is coming soon to the backend.");
-  };
+
 
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -602,30 +598,29 @@ export default function RoomPage() {
   return (
     <AppShell playerProps={playerProps}>
       {/* Room Hero - Cinematic Editorial Header */}
-      <div className="relative w-full min-h-[40vh] flex items-end justify-center overflow-hidden">
+      <div className="relative w-full min-h-[35vh] flex items-end justify-center overflow-hidden pt-12">
         {/* Cinematic Ambient Background */}
         <div className="absolute inset-0 bg-background z-0" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,_rgba(var(--primary-rgb),0.15)_0%,_transparent_50%)] z-0" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,_rgba(var(--primary-rgb),0.1)_0%,_transparent_60%)] z-0" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent z-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,_rgba(var(--primary-rgb),0.08)_0%,_transparent_40%)] z-0" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10" />
 
-        <div className="w-full max-w-7xl mx-auto px-8 pb-12 relative z-20">
-          <div className="flex flex-col md:flex-row items-center md:items-end gap-10">
+        <div className="w-full max-w-7xl mx-auto px-8 pb-8 relative z-20">
+          <div className="flex flex-col md:flex-row items-center md:items-end gap-8">
             {/* High-Fidelity Room Cover */}
             <motion.div 
                initial={{ opacity: 0, scale: 0.9, y: 20 }}
                animate={{ opacity: 1, scale: 1, y: 0 }}
-               className="h-64 w-64 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] rounded-3xl bg-surface-highest flex items-center justify-center shrink-0 ring-1 ring-white/10 relative group overflow-hidden"
+               className="h-56 w-56 shadow-[0_30px_80px_-15px_rgba(0,0,0,0.8)] rounded-[2.5rem] bg-surface-highest flex items-center justify-center shrink-0 ring-1 ring-white/5 relative group overflow-hidden"
             >
                 {roomSettings.cover ? (
                   <img src={roomSettings.cover} alt={roomSettings.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 ) : (
-                  <div className="relative w-full h-full bg-gradient-to-br from-primary/20 via-primary/40 to-primary/20 flex items-center justify-center">
-                    <Music className="h-24 w-24 text-white drop-shadow-2xl" />
-                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent" />
+                  <div className="relative w-full h-full bg-gradient-to-br from-surface-low via-surface-high to-surface-low flex items-center justify-center">
+                    <Music className="h-16 w-16 text-primary/30 drop-shadow-2xl" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(29,185,84,0.1),transparent)]" />
                   </div>
                 )}
-                <div className="absolute inset-0 border-[0.5px] border-white/20 rounded-3xl pointer-events-none" />
+                <div className="absolute inset-0 border-[0.5px] border-white/10 rounded-[2.5rem] pointer-events-none" />
             </motion.div>
             
             <div className="flex flex-col gap-4 flex-1 text-center md:text-left">
@@ -634,14 +629,14 @@ export default function RoomPage() {
                   animate={{ opacity: 1, y: 0 }}
                   className="flex items-center justify-center md:justify-start gap-4"
                 >
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]">
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
                         <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">Live Session</span>
+                        <span className="text-primary text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em]">Live Session</span>
                     </div>
                     {roomSettings.isPrivate && (
                       <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10">
                         <Lock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em]">Private</span>
+                        <span className="text-muted-foreground text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em]">Private</span>
                       </div>
                     )}
                 </motion.div>
@@ -650,7 +645,7 @@ export default function RoomPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="text-7xl font-black text-white tracking-tighter sm:text-8xl lg:text-9xl font-epilogue"
+                  className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white tracking-tighter font-space-grotesk italic uppercase leading-[0.9]"
                 >
                   {roomSettings.name}
                 </motion.h1>
@@ -659,19 +654,19 @@ export default function RoomPage() {
                    initial={{ opacity: 0 }}
                    animate={{ opacity: 1 }}
                    transition={{ delay: 0.2 }}
-                   className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-sm"
+                   className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-xs"
                 >
-                    <div className="flex items-center gap-2 text-muted-foreground font-bold bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+                    <div className="flex items-center gap-3 text-muted-foreground font-bold bg-white/[0.03] px-4 py-2 rounded-xl border border-white/5">
                         <Users className="h-4 w-4 text-primary" />
-                        <span><strong className="text-white font-black">{socketListenerCount.toLocaleString()}</strong> <span className="opacity-60">tuning in</span></span>
+                        <span className="text-sm"><strong className="text-white font-black">{socketListenerCount.toLocaleString()}</strong> <span className="opacity-40 uppercase text-[10px] tracking-widest ml-1">Tuning in</span></span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground font-bold bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+                    <div className="flex items-center gap-3 text-muted-foreground font-bold bg-white/[0.03] px-4 py-2 rounded-xl border border-white/5">
                         <Sparkles className="h-4 w-4 text-primary" />
-                        <span className="text-white font-black uppercase tracking-widest text-[10px]">{roomSettings.mood}</span>
+                        <span className="text-white font-black uppercase tracking-[0.2em] text-[10px] sm:text-[11px]">{roomSettings.mood}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground font-bold px-1">
-                        <span className="opacity-40 uppercase text-[10px] tracking-widest">Directed by</span>
-                        <span className="text-white font-black">{isHost ? "You" : "The DJ"}</span>
+                    <div className="flex items-center gap-3 text-muted-foreground font-bold px-1">
+                        <span className="opacity-30 uppercase text-[10px] tracking-widest font-black italic">Directed by</span>
+                        <span className="text-white font-black text-xs sm:text-sm uppercase tracking-tighter italic">{isHost ? "You" : "The DJ"}</span>
                     </div>
                 </motion.div>
             </div>
@@ -680,22 +675,22 @@ export default function RoomPage() {
             <motion.div 
                initial={{ opacity: 0, x: 20 }}
                animate={{ opacity: 1, x: 0 }}
-               className="flex md:flex-col gap-2 p-4"
+               className="flex md:flex-col gap-2 p-2"
             >
-                 <div className="flex gap-2 mb-2">
-                    <button onClick={handleCopyInvite} className="h-12 w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-white" title="Copy Invite">
-                        {copied ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+                 <div className="flex gap-2">
+                    <button onClick={handleCopyInvite} className="h-10 w-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-white/40 hover:text-white" title="Copy Invite">
+                        {copied ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
                     </button>
-                    <button onClick={handleShareRoom} className="h-12 w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-white" title="Share Space">
-                        <Share2 className="h-5 w-5" />
+                    <button onClick={handleShareRoom} className="h-10 w-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-white/40 hover:text-white" title="Share Space">
+                        <Share2 className="h-4 w-4" />
                     </button>
                  </div>
                  <div className="flex gap-2">
-                    <button onClick={() => setShowSettings(true)} className="h-12 w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-white" title="Settings">
-                        <Settings className="h-5 w-5" />
+                    <button onClick={() => setShowSettings(true)} className="h-10 w-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-white/40 hover:text-white" title="Settings">
+                        <Settings className="h-4 w-4" />
                     </button>
-                    <button onClick={handleLeaveRoom} className="h-12 w-12 flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 rounded-2xl border border-rose-500/20 transition-all text-rose-500" title="Exit Room">
-                        <LogOut className="h-5 w-5" />
+                    <button onClick={handleLeaveRoom} className="h-10 w-10 flex items-center justify-center bg-rose-500/5 hover:bg-rose-500/10 rounded-xl border border-rose-500/10 transition-all text-rose-500/40 hover:text-rose-500" title="Exit Room">
+                        <LogOut className="h-4 w-4" />
                     </button>
                  </div>
             </motion.div>
@@ -710,43 +705,36 @@ export default function RoomPage() {
           <div className="xl:col-span-2 flex flex-col gap-10">
               
               {/* Playback Actions Row */}
-              <div className="flex items-center gap-8">
+              <div className="flex items-center gap-6">
                   <motion.button 
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handlePlayPause} 
-                    className="h-20 w-20 bg-primary rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(var(--primary-rgb),0.3)] text-white relative group overflow-hidden"
+                    className="h-16 w-16 bg-primary rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)] text-white relative group overflow-hidden"
                   >
                       <motion.div 
                         animate={{ scale: isPlaying ? [1, 1.2, 1] : 1 }}
                         transition={{ repeat: Infinity, duration: 2 }}
                         className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" 
                       />
-                      {isPlaying ? <Pause className="h-10 w-10 fill-current relative z-10" /> : <Play className="h-10 w-10 fill-current pl-1 relative z-10" />}
+                      {isPlaying ? <Pause className="h-8 w-8 fill-current relative z-10" /> : <Play className="h-8 w-8 fill-current pl-1 relative z-10" />}
                   </motion.button>
 
                   <div className="flex flex-col gap-1">
                       <div className="flex gap-2">
                         <button 
                           onClick={() => setShowSearch(!showSearch)} 
-                          className="flex items-center gap-3 px-8 py-3 rounded-2xl bg-surface-high hover:bg-surface-highest border border-white/5 hover:border-primary/30 transition-all text-[10px] font-black text-white tracking-[0.2em] uppercase shadow-lg"
+                          className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-surface-high hover:bg-surface-highest border border-white/5 hover:border-primary/30 transition-all text-[9px] font-black text-white tracking-[0.2em] uppercase shadow-lg"
                         >
-                            <Search className="h-4 w-4 text-primary" />
+                            <Search className="h-3.5 w-3.5 text-primary" />
                             {showSearch ? "Close Search" : "Enhance Queue"}
                         </button>
-                        <button 
-                          onClick={() => setShowMoodAI(true)} 
-                          className="flex items-center gap-3 px-8 py-3 rounded-2xl bg-gradient-to-r from-primary to-electric-magenta hover:shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] transition-all text-[10px] font-black text-white tracking-[0.2em] uppercase shadow-lg group relative overflow-hidden"
-                        >
-                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                            <Sparkles className="h-4 w-4 text-white relative z-10 animate-pulse" />
-                            <span className="relative z-10">Ask Vibecue</span>
-                        </button>
+                        <AIPlaylistGenerator />
                       </div>
                       {isHost && (
-                           <div className="flex items-center gap-2 px-3 py-1 mt-1 opacity-60">
-                               <Crown className="h-3 w-3 text-primary" />
-                               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Master Control Active</span>
+                           <div className="flex items-center gap-2 px-3 py-1 opacity-40">
+                               <Crown className="h-2.5 w-2.5 text-primary" />
+                               <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Master Control Active</span>
                            </div>
                       )}
                   </div>
@@ -996,11 +984,7 @@ export default function RoomPage() {
         onConfirm={handleConfirmLeave}
       />
 
-      <MoodPlaylistModal 
-        isOpen={showMoodAI}
-        onClose={() => setShowMoodAI(false)}
-        onGenerate={handleGenerateMoodPlaylist}
-      />
+
 
       {/* Lyrics Overlay */}
       {showLyrics && (

@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Epilogue, Manrope } from "next/font/google";
+import { Epilogue, Manrope, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { AuthProvider } from "@frontend/lib/auth-context";
-import { ToastProvider } from "@frontend/components/toast-provider";
-import { ThemeProvider } from "@frontend/components/theme-provider";
+import { Providers } from "@frontend/components/providers";
 import "../styles/globals.css";
 
 const _epilogue = Epilogue({ 
@@ -15,6 +13,12 @@ const _epilogue = Epilogue({
 const _manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
+  display: "swap"
+});
+
+const _spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
   display: "swap"
 });
 
@@ -104,19 +108,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${_epilogue.variable} ${_manrope.variable} bg-background font-sans antialiased`}
+        className={`${_epilogue.variable} ${_manrope.variable} ${_spaceGrotesk.variable} bg-background font-sans antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            {children}
-            <ToastProvider />
-          </AuthProvider>
-        </ThemeProvider>
+        <Providers>
+          {children}
+        </Providers>
         <Analytics />
       </body>
     </html>

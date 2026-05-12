@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 
-import { X, Lock, Users, Music, Volume2, Shield, Crown, Image as ImageIcon } from "lucide-react";
+import { X, Lock, Users, Music, Volume2, Shield, Crown, Image as ImageIcon, Zap, TrendingUp, ChevronDown } from "lucide-react";
 import { SettingsToggle } from "./settings-toggle";
 import { SettingsSelect } from "./settings-select";
 import { UnsplashImagePicker } from "./ui/unsplash-picker";
+import { motion, AnimatePresence } from "framer-motion";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface RoomSettingsModalProps {
   isOpen: boolean;
@@ -62,192 +64,239 @@ export function RoomSettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 md:p-12 overflow-hidden pb-[100px]">
+      {/* Cinematic Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/80 backdrop-blur-xl"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="glass-card relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border p-6 shadow-2xl">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="from-primary to-electric-magenta flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r">
-               <Shield className="h-5 w-5 text-white" />
-            </div>
-            <h2 className="font-heading font-700 text-2xl text-foreground">Room Settings</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="smooth-transition text-muted-foreground hover:text-foreground rounded-lg p-2 hover:bg-muted"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="space-y-6">
-          {/* Room Name */}
-          <div>
-            <label className="font-600 text-foreground mb-2 block text-sm">
-              Room Name
-            </label>
-            <input
-              type="text"
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              placeholder="Enter room name"
-              maxLength={50}
-              className="text-foreground placeholder-muted-foreground focus:border-primary border-border smooth-transition w-full rounded-lg border bg-muted/30 px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary/20"
-            />
-          </div>
-
-          {/* Cover Image */}
-          <div>
-             <label className="font-600 text-foreground mb-2 block text-sm">
-               Room Cover
-             </label>
-             {cover ? (
-                 <div className="relative aspect-video w-full rounded-lg overflow-hidden group border border-border">
-                     <img src={cover} alt="Room cover" className="w-full h-full object-cover" />
-                     <button
-                        onClick={() => setShowPicker(!showPicker)}
-                        className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors"
-                     >
-                         Change Cover
-                     </button>
-                 </div>
-             ) : (
-                <button
-                    onClick={() => setShowPicker(!showPicker)}
-                    className="w-full border border-dashed border-border bg-muted/30 rounded-lg p-6 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary transition-all"
-                >
-                    <ImageIcon className="h-6 w-6" />
-                    <span className="text-sm font-medium">Select Cover Image</span>
-                </button>
-             )}
-             
-             {showPicker && (
-                 <div className="mt-2 p-2 bg-muted/50 rounded-lg border border-border">
-                     <UnsplashImagePicker 
-                        onSelect={(url) => {
-                            setCover(url);
-                            setShowPicker(false);
-                        }}
-                     />
-                 </div>
-             )}
-          </div>
-
-          {/* Mood */}
-          <SettingsSelect
-            label="Room Mood"
-            description="Set the vibe for your room"
-            options={[
-              { value: "Chill", label: "Chill" },
-              { value: "Lofi", label: "Lofi" },
-              { value: "Party", label: "Party" },
-              { value: "Study", label: "Study" },
-              { value: "Focus", label: "Focus" },
-              { value: "Ambient", label: "Ambient" },
-            ]}
-            defaultValue={mood}
-            onChange={setMood}
-          />
-
-          {/* Privacy */}
-          <div>
-            <label className="font-600 text-foreground mb-3 block text-sm">
-              Privacy Settings
-            </label>
-            <SettingsToggle
-              label="Private Room"
-              description={
-                isPrivate
-                  ? "Only people with invite code can join"
-                  : "Anyone can join this room"
-              }
-              defaultChecked={isPrivate}
-              onChange={setIsPrivate}
-            />
-          </div>
-
-          {/* Max Listeners */}
-          <SettingsSelect
-            label="Maximum Listeners"
-            description="Limit the number of people who can join"
-            options={[
-              { value: "50", label: "50" },
-              { value: "100", label: "100" },
-              { value: "500", label: "500" },
-              { value: "1000", label: "1,000" },
-              { value: "5000", label: "5,000" },
-              { value: "10000", label: "10,000" },
-            ]}
-            defaultValue={maxListeners.toString()}
-            onChange={(val) => setMaxListeners(Number(val))}
-          />
-
-          {/* Room Stats */}
-          <div className="border-border bg-muted/30 group hover:border-primary/40 smooth-transition overflow-hidden rounded-xl border p-5 relative">
-             <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Crown size={64} className="text-primary" />
-             </div>
-            <h3 className="font-600 text-foreground mb-4 flex items-center gap-2 text-sm">
-              <Crown className="text-primary h-4 w-4" />
-              Room Statistics
-            </h3>
-            <div className="grid grid-cols-2 gap-6 relative z-10">
-              <div className="space-y-1">
-                <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Total Listeners</p>
-                <p className="font-800 text-primary text-2xl tabular-nums">
-                    {(stats?.totalListeners ?? 0).toLocaleString()}
-                </p>
+      {/* Premium Modal Container */}
+      <motion.div 
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        className="relative flex flex-col w-full max-w-2xl h-full max-h-[80vh] bg-surface-low/90 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden"
+      >
+        {/* Editorial Header */}
+        <div className="relative shrink-0 px-8 pt-8 pb-6 border-b border-white/5">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-50" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]">
+                 <Shield className="h-6 w-6 text-primary" />
               </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Room Age</p>
-                <p className="font-800 text-ocean-blue text-2xl tabular-nums">
-                    {stats?.createdAt ? (
-                        (() => {
-                            const now = new Date();
-                            const created = new Date(stats.createdAt);
-                            const diffInMs = now.getTime() - created.getTime();
-                            const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-                            if (diffInHours < 1) {
-                                const diffInMins = Math.floor(diffInMs / (1000 * 60));
-                                return `${diffInMins}m`;
-                            }
-                            if (diffInHours >= 24) {
-                                const diffInDays = Math.floor(diffInHours / 24);
-                                return `${diffInDays}d`;
-                            }
-                            return `${diffInHours}h`;
-                        })()
-                    ) : "0h"}
-                </p>
+              <div className="space-y-0.5">
+                <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic font-space-grotesk">Room Authority</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">System configuration & vibe control</p>
               </div>
             </div>
+            <button
+              onClick={onClose}
+              className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/5"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-8 flex gap-3">
+        {/* Scrollable Intelligence Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-8 py-8 custom-scrollbar">
+          <div className="space-y-10 pb-12">
+            {/* Room Core Identity */}
+            <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                    <Music className="h-3 w-3 text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Core Identity</span>
+                </div>
+                
+                {/* Room Name Input */}
+                <div className="space-y-3">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-widest pl-1">Identifier</label>
+                    <div className="relative group">
+                        <div className="absolute inset-0 bg-primary/10 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                        <input
+                            type="text"
+                            value={roomName}
+                            onChange={(e) => setRoomName(e.target.value)}
+                            placeholder="Enter unique signal ID..."
+                            maxLength={50}
+                            className="relative w-full bg-white/[0.03] border border-white/5 rounded-2xl px-5 py-4 text-white font-bold placeholder:text-white/10 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all uppercase tracking-tight"
+                        />
+                    </div>
+                </div>
+
+                {/* Cover Selector */}
+                <div className="space-y-3">
+                    <label className="text-[11px] font-bold text-white uppercase tracking-widest pl-1">Sonic Artwork</label>
+                    {cover ? (
+                        <div className="relative aspect-video w-full rounded-2xl overflow-hidden group border border-white/10 shadow-2xl">
+                            <img src={cover} alt="Room cover" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                    onClick={() => setShowPicker(!showPicker)}
+                                    className="bg-white text-black font-black text-[10px] uppercase tracking-widest px-6 py-2.5 rounded-xl hover:scale-105 transition-transform"
+                                >
+                                    Change Interface
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setShowPicker(!showPicker)}
+                            className="w-full aspect-video border border-dashed border-white/10 bg-white/[0.02] rounded-2xl flex flex-col items-center justify-center gap-4 text-white/20 hover:text-primary hover:border-primary/50 transition-all group"
+                        >
+                            <div className="h-14 w-14 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                                <ImageIcon className="h-6 w-6" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Deploy Visual Identity</span>
+                        </button>
+                    )}
+                    
+                    <AnimatePresence>
+                        {showPicker && (
+                            <motion.div 
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="mt-4 p-4 bg-black/40 rounded-[1.5rem] border border-white/5 backdrop-blur-xl shadow-inner">
+                                    <UnsplashImagePicker 
+                                        onSelect={(url) => {
+                                            setCover(url);
+                                            setShowPicker(false);
+                                        }}
+                                    />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
+
+            {/* Vibe & Transmission Settings */}
+            <div className="space-y-8 pt-6 border-t border-white/5">
+                <div className="flex items-center gap-2 mb-2">
+                    <Zap className="h-3 w-3 text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Transmission Config</span>
+                </div>
+
+                <SettingsSelect
+                    label="Spectral Mood"
+                    description="The harmonic foundation of your sanctuary"
+                    options={[
+                        { value: "Chill", label: "CHILL" },
+                        { value: "Lofi", label: "LO-FI" },
+                        { value: "Party", label: "PARTY" },
+                        { value: "Study", label: "STUDY" },
+                        { value: "Focus", label: "FOCUS" },
+                        { value: "Ambient", label: "AMBIENT" },
+                    ]}
+                    defaultValue={mood}
+                    onChange={setMood}
+                />
+
+                <div className="space-y-4">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[11px] font-bold text-white uppercase tracking-widest pl-1">Access Protocol</span>
+                        <p className="text-[10px] font-medium text-white/20 uppercase tracking-tight pl-1">Control who can tap into your frequency</p>
+                    </div>
+                    <SettingsToggle
+                        label="Darknet Protocol (Private)"
+                        description={
+                            isPrivate
+                                ? "Encryption active: Invite code required"
+                                : "Public broadcast: Open to all listeners"
+                        }
+                        defaultChecked={isPrivate}
+                        onChange={setIsPrivate}
+                    />
+                </div>
+
+                <SettingsSelect
+                    label="Bandwidth Capacity"
+                    description="Simultaneous listener limit for this session"
+                    options={[
+                        { value: "50", label: "50 LISTENERS" },
+                        { value: "100", label: "100 LISTENERS" },
+                        { value: "500", label: "500 LISTENERS" },
+                        { value: "1000", label: "1,000 LISTENERS" },
+                        { value: "5000", label: "5,000 LISTENERS" },
+                        { value: "10000", label: "10,000 LISTENERS" },
+                    ]}
+                    defaultValue={maxListeners.toString()}
+                    onChange={(val) => setMaxListeners(Number(val))}
+                />
+            </div>
+
+            {/* Performance Analytics */}
+            <div className="relative group overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.02] p-8 shadow-inner transition-all hover:border-primary/30">
+                <div className="absolute -top-4 -right-4 p-3 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rotate-12">
+                    <Crown size={120} className="text-primary" />
+                </div>
+                
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <TrendingUp className="h-4 w-4 text-primary" />
+                        </div>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-white italic">Spectral Analytics</h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-10">
+                        <div className="space-y-2">
+                            <p className="text-white/30 text-[9px] font-black uppercase tracking-widest">Total Syncs</p>
+                            <p className="text-4xl font-black text-primary tracking-tighter tabular-nums font-space-grotesk italic">
+                                {(stats?.totalListeners ?? 0).toLocaleString()}
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-white/30 text-[9px] font-black uppercase tracking-widest">Session Age</p>
+                            <p className="text-4xl font-black text-ocean-blue tracking-tighter tabular-nums font-space-grotesk italic">
+                                {stats?.createdAt ? (
+                                    (() => {
+                                        const now = new Date();
+                                        const created = new Date(stats.createdAt);
+                                        const diffInMs = now.getTime() - created.getTime();
+                                        const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+                                        if (diffInHours < 1) {
+                                            const diffInMins = Math.floor(diffInMs / (1000 * 60));
+                                            return `${diffInMins}M`;
+                                        }
+                                        if (diffInHours >= 24) {
+                                            const diffInDays = Math.floor(diffInHours / 24);
+                                            return `${diffInDays}D`;
+                                        }
+                                        return `${diffInHours}H`;
+                                    })()
+                                ) : "0H"}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Global Footer */}
+        <div className="shrink-0 px-8 py-6 bg-black/40 border-t border-white/5 flex gap-4">
           <button
             onClick={onClose}
-            className="border border-border hover:bg-muted text-foreground font-semibold smooth-transition flex-1 rounded-xl px-4 py-4"
+            className="flex-1 py-4 px-6 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 border border-white/5 transition-all"
           >
-            Cancel
+            Abort Changes
           </button>
           <button
             onClick={handleSave}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold smooth-transition flex-1 rounded-xl px-4 py-4 shadow-lg shadow-primary/20"
+            className="flex-1 py-4 px-6 rounded-2xl bg-primary text-white text-[11px] font-black uppercase tracking-widest shadow-[0_15px_30px_rgba(var(--primary-rgb),0.3)] hover:scale-[1.02] active:scale-95 transition-all"
           >
-            Save Changes
+            Deploy Updates
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

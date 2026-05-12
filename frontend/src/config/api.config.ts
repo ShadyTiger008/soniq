@@ -69,7 +69,8 @@ export const API_ENDPOINTS = {
     SUBMIT: "/support",
   },
   PLAYLIST: {
-    GENERATE: "/ai/playlist/generate",
+    GENERATE: "/playlist/generate",
+    GET_MY: "/playlist/me",
   },
 } as const;
 

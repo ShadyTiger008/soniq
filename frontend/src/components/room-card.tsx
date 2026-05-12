@@ -58,7 +58,7 @@ export function RoomCard({
 
         {/* Content Layer */}
         <div className="flex flex-col gap-2">
-          <h3 className="line-clamp-1 text-lg font-black text-white decoration-primary/0 underline-offset-4 transition-all group-hover:decoration-primary/100">
+          <h3 className="line-clamp-1 text-lg font-black text-white decoration-primary/0 underline-offset-4 transition-all group-hover:decoration-primary/100 font-space-grotesk">
             {title}
           </h3>
           

@@ -28,12 +28,6 @@ class ApiClient {
     }
   }
 
-  async post<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
-    return this.request(endpoint, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-  }
 
   private async request<T>(
     endpoint: string,
@@ -119,6 +113,28 @@ class ApiClient {
         error: error instanceof Error ? error.message : "Network error",
       };
     }
+  }
+
+  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "GET" });
+  }
+
+  async post<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  }
+
+  async put<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  }
+
+  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "DELETE" });
   }
 
   // Auth endpoints

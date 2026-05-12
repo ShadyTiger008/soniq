@@ -58,15 +58,15 @@ app.get("/health", (_req: Request, res: Response) => {
 // API routes
 app.use("/api", apiRoutes);
 
-// 404 handler
+// Error handling middleware (must be last error-arg middleware)
+app.use(errorHandler);
+
+// 404 handler for unmatched routes
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     message: "Route not found"
   });
 });
-
-// Error handling middleware (must be last)
-app.use(errorHandler);
 
 export { app, server };

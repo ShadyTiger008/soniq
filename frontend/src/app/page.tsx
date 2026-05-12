@@ -27,7 +27,7 @@ export default function Home() {
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
 
   return (
-    <div ref={containerRef} className="relative min-h-[300vh] bg-[#050505] text-white selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-manrope">
+    <div ref={containerRef} className="relative min-h-[300vh] bg-black text-white selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-manrope">
       <SupportModal isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} />
       
       {/* Background Atmosphere */}
@@ -83,7 +83,7 @@ export default function Home() {
             <span className="inline-block mb-10 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-primary">
               The Next Editorial Standard in Audio
             </span>
-            <h1 className="mb-12 font-epilogue tracking-[-0.05em]">
+            <h1 className="mb-12 font-space-grotesk tracking-[-0.05em] text-5xl sm:text-7xl md:text-8xl lg:text-9xl leading-[0.9]">
               Sound Together <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
                 Like Never Before.
@@ -148,7 +148,7 @@ export default function Home() {
                   viewport={{ margin: "-100px" }}
                   transition={{ duration: 1 }}
                >
-                  <h2 className="mb-10 font-epilogue">The Protocol of <br/><span className="text-primary italic">Perfect Sync.</span></h2>
+                  <h2 className="mb-10 font-space-grotesk">The Protocol of <br/><span className="text-primary italic">Perfect Sync.</span></h2>
                   <p className="text-xl text-white/60 leading-relaxed font-medium">
                      We've spent thousands of hours perfecting the synchronization engine. 
                      Military-grade latency management ensures that what you hear, your friends hear. 
@@ -157,11 +157,11 @@ export default function Home() {
                   
                   <div className="mt-16 grid grid-cols-2 gap-12">
                      <div>
-                        <span className="text-4xl font-black text-white block mb-2 font-epilogue">0.01ms</span>
+                        <span className="text-4xl font-black text-white block mb-2 font-space-grotesk">0.01ms</span>
                         <span className="text-[10px] uppercase font-black tracking-[0.2em] text-white/40">Sync Latency</span>
                      </div>
                      <div>
-                        <span className="text-4xl font-black text-white block mb-2 font-epilogue">32-bit</span>
+                        <span className="text-4xl font-black text-white block mb-2 font-space-grotesk">32-bit</span>
                         <span className="text-[10px] uppercase font-black tracking-[0.2em] text-white/40">Audio Quality</span>
                      </div>
                   </div>
@@ -176,7 +176,7 @@ export default function Home() {
                      className="bg-white/5 border border-white/10 rounded-[3rem] p-12 relative z-10 backdrop-blur-3xl"
                   >
                      <Radio className="h-16 w-16 text-primary mb-12" />
-                     <h3 className="text-3xl font-black mb-6 uppercase tracking-tight font-epilogue">Master the Stream.</h3>
+                     <h3 className="text-3xl font-black mb-6 uppercase tracking-tight font-space-grotesk">Master the Stream.</h3>
                      <p className="text-white/40 font-medium leading-relaxed mb-10">
                         Take control with our intuitive Role system. Promote DJs, manage permissions, and orchestrate the perfect session.
                      </p>
@@ -202,7 +202,7 @@ export default function Home() {
       <section id="features" className="relative z-10 py-60 px-6 lg:px-16 bg-[#080808]">
         <div className="mx-auto max-w-7xl">
           <div className="text-center mb-32">
-            <h2 className="mb-8 font-epilogue">Engineered for <br/> <span className="text-white/40">Excellence.</span></h2>
+            <h2 className="mb-8 font-space-grotesk">Engineered for <br/> <span className="text-white/40">Excellence.</span></h2>
             <p className="text-xl text-white/40 max-w-2xl mx-auto font-medium">Every pixel, every frame, every vibration is tuned for high-fidelity listeners.</p>
           </div>
 
@@ -216,7 +216,7 @@ export default function Home() {
                    <Globe className="h-64 w-64 text-primary" />
                 </div>
                 <div className="relative z-10 h-full flex flex-col justify-end">
-                   <h3 className="text-4xl font-black mb-6 uppercase tracking-tight font-epilogue">Global Presence</h3>
+                   <h3 className="text-4xl font-black mb-6 uppercase tracking-tight font-space-grotesk">Global Presence</h3>
                    <p className="text-xl text-white/40 max-w-md font-medium leading-relaxed">
                       Connect with listeners across the globe in milliseconds. Scaling from private sessions to stadium-level audiences.
                    </p>
@@ -231,7 +231,7 @@ export default function Home() {
              >
                 <Command className="h-16 w-16 text-black" />
                 <div className="z-10">
-                   <h3 className="text-3xl font-black text-black mb-4 uppercase tracking-tight font-epilogue transition-transform group-hover:-translate-y-2">Orchestration</h3>
+                   <h3 className="text-3xl font-black text-black mb-4 uppercase tracking-tight font-space-grotesk transition-transform group-hover:-translate-y-2">Orchestration</h3>
                    <p className="text-black/60 font-bold uppercase text-[10px] tracking-[0.2em]">Full automation tools for DJs</p>
                 </div>
                 <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 opacity-10">
@@ -245,7 +245,7 @@ export default function Home() {
                className="md:col-span-2 bg-white/[0.03] border border-white/10 rounded-[3rem] p-12 flex flex-col justify-center relative group"
              >
                 <Share2 className="h-12 w-12 text-primary mb-8" />
-                <h3 className="text-2xl font-black mb-4 uppercase tracking-tight font-epilogue">Social Grid</h3>
+                <h3 className="text-2xl font-black mb-4 uppercase tracking-tight font-space-grotesk">Social Grid</h3>
                 <p className="text-white/40 font-medium text-sm leading-relaxed">Seamless sharing across all editorial platforms.</p>
              </motion.div>
 
@@ -257,7 +257,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-50" />
                 <div className="relative z-10 flex h-full items-center justify-between">
                    <div className="max-w-xs">
-                      <h3 className="text-3xl font-black mb-6 uppercase tracking-tight font-epilogue">Elite Gear</h3>
+                      <h3 className="text-3xl font-black mb-6 uppercase tracking-tight font-space-grotesk">Elite Gear</h3>
                       <p className="text-white/40 font-medium leading-relaxed">Optimized for high-end studio monitors and Hi-Fi setups.</p>
                    </div>
                    <Music className="h-24 w-24 text-white/5" />
@@ -274,7 +274,7 @@ export default function Home() {
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1 }}
          >
-            <h2 className="mb-12 font-epilogue">Ready to join <br/> <span className="text-primary italic">The Pulse?</span></h2>
+            <h2 className="mb-12 font-space-grotesk">Ready to join <br/> <span className="text-primary italic">The Pulse?</span></h2>
             <p className="text-xl text-white/40 mb-20 max-w-2xl mx-auto font-medium">Join the most advanced audio community. Start your room in seconds.</p>
             
             <Link

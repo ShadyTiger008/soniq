@@ -1,11 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
+import { 
+  Dialog,
+  DialogHeader, 
+  DialogFooter,
+} from "@frontend/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { ScrollArea } from "@frontend/components/ui/scroll-area";
+import { Button } from "@frontend/components/ui/button";
 import * as Slider from "@radix-ui/react-slider";
 import * as Switch from "@radix-ui/react-switch";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import * as ScrollArea from "@radix-ui/react-scroll-area";
+import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Sparkles, Music, Activity, Zap, Languages, 
@@ -13,7 +20,6 @@ import {
   Check, Info, HelpCircle
 } from "lucide-react";
 import { GlassCard } from "./glass-card";
-import { Button } from "./ui/button";
 import { cn } from "@frontend/lib/utils";
 
 interface MoodPlaylistModalProps {
@@ -75,7 +81,6 @@ export function MoodPlaylistModal({ isOpen, onClose, onGenerate }: MoodPlaylistM
 
   const currentEnergy = energyLevel[0] ?? 5;
 
-
   const toggleGenre = (genre: string) => {
     setSelectedGenres(prev => 
       prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
@@ -91,7 +96,8 @@ export function MoodPlaylistModal({ isOpen, onClose, onGenerate }: MoodPlaylistM
       era: selectedEra,
       language: selectedLanguage,
       vibe: vibeText,
-      length: playlistLength,
+      length: experienceType === "single" ? 1 : playlistLength,
+      experienceType,
       ...toggles
     });
     onClose();
@@ -99,10 +105,10 @@ export function MoodPlaylistModal({ isOpen, onClose, onGenerate }: MoodPlaylistM
 
   return (
     <Tooltip.Provider delayDuration={200}>
-      <Dialog.Root open={isOpen} onOpenChange={onClose}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md animate-in fade-in duration-500" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 z-[101] !w-[60vw] !max-w-[70vw] -translate-x-1/2 -translate-y-1/2 p-0 overflow-hidden bg-black/40 backdrop-blur-[100px] border border-white/[0.08] rounded-[2.5rem] h-[80vh] flex flex-col shadow-[0_0_120px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-500">
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md animate-in fade-in duration-500" />
+          <DialogPrimitive.Content className="fixed top-1/2 left-1/2 z-[101] !w-[60vw] !max-w-[70vw] -translate-x-1/2 -translate-y-1/2 p-0 overflow-hidden bg-black/40 backdrop-blur-[100px] border border-white/[0.08] rounded-[2.5rem] h-[80vh] flex flex-col shadow-[0_0_120px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-500">
             {/* Cinematic Background Mesh */}
             <div className="absolute inset-0 bg-mesh opacity-30 pointer-events-none" />
             
@@ -135,7 +141,7 @@ export function MoodPlaylistModal({ isOpen, onClose, onGenerate }: MoodPlaylistM
                 </div>
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <Dialog.Title className="text-lg font-black text-white tracking-tighter uppercase italic font-space-grotesk">Vibecue AI Buddy</Dialog.Title>
+                    <DialogPrimitive.Title className="text-lg font-black text-white tracking-tighter uppercase italic font-space-grotesk">Vibecue AI Buddy</DialogPrimitive.Title>
                     <Tooltip.Root>
                       <Tooltip.Trigger asChild>
                         <button className="text-white/20 hover:text-white/60 transition-colors p-1">
@@ -155,18 +161,18 @@ export function MoodPlaylistModal({ isOpen, onClose, onGenerate }: MoodPlaylistM
                       </Tooltip.Portal>
                     </Tooltip.Root>
                   </div>
-                  <Dialog.Description className="text-[10px] font-bold tracking-[0.2em] text-white/20 uppercase">Next-Gen Curation Engine</Dialog.Description>
+                  <DialogPrimitive.Description className="text-[10px] font-bold tracking-[0.2em] text-white/20 uppercase">Next-Gen Curation Engine</DialogPrimitive.Description>
                 </div>
               </div>
-              <Dialog.Close asChild>
+              <DialogPrimitive.Close asChild>
                 <button className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 hover:text-white text-white/40 transition-all border border-white/5">
                   <X className="h-4 w-4" />
                 </button>
-              </Dialog.Close>
+              </DialogPrimitive.Close>
             </div>
 
-            <ScrollArea.Root className="flex-1 min-h-0">
-              <ScrollArea.Viewport className="h-full w-full">
+            <ScrollAreaPrimitive.Root className="flex-1 min-h-0">
+              <ScrollAreaPrimitive.Viewport className="h-full w-full">
                 <div className="space-y-8 p-6">
                   {/* Mood Selection */}
                   <section>
@@ -418,11 +424,11 @@ export function MoodPlaylistModal({ isOpen, onClose, onGenerate }: MoodPlaylistM
                     </div>
                   </div>
                 </div>
-              </ScrollArea.Viewport>
-              <ScrollArea.Scrollbar className="flex select-none touch-none p-0.5 bg-black/10 transition-colors duration-[160ms] ease-out hover:bg-black/20 data-[orientation=vertical]:w-2.5 data-[orientation=horizontal]:flex-col data-[orientation=horizontal]:h-2.5" orientation="vertical">
-                <ScrollArea.Thumb className="flex-1 bg-white/10 rounded-[10px] relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-full before:h-full before:min-w-[44px] before:min-h-[44px]" />
-              </ScrollArea.Scrollbar>
-            </ScrollArea.Root>
+              </ScrollAreaPrimitive.Viewport>
+              <ScrollAreaPrimitive.Scrollbar className="flex select-none touch-none p-0.5 bg-black/10 transition-colors duration-[160ms] ease-out hover:bg-black/20 data-[orientation=vertical]:w-2.5 data-[orientation=horizontal]:flex-col data-[orientation=horizontal]:h-2.5" orientation="vertical">
+                <ScrollAreaPrimitive.Thumb className="flex-1 bg-white/10 rounded-[10px] relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-full before:h-full before:min-w-[44px] before:min-h-[44px]" />
+              </ScrollAreaPrimitive.Scrollbar>
+            </ScrollAreaPrimitive.Root>
 
             {/* Cinematic Action Footer */}
             <div className="shrink-0 p-6 bg-black/40 border-t border-white/[0.05] backdrop-blur-3xl space-y-4 relative z-30">
@@ -443,9 +449,9 @@ export function MoodPlaylistModal({ isOpen, onClose, onGenerate }: MoodPlaylistM
                 Powered by Vibecue Buddy AI
               </p>
             </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </Dialog>
     </Tooltip.Provider>
   );
 }
@@ -456,23 +462,28 @@ function Chip({ children, selected, onClick, compact }: { children: React.ReactN
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`
-        relative overflow-hidden transition-all duration-500
-        ${compact ? "px-4 py-2 text-[13px]" : "px-6 py-3.5 text-sm"} 
-        font-semibold rounded-2xl border
-        ${selected 
-          ? "bg-gradient-to-br from-primary to-electric-magenta border-white/20 text-white shadow-[0_10px_20px_rgba(255,51,102,0.2)] ring-1 ring-white/30" 
-          : "bg-white/[0.03] border-white/[0.08] text-white/40 hover:bg-white/[0.06] hover:border-white/20 hover:text-white/80"
-        }
-      `}
+      className={cn(
+        "relative overflow-hidden transition-all duration-500 border group",
+        compact ? "px-3 py-1 text-[9px]" : "px-4 py-2 text-[10px]",
+        "rounded-lg font-bold uppercase tracking-widest",
+        selected 
+          ? "bg-primary/20 border-primary text-white shadow-[0_0_15px_rgba(29,185,84,0.1)]" 
+          : "bg-white/[0.02] border-white/[0.05] text-white/30 hover:bg-white/[0.06] hover:border-white/10 hover:text-white/60"
+      )}
     >
-      <span className="relative z-10 flex items-center gap-2">{children}</span>
       {selected && (
         <motion.div 
-          layoutId="chip-active"
-          className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" 
+          layoutId="chip-bg"
+          className="absolute inset-0 bg-gradient-to-br from-primary/10 to-electric-magenta/10"
         />
       )}
+      <span className="relative z-10 flex items-center gap-1.5 font-space-grotesk">
+        {children}
+        {selected && <Check className="h-2.5 w-2.5 text-primary animate-in zoom-in duration-300" />}
+      </span>
+      
+      {/* Hover Light Streak */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
     </motion.button>
   );
 }

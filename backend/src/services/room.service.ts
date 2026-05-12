@@ -1,5 +1,5 @@
 import { RoomModel } from "../models/room.model.js";
-import { CustomError } from "../middleware/errorHandler.js";
+import { BadRequestError, NotFoundError, ForbiddenError } from "../utils/errors.js";
 import mongoose from "mongoose";
 
 export class RoomService {
@@ -7,7 +7,7 @@ export class RoomService {
     try {
       // Ensure hostId is a valid ObjectId
       if (!mongoose.Types.ObjectId.isValid(roomData.hostId)) {
-        throw new CustomError("Invalid host ID", 400);
+        throw new BadRequestError("Invalid host ID");
       }
 
       // Convert hostId to ObjectId if it's a string
@@ -27,15 +27,14 @@ export class RoomService {
       return savedRoom;
     } catch (error: any) {
       if (error.name === "ValidationError") {
-        throw new CustomError(
+        throw new BadRequestError(
           Object.values(error.errors)
             .map((e: any) => e.message)
-            .join(", "),
-          400
+            .join(", ")
         );
       }
       if (error.name === "MongoServerError" && error.code === 11000) {
-        throw new CustomError("Room with this name already exists", 400);
+        throw new BadRequestError("Room with this name already exists");
       }
       throw error;
     }
@@ -83,7 +82,7 @@ export class RoomService {
   async getRoomById(id: string) {
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new CustomError("Invalid room ID format", 400);
+      throw new BadRequestError("Invalid room ID format");
     }
 
     try {
@@ -109,7 +108,7 @@ export class RoomService {
       return room;
     } catch (error: any) {
       if (error.name === "CastError") {
-        throw new CustomError("Invalid room ID format", 400);
+        throw new BadRequestError("Invalid room ID format");
       }
       throw error;
     }
@@ -119,7 +118,7 @@ export class RoomService {
     const room = await RoomModel.findById(id);
 
     if (!room) {
-      throw new CustomError("Room not found", 404);
+      throw new NotFoundError("Room not found");
     }
 
     if (room.hostId.toString() !== userId) {
@@ -164,11 +163,11 @@ export class RoomService {
     const room = await RoomModel.findById(id);
 
     if (!room) {
-      throw new CustomError("Room not found", 404);
+      throw new NotFoundError("Room not found");
     }
 
     if (room.hostId.toString() !== userId) {
-      throw new CustomError("Unauthorized", 403);
+      throw new ForbiddenError("Unauthorized");
     }
 
     await RoomModel.findByIdAndDelete(id);
@@ -178,11 +177,11 @@ export class RoomService {
     const room = await RoomModel.findById(id);
 
     if (!room) {
-      throw new CustomError("Room not found", 404);
+      throw new NotFoundError("Room not found");
     }
 
     if (room.listenerCount >= room.maxListeners) {
-      throw new CustomError("Room is full", 400);
+      throw new BadRequestError("Room is full");
     }
 
     const userIdObj = new mongoose.Types.ObjectId(userId);
@@ -205,7 +204,7 @@ export class RoomService {
     const room = await RoomModel.findById(id);
 
     if (!room) {
-      throw new CustomError("Room not found", 404);
+      throw new NotFoundError("Room not found");
     }
 
     const isHost = room.hostId.toString() === userId;

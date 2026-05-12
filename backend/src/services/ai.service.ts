@@ -96,7 +96,8 @@ export class AiService {
 
     if (!response.ok) {
       const errorData = await response.clone().json().catch(() => ({})) as any;
-      throw new Error(`OpenRouter error: ${response.status}`);
+      const errorMsg = errorData?.error?.message || response.statusText;
+      throw new Error(`OpenRouter error (${response.status}): ${errorMsg}`);
     }
     
     const data = await response.json() as any;
