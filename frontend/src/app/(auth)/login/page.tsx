@@ -6,6 +6,7 @@ import { AuthForm } from "@frontend/components/auth-form";
 import { Music } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@frontend/lib/auth-context";
+import { useAuthStore } from "@frontend/lib/auth-store";
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -58,7 +59,10 @@ function LoginContent() {
           </div>
 
           {/* Social Login */}
-          <button className="hover:bg-muted text-foreground font-bold smooth-transition mb-4 flex w-full items-center justify-center gap-3 rounded-2xl border border-border py-4 shadow-sm active:scale-95">
+          <button 
+            onClick={() => useAuthStore.getState().googleLogin()}
+            className="hover:bg-muted text-foreground font-bold smooth-transition mb-4 flex w-full items-center justify-center gap-3 rounded-2xl border border-border py-4 shadow-sm active:scale-95"
+          >
              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                <path
                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

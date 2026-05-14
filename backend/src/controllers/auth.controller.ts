@@ -43,6 +43,29 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
+ * Log in with Google
+ */
+export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    throw new BadRequestError("Google ID token is required");
+  }
+
+  const result = await authService.googleLogin(idToken);
+
+  // Set auth token in cookie
+  res.cookie("authToken", result.token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  return ApiResponse.success(res, result, "Logged in with Google successfully");
+});
+
+/**
  * Log out a user
  */
 export const logout = asyncHandler(async (_req: Request, res: Response) => {

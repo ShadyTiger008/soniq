@@ -2,7 +2,8 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUser extends Document {
   email: string;
-  password: string;
+  password?: string;
+  googleId?: string;
   username: string;
   avatar?: string;
   role: "user" | "admin";
@@ -21,8 +22,13 @@ const userSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: true,
+      required: function(this: any) { return !this.googleId; },
       minlength: 6
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true
     },
     username: {
       type: String,

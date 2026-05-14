@@ -165,6 +165,25 @@ class ApiClient {
     return response;
   }
 
+  async googleLogin(idToken: string) {
+    const response = await this.request<{ user: any; token: string }>(
+      API_ENDPOINTS.AUTH.GOOGLE_LOGIN,
+      {
+        method: "POST",
+        body: JSON.stringify({ idToken }),
+      }
+    );
+
+    if (response.success && response.data) {
+      const loginData = response.data as any;
+      if (loginData.token) {
+        this.setToken(loginData.token);
+      }
+    }
+
+    return response;
+  }
+
   async logout() {
     const response = await this.request(API_ENDPOINTS.AUTH.LOGOUT, {
       method: "POST",

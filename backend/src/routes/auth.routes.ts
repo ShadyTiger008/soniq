@@ -3,7 +3,8 @@ import {
   login,
   signup,
   logout,
-  refreshToken
+  refreshToken,
+  googleLogin
 } from "../controllers/auth.controller.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
 
@@ -11,5 +12,6 @@ export const authRoutes = Router();
 
 authRoutes.post("/signup", authRateLimiter, signup);
 authRoutes.post("/login", authRateLimiter, login);
+authRoutes.post("/google", authRateLimiter, googleLogin);
 authRoutes.post("/logout", logout);
 authRoutes.post("/refresh", refreshToken);

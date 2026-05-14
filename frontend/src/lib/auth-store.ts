@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { z } from 'zod';
 import { apiClient } from './api-client';
 import { toast } from 'sonner';
+import { auth, googleProvider } from '../config/firebase.config';
+import { signInWithPopup } from 'firebase/auth';
 
 // Define User Schema with Zod
 export const UserSchema = z.object({
@@ -20,6 +22,7 @@ interface AuthState {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (username: string, email: string, password: string) => Promise<boolean>;
+  googleLogin: () => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -104,6 +107,56 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error) {
       toast.error("An error occurred during login");
+      set({ isLoading: false });
+      return false;
+    }
+  },
+  
+  googleLogin: async () => {
+    set({ isLoading: true });
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const idToken = await result.user.getIdToken();
+      
+      const response = await apiClient.googleLogin(idToken);
+      
+      if (response.success && response.data) {
+        const rawUserData = (response.data as any).user;
+        
+        // Normalize
+        const normalizedData = {
+          _id: rawUserData._id || rawUserData.id,
+          id: rawUserData._id || rawUserData.id,
+          username: rawUserData.username,
+          email: rawUserData.email,
+          avatar: rawUserData.avatar,
+        };
+
+        // Validate
+        const validateResult = UserSchema.safeParse(normalizedData);
+
+        if (validateResult.success) {
+          set({ user: validateResult.data, isAuthenticated: true, isLoading: false });
+          toast.success("Welcome back with Google!");
+          return true;
+        } else {
+          console.error("Google login data validation failed:", validateResult.error);
+          toast.error("Google login data error");
+          set({ isLoading: false });
+          return false;
+        }
+      } else {
+        toast.error(response.error || "Google login failed");
+        set({ isLoading: false });
+        return false;
+      }
+    } catch (error: any) {
+      console.error("Firebase Google Login Error:", error);
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast.error("Login cancelled");
+      } else {
+        toast.error("An error occurred during Google login");
+      }
       set({ isLoading: false });
       return false;
     }
