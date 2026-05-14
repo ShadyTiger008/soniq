@@ -43,24 +43,24 @@ export default function Home() {
       </div>
 
       {/* Modern Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-[100] py-8">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-8 lg:px-16">
-          <div className="flex items-center gap-4 group cursor-pointer">
-            <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(114,254,143,0.3)] group-hover:scale-110 transition-transform duration-500">
-               <Music className="text-black h-7 w-7" />
+      <nav className="fixed top-0 left-0 right-0 z-[100] py-6 md:py-8 backdrop-blur-sm bg-black/5">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 md:px-12">
+          <div className="flex items-center gap-3 md:gap-4 group cursor-pointer">
+            <div className="h-10 w-10 md:h-12 md:w-12 bg-primary rounded-xl md:rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(114,254,143,0.3)] group-hover:scale-110 transition-transform duration-500">
+               <Music className="text-black h-6 w-6 md:h-7 md:w-7" />
             </div>
-            <span className="text-3xl font-black tracking-tighter uppercase italic font-space-grotesk">Vibecue</span>
+            <span className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic font-heading">Vibecue</span>
           </div>
           
-          <div className="hidden md:flex items-center gap-12 text-[11px] font-black uppercase tracking-[0.3em]">
+          <div className="hidden lg:flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.3em] text-white/60">
              <Link href="#features" className="hover:text-primary transition-colors">Experience</Link>
              <Link href="#sync" className="hover:text-primary transition-colors">The Protocol</Link>
              <Link href="#community" className="hover:text-primary transition-colors">Community</Link>
           </div>
 
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="hidden sm:block text-[10px] font-black uppercase tracking-[0.3em] hover:text-primary transition-all">Sign In</Link>
-            <Link href="/signup" className="bg-white text-black rounded-full px-10 py-4 font-black text-[11px] uppercase tracking-[0.2em] transition-all hover:scale-110 hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] active:scale-95 shadow-2xl">
+          <div className="flex items-center gap-4 md:gap-6">
+            <Link href="/login" className="hidden sm:block text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] hover:text-primary transition-all">Sign In</Link>
+            <Link href="/signup" className="bg-white text-black rounded-full px-6 md:px-10 py-3 md:py-4 font-black text-[10px] md:text-[11px] uppercase tracking-[0.2em] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] active:scale-95 shadow-2xl">
               Get Started
             </Link>
           </div>
@@ -80,28 +80,28 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            <span className="inline-block mb-10 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-primary">
+            <span className="inline-block mb-6 md:mb-10 px-4 md:px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary">
               The Next Editorial Standard in Audio
             </span>
-            <h1 className="mb-12 font-space-grotesk tracking-[-0.05em] text-5xl sm:text-7xl md:text-8xl lg:text-9xl leading-[0.9]">
+            <h1 className="mb-8 md:mb-12 font-heading tracking-[-0.05em] text-5xl sm:text-7xl md:text-8xl lg:text-9xl leading-[0.9]">
               Sound Together <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
                 Like Never Before.
               </span>
             </h1>
             
-            <p className="text-white/60 mb-16 text-xl md:text-2xl font-medium leading-relaxed max-w-3xl mx-auto">
+            <p className="text-white/60 mb-12 md:mb-16 text-lg md:text-2xl font-medium leading-relaxed max-w-3xl mx-auto px-4 md:px-0">
                Elite audio rooms designed for those who demand more. Perfectly synced, editorial grade, and hyper-social.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 md:gap-8 w-full max-w-md mx-auto sm:max-w-none">
               <Link
                 href="/explore"
-                className="w-full sm:w-auto bg-primary text-black px-14 py-7 rounded-2xl font-black text-[12px] uppercase tracking-[0.4em] transition-all hover:scale-105 hover:shadow-[0_0_60px_rgba(114,254,143,0.4)] active:scale-95 shadow-xl flex items-center gap-4"
+                className="w-full sm:w-auto bg-primary text-black px-10 md:px-14 py-5 md:py-7 rounded-2xl font-black text-[11px] md:text-[12px] uppercase tracking-[0.4em] transition-all hover:scale-105 hover:shadow-[0_0_60px_rgba(114,254,143,0.4)] active:scale-95 shadow-xl flex items-center justify-center gap-4"
               >
                 Launch Pulse <ArrowRight className="h-5 w-5" />
               </Link>
-              <button className="w-full sm:w-auto text-[11px] font-black uppercase tracking-[0.4em] text-white/40 hover:text-white transition-colors">
+              <button className="w-full sm:w-auto text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-white/40 hover:text-white transition-colors py-4">
                 Watch the Film
               </button>
             </div>
@@ -141,28 +141,28 @@ export default function Home() {
                </div>
             </motion.div>
 
-            <div className="mt-40 grid grid-cols-1 lg:grid-cols-2 gap-32 items-center">
+            <div className="mt-20 md:mt-40 grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-32 items-center">
                <motion.div
                   initial={{ opacity: 0, x: -50 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ margin: "-100px" }}
                   transition={{ duration: 1 }}
                >
-                  <h2 className="mb-10 font-space-grotesk">The Protocol of <br/><span className="text-primary italic">Perfect Sync.</span></h2>
-                  <p className="text-xl text-white/60 leading-relaxed font-medium">
+                  <h2 className="mb-6 md:mb-10 font-heading">The Protocol of <br/><span className="text-primary italic">Perfect Sync.</span></h2>
+                  <p className="text-lg md:text-xl text-white/60 leading-relaxed font-medium">
                      We've spent thousands of hours perfecting the synchronization engine. 
                      Military-grade latency management ensures that what you hear, your friends hear. 
                      No drift, no lag, just pure audio bliss.
                   </p>
                   
-                  <div className="mt-16 grid grid-cols-2 gap-12">
+                  <div className="mt-12 md:mt-16 grid grid-cols-2 gap-8 md:gap-12">
                      <div>
-                        <span className="text-4xl font-black text-white block mb-2 font-space-grotesk">0.01ms</span>
-                        <span className="text-[10px] uppercase font-black tracking-[0.2em] text-white/40">Sync Latency</span>
+                        <span className="text-3xl md:text-4xl font-black text-white block mb-2 font-heading">0.01ms</span>
+                        <span className="text-[9px] md:text-[10px] uppercase font-black tracking-[0.2em] text-white/40">Sync Latency</span>
                      </div>
                      <div>
-                        <span className="text-4xl font-black text-white block mb-2 font-space-grotesk">32-bit</span>
-                        <span className="text-[10px] uppercase font-black tracking-[0.2em] text-white/40">Audio Quality</span>
+                        <span className="text-3xl md:text-4xl font-black text-white block mb-2 font-heading">32-bit</span>
+                        <span className="text-[9px] md:text-[10px] uppercase font-black tracking-[0.2em] text-white/40">Audio Quality</span>
                      </div>
                   </div>
                </motion.div>
@@ -173,10 +173,10 @@ export default function Home() {
                      initial={{ opacity: 0, scale: 0.8 }}
                      whileInView={{ opacity: 1, scale: 1 }}
                      viewport={{ margin: "-100px" }}
-                     className="bg-white/5 border border-white/10 rounded-[3rem] p-12 relative z-10 backdrop-blur-3xl"
+                     className="bg-white/5 border border-white/10 rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 relative z-10 backdrop-blur-3xl"
                   >
-                     <Radio className="h-16 w-16 text-primary mb-12" />
-                     <h3 className="text-3xl font-black mb-6 uppercase tracking-tight font-space-grotesk">Master the Stream.</h3>
+                     <Radio className="h-12 w-12 md:h-16 md:w-16 text-primary mb-8 md:mb-12" />
+                     <h3 className="text-2xl md:text-3xl font-black mb-6 uppercase tracking-tight font-heading">Master the Stream.</h3>
                      <p className="text-white/40 font-medium leading-relaxed mb-10">
                         Take control with our intuitive Role system. Promote DJs, manage permissions, and orchestrate the perfect session.
                      </p>
@@ -199,11 +199,11 @@ export default function Home() {
       </section>
 
       {/* 3. The Modern Bento Grid */}
-      <section id="features" className="relative z-10 py-60 px-6 lg:px-16 bg-[#080808]">
+      <section id="features" className="relative z-10 py-32 md:py-60 px-6 lg:px-16 bg-[#080808]">
         <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-32">
-            <h2 className="mb-8 font-space-grotesk">Engineered for <br/> <span className="text-white/40">Excellence.</span></h2>
-            <p className="text-xl text-white/40 max-w-2xl mx-auto font-medium">Every pixel, every frame, every vibration is tuned for high-fidelity listeners.</p>
+          <div className="text-center mb-16 md:mb-32">
+            <h2 className="mb-6 md:mb-8 font-heading">Engineered for <br/> <span className="text-white/40">Excellence.</span></h2>
+            <p className="text-lg md:text-xl text-white/40 max-w-2xl mx-auto font-medium px-4">Every pixel, every frame, every vibration is tuned for high-fidelity listeners.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-6 md:grid-rows-2 gap-8 h-auto md:h-[800px]">
@@ -216,8 +216,8 @@ export default function Home() {
                    <Globe className="h-64 w-64 text-primary" />
                 </div>
                 <div className="relative z-10 h-full flex flex-col justify-end">
-                   <h3 className="text-4xl font-black mb-6 uppercase tracking-tight font-space-grotesk">Global Presence</h3>
-                   <p className="text-xl text-white/40 max-w-md font-medium leading-relaxed">
+                   <h3 className="text-3xl md:text-4xl font-black mb-4 md:mb-6 uppercase tracking-tight font-heading">Global Presence</h3>
+                   <p className="text-lg md:text-xl text-white/40 max-w-md font-medium leading-relaxed">
                       Connect with listeners across the globe in milliseconds. Scaling from private sessions to stadium-level audiences.
                    </p>
                 </div>
@@ -231,8 +231,8 @@ export default function Home() {
              >
                 <Command className="h-16 w-16 text-black" />
                 <div className="z-10">
-                   <h3 className="text-3xl font-black text-black mb-4 uppercase tracking-tight font-space-grotesk transition-transform group-hover:-translate-y-2">Orchestration</h3>
-                   <p className="text-black/60 font-bold uppercase text-[10px] tracking-[0.2em]">Full automation tools for DJs</p>
+                   <h3 className="text-2xl md:text-3xl font-black text-black mb-4 uppercase tracking-tight font-heading transition-transform group-hover:-translate-y-2">Orchestration</h3>
+                   <p className="text-black/60 font-bold uppercase text-[9px] md:text-[10px] tracking-[0.2em]">Full automation tools for DJs</p>
                 </div>
                 <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 opacity-10">
                    <Command className="h-64 w-64 text-black" />
@@ -244,8 +244,8 @@ export default function Home() {
                whileHover={{ scale: 0.98 }}
                className="md:col-span-2 bg-white/[0.03] border border-white/10 rounded-[3rem] p-12 flex flex-col justify-center relative group"
              >
-                <Share2 className="h-12 w-12 text-primary mb-8" />
-                <h3 className="text-2xl font-black mb-4 uppercase tracking-tight font-space-grotesk">Social Grid</h3>
+                 <Share2 className="h-10 w-10 md:h-12 md:w-12 text-primary mb-6 md:mb-8" />
+                <h3 className="text-xl md:text-2xl font-black mb-4 uppercase tracking-tight font-heading">Social Grid</h3>
                 <p className="text-white/40 font-medium text-sm leading-relaxed">Seamless sharing across all editorial platforms.</p>
              </motion.div>
 
@@ -255,12 +255,12 @@ export default function Home() {
                className="md:col-span-4 bg-[#111] border border-white/10 rounded-[3rem] p-12 overflow-hidden relative group"
              >
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-50" />
-                <div className="relative z-10 flex h-full items-center justify-between">
+                 <div className="relative z-10 flex h-full items-center justify-between">
                    <div className="max-w-xs">
-                      <h3 className="text-3xl font-black mb-6 uppercase tracking-tight font-space-grotesk">Elite Gear</h3>
-                      <p className="text-white/40 font-medium leading-relaxed">Optimized for high-end studio monitors and Hi-Fi setups.</p>
+                      <h3 className="text-2xl md:text-3xl font-black mb-4 md:mb-6 uppercase tracking-tight font-heading">Elite Gear</h3>
+                      <p className="text-white/40 font-medium text-sm md:text-base leading-relaxed">Optimized for high-end studio monitors and Hi-Fi setups.</p>
                    </div>
-                   <Music className="h-24 w-24 text-white/5" />
+                   <Music className="h-16 w-16 md:h-24 md:w-24 text-white/5" />
                 </div>
              </motion.div>
           </div>
@@ -268,18 +268,18 @@ export default function Home() {
       </section>
 
       {/* 4. The Final Call */}
-      <section id="community" className="relative z-10 py-60 px-6 text-center">
+      <section id="community" className="relative z-10 py-32 md:py-60 px-6 text-center">
          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1 }}
          >
-            <h2 className="mb-12 font-space-grotesk">Ready to join <br/> <span className="text-primary italic">The Pulse?</span></h2>
-            <p className="text-xl text-white/40 mb-20 max-w-2xl mx-auto font-medium">Join the most advanced audio community. Start your room in seconds.</p>
+            <h2 className="mb-8 md:mb-12 font-heading px-4">Ready to join <br/> <span className="text-primary italic">The Pulse?</span></h2>
+            <p className="text-lg md:text-xl text-white/40 mb-12 md:mb-20 max-w-2xl mx-auto font-medium px-6">Join the most advanced audio community. Start your room in seconds.</p>
             
             <Link
                href="/signup"
-               className="inline-block bg-white text-black px-16 py-8 rounded-[2rem] font-black text-sm uppercase tracking-[0.5em] transition-all hover:scale-110 hover:shadow-[0_0_80px_rgba(255,255,255,0.3)] active:scale-95"
+               className="inline-block bg-white text-black px-12 md:px-16 py-6 md:py-8 rounded-[1.5rem] md:rounded-[2rem] font-black text-[12px] md:text-sm uppercase tracking-[0.5em] transition-all hover:scale-110 hover:shadow-[0_0_80px_rgba(255,255,255,0.3)] active:scale-95"
             >
                Get Access Now
             </Link>
@@ -287,37 +287,37 @@ export default function Home() {
       </section>
 
       {/* Modern Footer */}
-      <footer className="relative z-10 border-t border-white/5 py-32 bg-black">
-        <div className="mx-auto max-w-7xl px-8 lg:px-16">
-          <div className="flex flex-col md:flex-row justify-between gap-24 mb-32">
+      <footer className="relative z-10 border-t border-white/5 py-20 md:py-32 bg-black">
+        <div className="mx-auto max-w-7xl px-6 md:px-12">
+          <div className="flex flex-col md:flex-row justify-between gap-16 md:gap-24 mb-20 md:mb-32">
              <div className="max-w-xs text-left">
-                <div className="flex items-center gap-4 mb-10">
-                   <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(114,254,143,0.3)]">
-                      <Music className="text-black w-7 h-7" />
+                <div className="flex items-center gap-4 mb-8 md:mb-10">
+                   <div className="w-10 h-10 md:w-12 md:h-12 bg-primary rounded-xl md:rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(114,254,143,0.3)]">
+                      <Music className="text-black w-6 h-6 md:w-7 md:h-7" />
                    </div>
-                   <span className="font-black tracking-tighter text-3xl uppercase italic font-space-grotesk">Vibecue</span>
+                   <span className="font-black tracking-tighter text-2xl md:text-3xl uppercase italic font-heading">Vibecue</span>
                 </div>
-                <p className="text-white/40 font-medium leading-relaxed">The pinnacle of shared audio. Engineered for the next generation of listeners.</p>
+                <p className="text-sm md:text-base text-white/40 font-medium leading-relaxed">The pinnacle of shared audio. Engineered for the next generation of listeners.</p>
              </div>
 
-             <div className="grid grid-cols-2 sm:grid-cols-3 gap-20">
-                <div className="flex flex-col gap-6">
-                   <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white mb-4">Platform</p>
-                   <Link href="#" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Experience</Link>
-                   <Link href="#" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Features</Link>
-                   <Link href="#" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Safety</Link>
+             <div className="grid grid-cols-2 sm:grid-cols-3 gap-12 md:gap-20">
+                <div className="flex flex-col gap-4 md:gap-6">
+                   <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white mb-2 md:mb-4">Platform</p>
+                   <Link href="#" className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Experience</Link>
+                   <Link href="#" className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Features</Link>
+                   <Link href="#" className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Safety</Link>
                 </div>
-                <div className="flex flex-col gap-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white mb-4">Company</p>
-                  <Link href="#" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">About</Link>
-                  <Link href="#" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Blog</Link>
-                  <Link href="#" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Careers</Link>
+                <div className="flex flex-col gap-4 md:gap-6">
+                  <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white mb-2 md:mb-4">Company</p>
+                  <Link href="#" className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">About</Link>
+                  <Link href="#" className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Blog</Link>
+                  <Link href="#" className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Careers</Link>
                 </div>
-                <div className="flex flex-col gap-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white mb-4">Support</p>
-                  <button onClick={() => setIsSupportOpen(true)} className="text-left text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Help Center</button>
-                  <Link href="#" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Terms</Link>
-                  <Link href="#" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Privacy</Link>
+                <div className="flex flex-col gap-4 md:gap-6">
+                  <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white mb-2 md:mb-4">Support</p>
+                  <button onClick={() => setIsSupportOpen(true)} className="text-left text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Help Center</button>
+                  <Link href="#" className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Terms</Link>
+                  <Link href="#" className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-primary transition-colors">Privacy</Link>
                 </div>
              </div>
           </div>

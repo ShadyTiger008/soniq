@@ -11,13 +11,15 @@ let firebaseAdmin: admin.app.App;
 
 try {
   let serviceAccount: any;
+  const envValue = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    // If it's a JSON string in the environment variable
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  if (envValue && envValue.trim().startsWith("{")) {
+    // It's a JSON string
+    serviceAccount = JSON.parse(envValue);
   } else {
-    // Fallback to file for local development if env is not set
-    const serviceAccountPath = path.join(__dirname, "../../vibecue-14ec6-firebase-adminsdk-fbsvc-6f95f31557.json");
+    // It's either a filename or missing, use file fallback
+    const fileName = envValue || "vibecue-14ec6-firebase-adminsdk-fbsvc-6f95f31557.json";
+    const serviceAccountPath = path.join(__dirname, "../../", fileName);
     serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8"));
   }
 

@@ -85,6 +85,11 @@
   --color-brand-magenta: var(--brand-magenta);
   --color-brand-violet: var(--brand-violet);
   
+  --font-sans: var(--font-manrope), system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-space-grotesk), system-ui, -apple-system, sans-serif;
+  --font-manrope: var(--font-manrope);
+  --font-space-grotesk: var(--font-space-grotesk);
+
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
@@ -105,13 +110,13 @@
 
   /* Premium Editorial Typography */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-epilogue), system-ui, -apple-system, sans-serif;
+    font-family: var(--font-heading);
     @apply tracking-tight font-black;
   }
   
-  h1 { @apply text-5xl md:text-7xl lg:text-8xl leading-[0.95]; }
-  h2 { @apply text-3xl md:text-5xl leading-tight; }
-  h3 { @apply text-2xl md:text-3xl font-bold; }
+  h1 { @apply text-4xl sm:text-6xl md:text-8xl lg:text-9xl leading-[0.85] tracking-[-0.06em]; }
+  h2 { @apply text-3xl md:text-6xl leading-[0.95] tracking-[-0.04em]; }
+  h3 { @apply text-2xl md:text-4xl font-bold tracking-tight; }
   
   /* Disable standard dividers globally to force tonal hierarchy */
   hr { @apply hidden; }
