@@ -19,13 +19,14 @@ interface Message {
   isOwn?: boolean;
 }
 
-import type { ChatMessage as ChatMessageType } from "@frontend/types";
+import type { ChatMessage as ChatMessageType, RoomMember } from "@frontend/types";
 
 interface ChatTabProps {
   messages?: ChatMessageType[];
   onSendMessage?: (message: string) => void;
   currentUserId?: string;
   isConnected?: boolean;
+  roomMembers?: RoomMember[];
 }
 
 export function ChatTab({
@@ -33,11 +34,22 @@ export function ChatTab({
   onSendMessage,
   currentUserId,
   isConnected = false,
+  roomMembers = [],
 }: ChatTabProps) {
   const [message, setMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
   const { resolvedTheme } = useTheme();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filteredMembers = mentionSearch !== null
+    ? roomMembers.filter(m => 
+        m.username.toLowerCase().includes(mentionSearch.toLowerCase()) &&
+        (m.id || m._id) !== currentUserId
+      )
+    : [];
 
   useEffect(() => {
     if (socketMessages.length > 0) {
@@ -67,11 +79,74 @@ export function ChatTab({
       onSendMessage(message.trim());
       setMessage("");
       setShowEmojiPicker(false);
+      setMentionSearch(null);
     }
   };
 
   const onEmojiClick = (emojiData: EmojiClickData) => {
     setMessage((prev) => prev + emojiData.emoji);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const cursorPosition = e.target.selectionStart || 0;
+    setMessage(val);
+
+    // Mention logic
+    const textBeforeCursor = val.slice(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+    
+    if (lastAtIndex !== -1) {
+      const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
+      // Only show if there's no space between @ and cursor
+      if (!textAfterAt.includes(" ")) {
+        setMentionSearch(textAfterAt);
+        setMentionIndex(0);
+        return;
+      }
+    }
+    setMentionSearch(null);
+  };
+
+  const selectMention = (username: string) => {
+    const cursorPosition = inputRef.current?.selectionStart || 0;
+    const textBeforeCursor = message.slice(0, cursorPosition);
+    const textAfterCursor = message.slice(cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+    
+    const newMessage = 
+      message.slice(0, lastAtIndex) + 
+      `@${username} ` + 
+      textAfterCursor;
+      
+    setMessage(newMessage);
+    setMentionSearch(null);
+    
+    // Focus back on input
+    setTimeout(() => {
+      inputRef.current?.focus();
+      const newPos = lastAtIndex + username.length + 2;
+      inputRef.current?.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (mentionSearch !== null && filteredMembers.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIndex(prev => (prev + 1) % filteredMembers.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIndex(prev => (prev - 1 + filteredMembers.length) % filteredMembers.length);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        selectMention(filteredMembers[mentionIndex]?.username || "");
+      } else if (e.key === "Escape") {
+        setMentionSearch(null);
+      }
+    } else if (e.key === "Enter") {
+      handleSendMessage();
+    }
   };
 
   return (
@@ -99,6 +174,43 @@ export function ChatTab({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Mention List Popover */}
+      <AnimatePresence>
+        {mentionSearch !== null && filteredMembers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="absolute bottom-24 left-6 z-[60] w-64 bg-surface-highest/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+          >
+            <div className="p-2 border-b border-white/5 bg-white/5">
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary px-2">Mention Someone</span>
+            </div>
+            <div className="max-h-60 overflow-y-auto scrollbar-hide py-1">
+              {filteredMembers.map((member, index) => (
+                <button
+                  key={member.id || member._id}
+                  onClick={() => selectMention(member.username)}
+                  onMouseEnter={() => setMentionIndex(index)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all",
+                    index === mentionIndex ? "bg-primary/20 text-white" : "text-white/60 hover:bg-white/5"
+                  )}
+                >
+                  <div className="h-7 w-7 rounded-full bg-surface-low border border-white/10 flex items-center justify-center text-[10px] font-bold overflow-hidden">
+                    {member.avatar ? <img src={member.avatar} alt="" className="h-full w-full object-cover" /> : member.username[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">@{member.username}</p>
+                    {member.role && <p className="text-[8px] font-black uppercase tracking-widest opacity-40">{member.role}</p>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Emoji Picker Popover */}
       <AnimatePresence>
           {showEmojiPicker && (
@@ -123,10 +235,11 @@ export function ChatTab({
       <div className="mt-6 flex items-center gap-4 group">
         <div className="flex-1 relative">
             <input
+              ref={inputRef}
               type="text"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
               placeholder="Inject vibe into the chat..."
               className="w-full bg-black/40 text-white placeholder:text-muted-foreground/40 rounded-2xl border border-white/5 px-6 py-4 focus:ring-2 focus:ring-primary/40 focus:outline-none transition-all font-medium text-sm shadow-xl"
             />

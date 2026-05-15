@@ -58,11 +58,11 @@ export function MemberItem({
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.02 }}
       className={cn(
-        "bg-surface-high/40 border border-white/5 group hover:border-primary/40 transition-all duration-300 flex items-center justify-between rounded-2xl p-4 relative overflow-hidden shadow-sm",
+        "bg-surface-high/40 border border-white/5 group hover:border-primary/40 transition-all duration-300 flex items-center justify-between rounded-2xl p-4 relative shadow-sm",
         isMenuOpen && "ring-1 ring-primary/40 border-primary/40 bg-surface-highest"
       )}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-2xl" />
       
       <div className="flex min-w-0 flex-1 items-center gap-4 relative z-10">
         {/* Cinematic Avatar */}

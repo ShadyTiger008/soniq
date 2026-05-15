@@ -186,6 +186,15 @@ export function SocketProvider({ roomId, children }: { roomId: string | null; ch
         else toast.info(data.message);
     });
 
+    newSocket.on("chat:mention", (data) => {
+        toast(`@${data.senderName} mentioned you`, {
+            description: data.message,
+            icon: <div className="h-6 w-6 bg-primary/20 rounded-full flex items-center justify-center text-primary text-[10px] font-black">@</div>,
+            className: "bg-surface-highest/90 backdrop-blur-xl border-primary/20 shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]",
+            duration: 5000,
+        });
+    });
+
     return () => {
       newSocket.emit("room:leave", { roomId });
       newSocket.disconnect();

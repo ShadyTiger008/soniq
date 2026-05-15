@@ -100,7 +100,7 @@ export default function ExplorePage() {
                         <Compass className="h-4 w-4" />
                         Exploring the Frequencies
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter leading-none font-space-grotesk italic uppercase">
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-black mb-6 tracking-tighter leading-none font-space-grotesk italic uppercase">
                         Pulse <span className="text-primary">Network.</span>
                     </h1>
                     <p className="text-white/40 text-sm md:text-base font-bold max-w-xl mb-12 leading-relaxed uppercase tracking-tight">
@@ -135,7 +135,7 @@ export default function ExplorePage() {
                     <Radio className="h-3.5 w-3.5 text-primary" />
                     <h2 className="text-[10px] font-black tracking-[0.3em] text-white/30 uppercase italic">Trending Tags</h2>
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+                <div className="flex gap-3 overflow-x-auto pb-4 custom-scrollbar">
                     {categories.map((category) => (
                         <button
                             key={category}

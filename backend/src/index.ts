@@ -1,9 +1,8 @@
-import "dotenv/config";
+import envConfig from "./config/index.js";
 import dns from "node:dns";
 
 // Fix for MongoDB Atlas resolution issues on certain local networks
-const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
-if (isDev) {
+if (envConfig.isDevelopment) {
   dns.setServers(["8.8.8.8", "8.8.4.4"]);
   dns.setDefaultResultOrder("ipv4first");
 }
@@ -13,8 +12,7 @@ import { connectDatabase } from "./config/database.js";
 import { logger } from "./utils/logger.js";
 import { initializeSocketIO } from "./socket/index.js";
 
-const PORT = process.env.PORT || 5001;
-const NODE_ENV = process.env.NODE_ENV || "development";
+const { port: PORT, env: NODE_ENV } = envConfig;
 
 // Initialize Socket.IO
 initializeSocketIO(server);

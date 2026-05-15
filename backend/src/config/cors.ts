@@ -1,33 +1,7 @@
 import { CorsOptions } from "cors";
+import envConfig from "./index.js";
 
-// Parse allowed origins from environment variable or use defaults
-const parseAllowedOrigins = (): string[] => {
-  if (process.env.ALLOWED_ORIGINS) {
-    return process.env.ALLOWED_ORIGINS.split(",")
-      .map((origin) => origin.trim())
-      .filter((origin) => origin.length > 0);
-  }
-
-  // Default origins
-  const defaults = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "https://vibecue.xyz",
-    "https://www.vibecue.xyz",
-    "https://vibecue-88py.onrender.com",
-    "https://vibecue-lime.vercel.app",
-    
-  ];
-
-  // In production, be more permissive if no explicit origins are set
-  if (process.env.NODE_ENV === "production") {
-    return defaults;
-  }
-
-  return defaults;
-};
-
-const allowedOrigins = parseAllowedOrigins();
+const allowedOrigins = envConfig.cors.allowedOrigins;
 
 export const corsOptions: CorsOptions = {
   origin: (origin, callback) => {

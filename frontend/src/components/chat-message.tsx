@@ -66,16 +66,29 @@ export function ChatMessage({
             </div>
           )}
 
-          {/* Premium Bubble */}
           <div className={cn(
             "relative group/bubble px-4 py-3 shadow-[0_4px_15px_rgba(0,0,0,0.2)] transition-all",
             isOwn 
               ? "bg-primary rounded-[1.25rem] rounded-tr-none text-white" 
               : "bg-surface-highest rounded-[1.25rem] rounded-tl-none border border-white/5 text-white/90"
           )}>
-            <p className="text-[13px] leading-relaxed break-words font-medium tracking-tight">
-              {message}
-            </p>
+            <div className="text-[13px] leading-relaxed break-words font-medium tracking-tight">
+              {message.split(/(@\w+)/g).map((part, i) => (
+                part.startsWith('@') ? (
+                  <span 
+                    key={i} 
+                    className={cn(
+                      "font-black tracking-tighter px-1.5 py-0.5 rounded-md mx-0.5 shadow-sm transition-all cursor-default select-none",
+                      isOwn 
+                        ? "bg-white/20 text-white" 
+                        : "bg-primary/20 text-primary border border-primary/20 shadow-[0_0_10px_rgba(var(--primary-rgb),0.15)]"
+                    )}
+                  >
+                    {part}
+                  </span>
+                ) : part
+              ))}
+            </div>
             
             {/* Quick Actions Hidden by default */}
             <div className={cn(

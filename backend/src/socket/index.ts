@@ -6,36 +6,13 @@ import { handlePlayerEvents } from "./handlers/player.handler.js";
 import { logger } from "../utils/logger.js";
 import { redisClient } from "../config/redis.js";
 import { createAdapter } from "@socket.io/redis-adapter";
+import envConfig from "../config/index.js";
 
 const userSocketMap = new Map<string, string>(); // userId -> socketId
 const roomSocketMap = new Map<string, Set<string>>(); // roomId -> Set of socketIds
 
 export function initializeSocketIO(server: HttpServer): SocketIOServer {
-  // Parse allowed origins (same logic as CORS config)
-  const parseAllowedOrigins = (): string[] => {
-    if (process.env.ALLOWED_ORIGINS) {
-      return process.env.ALLOWED_ORIGINS.split(",")
-        .map(origin => origin.trim())
-        .filter(origin => origin.length > 0);
-    }
-
-    const defaults = [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://vibecue.xyz",
-      "https://www.vibecue.xyz",
-      "https://vibecue-88py.onrender.com",
-      "https://vibecue-lime.vercel.app",
-    ];
-
-    if (process.env.NODE_ENV === "production") {
-      return defaults;
-    }
-
-    return defaults;
-  };
-
-  const allowedOrigins = parseAllowedOrigins();
+  const allowedOrigins = envConfig.cors.allowedOrigins;
 
   const io = new SocketIOServer(server, {
     cors: {
@@ -88,6 +65,7 @@ export function initializeSocketIO(server: HttpServer): SocketIOServer {
     // Extract user info from handshake (set by auth middleware)
     const userId = (socket.handshake.auth?.userId as string) || socket.id;
     userSocketMap.set(userId, socket.id);
+    socket.join(userId); // Join user's personal room for direct notifications
 
     // Register socket handlers
     handleRoomEvents(io, socket, userSocketMap, roomSocketMap);

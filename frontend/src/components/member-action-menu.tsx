@@ -40,10 +40,10 @@ export function MemberActionMenu({
     <div className="relative">
       <button
         onClick={() => onOpenChange(!isOpen)}
-        className={`smooth-transition rounded-lg p-2 hover:bg-[rgba(108,43,217,0.2)] ${
+        className={`smooth-transition rounded-full p-2.5 flex items-center justify-center ${
           isOpen 
-            ? "text-soft-white opacity-100 bg-[rgba(108,43,217,0.2)]" 
-            : "text-muted-foreground hover:text-soft-white opacity-0 group-hover:opacity-100"
+            ? "text-white opacity-100 bg-primary/20 ring-1 ring-primary/40 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]" 
+            : "text-white/40 hover:text-white hover:bg-white/5 opacity-60 group-hover:opacity-100"
         }`}
       >
         <MoreVertical className="h-5 w-5" />

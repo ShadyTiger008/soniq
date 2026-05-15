@@ -1,6 +1,7 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { logger } from "../../utils/logger.js";
 import { ChatMessageModel } from "../../models/chat.model.js";
+import { UserModel } from "../../models/user.model.js";
 import mongoose from "mongoose";
 
 export function handleChatEvents(
@@ -46,6 +47,26 @@ export function handleChatEvents(
 
         // Broadcast to room
         io.to(roomId).emit("chat:new-message", messageData);
+
+        // Handle Mentions
+        const mentions = message.match(/@(\w+)/g);
+        if (mentions) {
+          const usernames = mentions.map(m => m.substring(1));
+          const mentionedUsers = await UserModel.find({ 
+            username: { $in: usernames } 
+          }, '_id username');
+
+          for (const mentionedUser of mentionedUsers) {
+            if (mentionedUser._id.toString() !== userId) {
+              io.to(mentionedUser._id.toString()).emit("chat:mention", {
+                roomId,
+                messageId: chatMessage._id.toString(),
+                senderName: username,
+                message: message.trim()
+              });
+            }
+          }
+        }
 
         logger.info(`Chat message in room ${roomId} from ${username}`);
       } catch (error) {

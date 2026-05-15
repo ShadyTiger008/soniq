@@ -1,7 +1,8 @@
 import * as winston from "winston";
+import envConfig from "../config/index.js";
 
-const logLevel = process.env.LOG_LEVEL || "info";
-const nodeEnv = process.env.NODE_ENV || "development";
+const logLevel = envConfig.logging.level;
+const nodeEnv = envConfig.env;
 
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),

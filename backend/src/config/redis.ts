@@ -1,7 +1,8 @@
 import Redis from "ioredis";
 import { logger } from "../utils/logger.js";
+import envConfig from "./index.js";
 
-const REDIS_URL = process.env.REDIS_URL;
+const REDIS_URL = envConfig.redis.url;
 
 // Only initialize Redis if a URL is provided
 export const redisClient = REDIS_URL

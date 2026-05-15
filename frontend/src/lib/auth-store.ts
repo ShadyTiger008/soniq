@@ -152,10 +152,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error: any) {
       console.error("Firebase Google Login Error:", error);
+      const errorMessage = error.message || "An error occurred during Google login";
+      
       if (error.code === 'auth/popup-closed-by-user') {
         toast.error("Login cancelled");
+      } else if (error.code === 'auth/cancelled-by-user') {
+        toast.error("Login cancelled");
       } else {
-        toast.error("An error occurred during Google login");
+        toast.error(errorMessage);
       }
       set({ isLoading: false });
       return false;

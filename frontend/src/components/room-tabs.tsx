@@ -122,6 +122,7 @@ export function RoomTabs({
                 onSendMessage={onSendMessage}
                 currentUserId={currentUserId}
                 isConnected={isConnected}
+                roomMembers={roomMembers}
               />
             )}
             {activeTab === "queue" && (

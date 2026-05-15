@@ -1,4 +1,5 @@
 import { logger } from "../utils/logger.js";
+import envConfig from "../config/index.js";
 
 export interface YouTubeSearchResult {
   videoId: string;
@@ -12,7 +13,7 @@ export class YouTubeService {
   private apiKey: string | undefined;
 
   constructor() {
-    this.apiKey = process.env.YOUTUBE_API_KEY;
+    this.apiKey = envConfig.apiKeys.youtube;
   }
 
   async search(query: string, maxResults: number = 10): Promise<YouTubeSearchResult[]> {

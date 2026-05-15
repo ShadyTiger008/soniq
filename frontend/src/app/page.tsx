@@ -43,7 +43,7 @@ export default function Home() {
       </div>
 
       {/* Modern Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-[100] py-6 md:py-8 backdrop-blur-sm bg-black/5">
+      <nav className="fixed top-0 left-0 right-0 z-[100] py-6 md:py-8 backdrop-blur-xl bg-black/40 border-b border-white/5">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 md:px-12">
           <div className="flex items-center gap-3 md:gap-4 group cursor-pointer">
             <div className="h-10 w-10 md:h-12 md:w-12 bg-primary rounded-xl md:rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(114,254,143,0.3)] group-hover:scale-110 transition-transform duration-500">
@@ -70,7 +70,7 @@ export default function Home() {
       {/* Sections */}
       
       {/* 1. Immersive Hero */}
-      <section className="relative z-10 h-screen flex flex-col items-center justify-center px-6">
+      <section className="relative z-10 min-h-screen pt-32 md:pt-48 flex flex-col items-center justify-center px-6">
         <motion.div 
           style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
           className="text-center max-w-6xl"
@@ -83,14 +83,14 @@ export default function Home() {
             <span className="inline-block mb-6 md:mb-10 px-4 md:px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary">
               The Next Editorial Standard in Audio
             </span>
-            <h1 className="mb-8 md:mb-12 font-heading tracking-[-0.05em] text-5xl sm:text-7xl md:text-8xl lg:text-9xl leading-[0.9]">
+            <h1 className="mb-8 md:mb-12 font-heading tracking-[-0.05em] text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl leading-[0.95]">
               Sound Together <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
                 Like Never Before.
               </span>
             </h1>
             
-            <p className="text-white/60 mb-12 md:mb-16 text-lg md:text-2xl font-medium leading-relaxed max-w-3xl mx-auto px-4 md:px-0">
+            <p className="text-white/60 mb-12 md:mb-16 text-base sm:text-lg md:text-2xl font-medium leading-relaxed max-w-3xl mx-auto px-4 md:px-0">
                Elite audio rooms designed for those who demand more. Perfectly synced, editorial grade, and hyper-social.
             </p>
 

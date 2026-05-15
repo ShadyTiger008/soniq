@@ -1,15 +1,18 @@
 import mongoose from "mongoose";
 import { logger } from "../utils/logger.js";
+import envConfig from "./index.js";
 
-const MONGODB_URI = process.env.MONGODB_URI!;
+const MONGODB_URI = envConfig.database.uri;
 
 export async function connectDatabase(): Promise<void> {
   try {
     const options: mongoose.ConnectOptions = {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      family: 4
     };
+
 
     await mongoose.connect(MONGODB_URI, options);
 
