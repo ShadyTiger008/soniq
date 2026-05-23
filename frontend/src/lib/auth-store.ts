@@ -12,6 +12,7 @@ export const UserSchema = z.object({
   username: z.string(),
   email: z.string().email(),
   avatar: z.string().optional().nullable(),
+  isGuest: z.boolean().optional(),
 });
 
 export type User = z.infer<typeof UserSchema>;
@@ -25,6 +26,7 @@ interface AuthState {
   googleLogin: () => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  loginAsGuest: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -213,6 +215,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       // Ignore
     }
+    localStorage.removeItem("vibecue_guest_id");
+    localStorage.removeItem("vibecue_guest_username");
+    localStorage.removeItem("vibecue_guest_avatar");
     set({ user: null, isAuthenticated: false });
     apiClient.setToken(null);
     toast.success("Logged out successfully");
@@ -221,5 +226,40 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // We will handle redirect in the component calling logout.
     window.location.href = "/"; // Force hard redirect or let component handle it. 
     // Ideally we shouldn't do window.location.href, but inside a store action we are outside React context.
+  },
+
+  loginAsGuest: () => {
+    set({ isLoading: true });
+    
+    // Check if we already have guest credentials stored
+    let guestId = localStorage.getItem("vibecue_guest_id");
+    let guestUsername = localStorage.getItem("vibecue_guest_username");
+    let guestAvatar = localStorage.getItem("vibecue_guest_avatar");
+    
+    if (!guestId) {
+      guestId = "guest_" + Math.random().toString(36).substring(2, 11);
+      guestUsername = "Guest " + guestId.substring(6, 10).toUpperCase();
+      guestAvatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${guestUsername}`;
+      
+      localStorage.setItem("vibecue_guest_id", guestId);
+      localStorage.setItem("vibecue_guest_username", guestUsername);
+      localStorage.setItem("vibecue_guest_avatar", guestAvatar);
+    }
+    
+    const guestUser = {
+      _id: guestId!,
+      id: guestId!,
+      username: guestUsername!,
+      email: `${guestId}@vibecue.com`,
+      avatar: guestAvatar!,
+      isGuest: true
+    };
+    
+    localStorage.removeItem("vibecue_token");
+    apiClient.setToken(null);
+    
+    set({ user: guestUser, isAuthenticated: false, isLoading: false });
+    toast.success(`Welcome guest: ${guestUsername}`);
+    return true;
   },
 }));

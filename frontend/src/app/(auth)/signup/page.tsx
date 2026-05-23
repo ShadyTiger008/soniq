@@ -82,6 +82,17 @@ function SignupContent() {
              <span className="text-sm font-bold uppercase tracking-widest mt-0.5">Continue with Google</span>
           </button>
 
+          {/* Continue as Guest */}
+          <button 
+            onClick={() => {
+              useAuthStore.getState().loginAsGuest();
+              router.push(redirect);
+            }}
+            className="hover:bg-muted/50 hover:text-primary text-foreground font-bold smooth-transition mb-4 flex w-full items-center justify-center gap-3 rounded-2xl border border-dashed border-border py-4 shadow-sm active:scale-95"
+          >
+             <span className="text-sm font-bold uppercase tracking-widest mt-0.5">Continue as Guest</span>
+          </button>
+
           {/* Terms */}
           <p className="text-muted-foreground mt-8 text-center text-[10px] font-bold uppercase tracking-widest leading-relaxed">
             By signing up, you agree to our{" "}

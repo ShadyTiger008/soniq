@@ -1,6 +1,7 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { logger } from "../../utils/logger.js";
 import { RoomModel } from "../../models/room.model.js";
+import { UserModel } from "../../models/user.model.js";
 
 
 // In-memory state for performance (Layer 2)
@@ -25,15 +26,30 @@ const getActiveRoomState = async (roomId: string): Promise<ActivePlayerState | n
   }
 
   // Fallback to DB
-  const room = await RoomModel.findById(roomId).populate("queue.requestedBy", "username email").lean();
+  const room = await RoomModel.findById(roomId).lean();
   if (!room) return null;
+
+  // Normalize queue: Ensure requestedBy is always a username
+  const normalizedQueue = await Promise.all((room.queue || []).map(async (item: any) => {
+    // If it's a valid ObjectId string and doesn't look like a username (e.g. no spaces/special chars)
+    const isId = /^[0-9a-fA-F]{24}$/.test(item.requestedBy);
+    if (isId || !item.requestedBy) {
+      const user = await UserModel.findById(item.requestedById || item.requestedBy).select("username");
+      return {
+        ...item,
+        requestedBy: user?.username || "Guest",
+        requestedById: item.requestedById || item.requestedBy
+      };
+    }
+    return item;
+  }));
 
   const state: ActivePlayerState = {
     isPlaying: room.playerState?.isPlaying || false,
     currentTime: room.playerState?.currentTime || 0,
     lastUpdated: room.playerState?.lastUpdated?.getTime() || Date.now(),
     currentSong: room.currentSong,
-    queue: room.queue || [],
+    queue: normalizedQueue,
     repeatMode: room.playerState?.repeatMode || 'none',
     shuffle: room.playerState?.shuffle || false,
     volume: room.playerState?.volume || 80,
@@ -72,6 +88,9 @@ const hasPermission = (
   userId: string,
   action: "playPause" | "skip" | "volume" | "addToQueue"
 ): boolean => {
+  // Guests never have permission to perform actions
+  if (userId && userId.startsWith("guest_")) return false;
+
   // Owner always has permission
   if (room.hostId.toString() === userId) return true;
 
@@ -344,9 +363,12 @@ export function handlePlayerEvents(
             return;
         }
 
+        const user = await UserModel.findById(userId).select("username");
+        const username = user?.username || "Guest";
         const now = Date.now();
+
         if (playNow && hasPermission(room, userId, "playPause")) {
-          state.currentSong = { ...song };
+          state.currentSong = { ...song, requestedBy: username, requestedById: userId };
           state.currentTime = 0;
           state.isPlaying = true;
           state.lastUpdated = now;
@@ -364,7 +386,7 @@ export function handlePlayerEvents(
             serverTimeAtEmit: now
           });
         } else {
-          state.queue.push({ ...song, requestedBy: userId });
+          state.queue.push({ ...song, requestedBy: username, requestedById: userId });
           io.to(roomId).emit("player:queue-updated", {
             queue: state.queue,
             serverTimeAtEmit: now
@@ -649,6 +671,11 @@ export function handlePlayerEvents(
       try {
         const { roomId, song, userId } = data;
 
+        if (userId && userId.startsWith("guest_")) {
+          socket.emit("player:error", { message: "Guests cannot request songs" });
+          return;
+        }
+
         const room = await RoomModel.findById(roomId);
         if (!room) {
           socket.emit("player:error", { message: "Room not found" });
@@ -665,9 +692,13 @@ export function handlePlayerEvents(
             return;
         }
 
+        const user = await UserModel.findById(userId).select("username");
+        const username = user?.username || "Guest";
+
         room.songRequests.push({
           ...song,
-          requestedBy: userId as any,
+          requestedBy: username,
+          requestedById: userId as any,
           requestedAt: new Date()
         });
         
@@ -727,7 +758,8 @@ export function handlePlayerEvents(
             artist: request.artist,
             duration: request.duration,
             thumbnail: request.thumbnail,
-            requestedBy: request.requestedBy
+            requestedBy: request.requestedBy,
+            requestedById: request.requestedById
         });
 
         // Remove from requests

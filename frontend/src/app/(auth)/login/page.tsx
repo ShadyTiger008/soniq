@@ -84,6 +84,17 @@ function LoginContent() {
              <span className="text-sm font-bold uppercase tracking-widest mt-0.5">Continue with Google</span>
           </button>
 
+          {/* Continue as Guest */}
+          <button 
+            onClick={() => {
+              useAuthStore.getState().loginAsGuest();
+              router.push(redirect);
+            }}
+            className="hover:bg-muted/50 hover:text-primary text-foreground font-bold smooth-transition mb-4 flex w-full items-center justify-center gap-3 rounded-2xl border border-dashed border-border py-4 shadow-sm active:scale-95"
+          >
+             <span className="text-sm font-bold uppercase tracking-widest mt-0.5">Continue as Guest</span>
+          </button>
+
           {/* Links */}
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
             <label className="flex cursor-pointer items-center gap-2 py-2">

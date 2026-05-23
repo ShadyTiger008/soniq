@@ -27,7 +27,15 @@ export async function connectDatabase(): Promise<void> {
     });
   } catch (error) {
     logger.error("Failed to connect to MongoDB:", error);
-    throw error;
+    logger.warn("Attempting to load in-memory MongoDB Mock...");
+    try {
+      const { enableMongooseMocking } = await import("./mongoose-mock.js");
+      enableMongooseMocking();
+      logger.info("🎉 In-Memory MongoDB Mock activated successfully");
+    } catch (mockError) {
+      logger.error("Failed to enable Mongoose mocking fallback:", mockError);
+      throw error;
+    }
   }
 }
 

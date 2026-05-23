@@ -62,7 +62,7 @@ export function SocketProvider({ roomId, children }: { roomId: string | null; ch
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated || !user || !roomId) {
+    if ((!isAuthenticated && !user?.isGuest) || !user || !roomId) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -73,12 +73,21 @@ export function SocketProvider({ roomId, children }: { roomId: string | null; ch
     }
 
     const token = localStorage.getItem("vibecue_token");
-    if (!token) return;
+    if (!token && !user.isGuest) return;
 
     const newSocket = io(SOCKET_URL, {
-      auth: { userId: user._id || user.id, token },
-      transports: ["websocket", "polling"],
+      auth: { 
+        userId: user._id || user.id, 
+        token: token || "guest",
+        username: user.username,
+        avatar: user.avatar,
+        isGuest: !!user.isGuest
+      },
+      transports: ["polling", "websocket"],
       reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      timeout: 20000,
     });
 
     socketRef.current = newSocket;

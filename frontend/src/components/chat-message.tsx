@@ -1,24 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Smile, Reply, ShieldCheck, Crown, Music } from "lucide-react";
+import { Smile, Reply, ShieldCheck, Crown, Music, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@frontend/lib/auth-context";
 
 interface ChatMessageProps {
   id: string;
+  userId?: string;
   user: string;
   avatar: string;
   message: string;
   timestamp: string;
-  role?: "admin" | "dj" | "moderator";
+  role?: "admin" | "dj" | "moderator" | "ai-agent";
   reactions?: { emoji: string; count: number; userReacted: boolean }[];
   isOwn?: boolean;
+  status?: "pending" | "done" | "error";
 }
 
 const REACTION_EMOJIS = ["❤️", "🔥", "😂", "🎉", "👍", "🙌", "✨", "🎵"];
 
 export function ChatMessage({
   id,
+  userId,
   user,
   avatar,
   message,
@@ -26,8 +30,12 @@ export function ChatMessage({
   role,
   reactions = [],
   isOwn = false,
+  status = "done",
 }: ChatMessageProps) {
   const [showReactions, setShowReactions] = useState(false);
+  const { user: currentUser } = useAuth();
+  const isGuest = currentUser?.isGuest;
+  const isSoniq = userId === "soniq-ai" || user.toLowerCase() === "soniq";
 
   return (
     <motion.div 
@@ -38,10 +46,16 @@ export function ChatMessage({
       <div className={cn("flex gap-3 max-w-[85%]", isOwn ? "flex-row-reverse" : "flex-row")}>
         {/* Cinematic Avatar */}
         <div className={cn(
-          "h-10 w-10 shrink-0 rounded-2xl flex items-center justify-center text-sm font-black shadow-lg overflow-hidden border border-white/10 relative group-hover:scale-110 transition-transform duration-300",
-          isOwn ? "bg-primary text-white" : "bg-surface-highest text-white"
+          "h-10 w-10 shrink-0 rounded-2xl flex items-center justify-center text-sm font-black shadow-lg overflow-hidden border relative group-hover:scale-110 transition-transform duration-300",
+          isOwn ? "bg-primary text-white border-white/10" : 
+          isSoniq ? "bg-primary/20 border-primary/40 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]" : 
+          "bg-surface-highest text-white border-white/10"
         )}>
-           {avatar}
+           {isSoniq ? (
+             <img src={avatar} alt="Soniq" className="h-full w-full object-cover" />
+           ) : (
+             avatar
+           )}
            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
         </div>
 
@@ -50,8 +64,17 @@ export function ChatMessage({
           {/* Header Info */}
           {!isOwn && (
             <div className="mb-1.5 flex items-center gap-2 px-1">
-              <span className="font-black text-white text-[11px] tracking-tight uppercase opacity-80">{user}</span>
-              {role === "admin" && (
+              <span className={cn(
+                "font-black text-[11px] tracking-tight uppercase opacity-80",
+                isSoniq ? "text-primary" : "text-white"
+              )}>{user}</span>
+              {isSoniq && (
+                <div className="flex items-center gap-1 text-primary text-[8px] font-black uppercase tracking-widest bg-primary/20 px-2 py-0.5 rounded-full border border-primary/30 shadow-[0_0_10px_rgba(var(--primary-rgb),0.2)]">
+                   <Sparkles className="h-2 w-2" />
+                   AI AGENT
+                </div>
+              )}
+              {role === "admin" && !isSoniq && (
                 <div className="flex items-center gap-1 text-purple-400 text-[8px] font-black uppercase tracking-widest bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
                    <ShieldCheck className="h-2 w-2" />
                    Admin
@@ -70,24 +93,48 @@ export function ChatMessage({
             "relative group/bubble px-4 py-3 shadow-[0_4px_15px_rgba(0,0,0,0.2)] transition-all",
             isOwn 
               ? "bg-primary rounded-[1.25rem] rounded-tr-none text-white" 
-              : "bg-surface-highest rounded-[1.25rem] rounded-tl-none border border-white/5 text-white/90"
+              : isSoniq 
+                ? "bg-primary/10 rounded-[1.25rem] rounded-tl-none border border-primary/20 text-white/95 shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]"
+                : "bg-surface-highest rounded-[1.25rem] rounded-tl-none border border-white/5 text-white/90",
+            status === "pending" && "animate-pulse border-primary/40 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]"
           )}>
-            <div className="text-[13px] leading-relaxed break-words font-medium tracking-tight">
-              {message.split(/(@\w+)/g).map((part, i) => (
-                part.startsWith('@') ? (
-                  <span 
-                    key={i} 
-                    className={cn(
-                      "font-black tracking-tighter px-1.5 py-0.5 rounded-md mx-0.5 shadow-sm transition-all cursor-default select-none",
-                      isOwn 
-                        ? "bg-white/20 text-white" 
-                        : "bg-primary/20 text-primary border border-primary/20 shadow-[0_0_10px_rgba(var(--primary-rgb),0.15)]"
-                    )}
-                  >
-                    {part}
-                  </span>
-                ) : part
-              ))}
+            <div className="flex items-center gap-3">
+              <div className="text-[13px] leading-relaxed break-words font-medium tracking-tight flex-1">
+                {message.split(/(@\w+)/g).map((part, i) => (
+                  part.startsWith('@') ? (
+                    <span 
+                      key={i} 
+                      className={cn(
+                        "font-black tracking-tighter px-1.5 py-0.5 rounded-md mx-0.5 shadow-sm transition-all cursor-default select-none",
+                        isOwn 
+                          ? "bg-white/20 text-white" 
+                          : "bg-primary/20 text-primary border border-primary/20 shadow-[0_0_10px_rgba(var(--primary-rgb),0.15)]"
+                      )}
+                    >
+                      {part}
+                    </span>
+                  ) : part
+                ))}
+              </div>
+              {status === "pending" && isSoniq && (
+                <div className="flex gap-1">
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1] }} 
+                    transition={{ repeat: Infinity, duration: 1 }}
+                    className="w-1 h-1 bg-primary rounded-full" 
+                  />
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1] }} 
+                    transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}
+                    className="w-1 h-1 bg-primary rounded-full" 
+                  />
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1] }} 
+                    transition={{ repeat: Infinity, duration: 1, delay: 0.4 }}
+                    className="w-1 h-1 bg-primary rounded-full" 
+                  />
+                </div>
+              )}
             </div>
             
             {/* Quick Actions Hidden by default */}
@@ -98,12 +145,14 @@ export function ChatMessage({
                 <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest tabular-nums">{timestamp}</span>
                 <div className="h-px w-4 bg-white/10" />
                 <div className="flex items-center gap-1">
-                    <button 
-                      onClick={() => setShowReactions(!showReactions)}
-                      className="p-1 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-white transition-colors"
-                    >
-                        <Smile className="h-3 w-3" />
-                    </button>
+                    {!isGuest && (
+                        <button 
+                          onClick={() => setShowReactions(!showReactions)}
+                          className="p-1 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-white transition-colors"
+                        >
+                            <Smile className="h-3 w-3" />
+                        </button>
+                    )}
                     {!isOwn && (
                         <button className="p-1 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-white transition-colors">
                             <Reply className="h-3 w-3" />

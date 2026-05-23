@@ -7,6 +7,7 @@ import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
 import { Theme } from "emoji-picker-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
+import { useAuth } from "@frontend/lib/auth-context";
 
 interface Message {
   id: string;
@@ -43,18 +44,34 @@ export function ChatTab({
   const [mentionIndex, setMentionIndex] = useState(0);
   const { resolvedTheme } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const isGuest = user?.isGuest;
+
+  const SONIQ_ID = "soniq-ai";
+  const SONIQ_USER = {
+    id: SONIQ_ID,
+    _id: SONIQ_ID,
+    username: "soniq",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Soniq&backgroundColor=b6e3f4,c0aede,d1d4f9",
+    role: "ai-agent"
+  };
 
   const filteredMembers = mentionSearch !== null
-    ? roomMembers.filter(m => 
-        m.username.toLowerCase().includes(mentionSearch.toLowerCase()) &&
-        (m.id || m._id) !== currentUserId
-      )
+    ? [
+        SONIQ_USER,
+        ...roomMembers.filter(m => 
+          m.username.toLowerCase().includes(mentionSearch.toLowerCase()) &&
+          (m.id || m._id) !== currentUserId &&
+          (m.id || m._id) !== SONIQ_ID
+        )
+      ].filter(m => m.username.toLowerCase().includes(mentionSearch.toLowerCase()))
     : [];
 
   useEffect(() => {
     if (socketMessages.length > 0) {
       const converted = socketMessages.map((msg) => ({
         id: msg.id,
+        userId: msg.userId,
         user: msg.username,
         avatar: msg.avatar || "🎵",
         message: msg.message,
@@ -187,25 +204,70 @@ export function ChatTab({
               <span className="text-[9px] font-black uppercase tracking-widest text-primary px-2">Mention Someone</span>
             </div>
             <div className="max-h-60 overflow-y-auto scrollbar-hide py-1">
-              {filteredMembers.map((member, index) => (
-                <button
-                  key={member.id || member._id}
-                  onClick={() => selectMention(member.username)}
-                  onMouseEnter={() => setMentionIndex(index)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all",
-                    index === mentionIndex ? "bg-primary/20 text-white" : "text-white/60 hover:bg-white/5"
-                  )}
-                >
-                  <div className="h-7 w-7 rounded-full bg-surface-low border border-white/10 flex items-center justify-center text-[10px] font-bold overflow-hidden">
-                    {member.avatar ? <img src={member.avatar} alt="" className="h-full w-full object-cover" /> : member.username[0]?.toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate">@{member.username}</p>
-                    {member.role && <p className="text-[8px] font-black uppercase tracking-widest opacity-40">{member.role}</p>}
-                  </div>
-                </button>
-              ))}
+                {filteredMembers.map((member, index) => {
+                  const isSoniq = member.id === SONIQ_ID;
+                  return (
+                    <button
+                      key={member.id || member._id}
+                      onClick={() => selectMention(member.username)}
+                      onMouseEnter={() => setMentionIndex(index)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all relative group/item",
+                        index === mentionIndex 
+                          ? (isSoniq ? "bg-primary/30 text-white" : "bg-primary/20 text-white") 
+                          : "text-white/60 hover:bg-white/5"
+                      )}
+                    >
+                      <div className={cn(
+                        "h-8 w-8 rounded-full flex items-center justify-center text-[10px] font-bold overflow-hidden border transition-all",
+                        isSoniq ? "border-primary/50 shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]" : "bg-surface-low border-white/10"
+                      )}>
+                        {member.avatar ? (
+                          <img src={member.avatar} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          member.username[0]?.toUpperCase()
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className={cn("text-sm font-bold truncate", isSoniq && "text-primary")}>
+                            @{member.username}
+                          </p>
+                          {isSoniq && (
+                            <span className="text-[7px] font-black uppercase tracking-tighter bg-primary text-white px-1 py-0.5 rounded-sm">AI</span>
+                          )}
+                        </div>
+                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40">
+                          {isSoniq ? "Virtual Agent" : (member.role || "Listener")}
+                        </p>
+                      </div>
+
+                      {/* Soniq Hover Details */}
+                      {isSoniq && index === mentionIndex && (
+                        <div className="absolute left-full ml-2 top-0 w-48 p-3 bg-surface-highest/95 backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl z-[70] pointer-events-none">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Capabilities</p>
+                          <ul className="space-y-1.5">
+                            <li className="flex items-center gap-2 text-[9px] text-white/80">
+                              <div className="h-1 w-1 rounded-full bg-primary" />
+                              Mood-based Curation
+                            </li>
+                            <li className="flex items-center gap-2 text-[9px] text-white/80">
+                              <div className="h-1 w-1 rounded-full bg-primary" />
+                              YouTube Music Search
+                            </li>
+                            <li className="flex items-center gap-2 text-[9px] text-white/80">
+                              <div className="h-1 w-1 rounded-full bg-primary" />
+                              Discord-style commands
+                            </li>
+                          </ul>
+                          <div className="mt-2 pt-2 border-t border-white/5">
+                            <p className="text-[8px] italic text-white/40">Try: "@soniq play some jazz"</p>
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
             </div>
           </motion.div>
         )}
@@ -240,14 +302,20 @@ export function ChatTab({
               value={message}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Inject vibe into the chat..."
-              className="w-full bg-black/40 text-white placeholder:text-muted-foreground/40 rounded-2xl border border-white/5 px-6 py-4 focus:ring-2 focus:ring-primary/40 focus:outline-none transition-all font-medium text-sm shadow-xl"
+              disabled={isGuest || !isConnected}
+              placeholder={isGuest ? "Sign in to join the conversation..." : "Inject vibe into the chat..."}
+              className="w-full bg-black/40 text-white placeholder:text-muted-foreground/40 rounded-2xl border border-white/5 px-6 py-4 focus:ring-2 focus:ring-primary/40 focus:outline-none transition-all font-medium text-sm shadow-xl disabled:opacity-50"
             />
             <button
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              onClick={() => {
+                if (isGuest) return;
+                setShowEmojiPicker(!showEmojiPicker);
+              }}
+              disabled={isGuest}
               className={cn(
                 "absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all",
-                showEmojiPicker ? "bg-primary text-white" : "text-muted-foreground hover:text-white"
+                showEmojiPicker ? "bg-primary text-white" : "text-muted-foreground hover:text-white",
+                isGuest && "opacity-30 cursor-not-allowed"
               )}
             >
               <Smile className="h-5 w-5" />
@@ -255,10 +323,10 @@ export function ChatTab({
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={isGuest ? {} : { scale: 1.05 }}
+          whileTap={isGuest ? {} : { scale: 0.95 }}
           onClick={handleSendMessage}
-          disabled={!message.trim() || !isConnected}
+          disabled={isGuest || !message.trim() || !isConnected}
           className="bg-primary text-white h-14 w-14 shrink-0 rounded-2xl flex items-center justify-center shadow-[0_10px_25px_rgba(var(--primary-rgb),0.3)] disabled:opacity-30 disabled:grayscale transition-all"
         >
           <Send className="h-6 w-6" />

@@ -24,7 +24,7 @@ async function startServer() {
     await connectDatabase();
 
     // Start HTTP server
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
       logger.info(`🚀 Server running on port ${PORT} in ${NODE_ENV} mode`);
       logger.info(`📡 Socket.IO server initialized`);
     });

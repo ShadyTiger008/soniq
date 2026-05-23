@@ -20,6 +20,11 @@ export function Sidebar() {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
 
   useEffect(() => {
+    if (!user || user.isGuest) {
+      setMyRooms([]);
+      setHistory([]);
+      return;
+    }
     const fetchData = async () => {
       try {
         const [roomsRes, historyRes] = await Promise.all([
@@ -38,7 +43,7 @@ export function Sidebar() {
       }
     };
     fetchData();
-  }, []);
+  }, [user]);
 
   const routes = [
     {
@@ -190,9 +195,9 @@ export function Sidebar() {
                      {user?.avatar ? <img src={user.avatar} className="h-full w-full object-cover" /> : <UserIcon className="h-4 w-4" />}
                  </div>
                  <div className="overflow-hidden flex-1 min-w-0">
-                     <p className="text-[11px] font-bold truncate text-white tracking-tight leading-none mb-1">{user?.username || 'GUEST'}</p>
+                     <p className="text-[11px] font-bold truncate text-white tracking-tight leading-none mb-1">{user?.isGuest ? (user?.username || 'Guest') : (user?.username || 'GUEST')}</p>
                      <p className="text-[8px] uppercase tracking-[0.1em] font-black text-primary opacity-40 truncate">
-                        {user?.email || 'Elite Status'}
+                        {user?.isGuest ? 'Guest Session' : (user?.email || 'Elite Status')}
                      </p>
                  </div>
                  <motion.button 

@@ -14,9 +14,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
         const token = localStorage.getItem("vibecue_token");
+        const guestId = localStorage.getItem("vibecue_guest_id");
         if (token) {
             apiClient.setToken(token);
             await refreshUser();
+        } else if (guestId) {
+            const guestUsername = localStorage.getItem("vibecue_guest_username") || "Guest";
+            const guestAvatar = localStorage.getItem("vibecue_guest_avatar") || "";
+            const guestUser = {
+              _id: guestId,
+              id: guestId,
+              username: guestUsername,
+              email: `${guestId}@vibecue.com`,
+              avatar: guestAvatar,
+              isGuest: true
+            };
+            useAuthStore.setState({ user: guestUser, isAuthenticated: false, isLoading: false });
         } else {
             // If no token, we are done loading (user remains null)
             useAuthStore.setState({ isLoading: false });

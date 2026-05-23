@@ -39,7 +39,8 @@ export interface IRoom extends Document {
     artist: string;
     duration: number;
     thumbnail?: string;
-    requestedBy: mongoose.Types.ObjectId;
+    requestedBy: string; // Username
+    requestedById: mongoose.Types.ObjectId;
   }>;
   songRequests: Array<{
     videoId: string;
@@ -47,7 +48,8 @@ export interface IRoom extends Document {
     artist: string;
     duration: number;
     thumbnail?: string;
-    requestedBy: mongoose.Types.ObjectId;
+    requestedBy: string; // Username
+    requestedById: mongoose.Types.ObjectId;
     requestedAt: Date;
   }>;
   createdAt: Date;
@@ -186,7 +188,8 @@ const roomSchema = new Schema<IRoom>(
         artist: String,
         duration: Number,
         thumbnail: String,
-        requestedBy: {
+        requestedBy: String,
+        requestedById: {
           type: Schema.Types.ObjectId,
           ref: "User"
         }
@@ -199,7 +202,8 @@ const roomSchema = new Schema<IRoom>(
         artist: String,
         duration: Number,
         thumbnail: String,
-        requestedBy: {
+        requestedBy: String,
+        requestedById: {
           type: Schema.Types.ObjectId,
           ref: "User"
         },

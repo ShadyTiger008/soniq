@@ -28,16 +28,16 @@ export default function HomePage() {
   const [isLoadingRooms, setIsLoadingRooms] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated && !user?.isGuest) {
       router.push("/login?redirect=/home");
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, user, router]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated || user?.isGuest) {
       fetchTrendingRooms();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   const fetchTrendingRooms = async () => {
     setIsLoadingRooms(true);
@@ -66,7 +66,7 @@ export default function HomePage() {
     router.push(`/room/${roomId}`);
   };
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || (!isAuthenticated && !user?.isGuest)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
          <motion.div 
@@ -177,7 +177,14 @@ export default function HomePage() {
                       <motion.button 
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => router.push('/room/create')}
+                        onClick={() => {
+                          if (user?.isGuest) {
+                            toast.error("Please create an account or sign in to create your own room!");
+                            router.push("/login?redirect=/home");
+                          } else {
+                            router.push('/room/create');
+                          }
+                        }}
                         className="flex items-center justify-center sm:justify-start gap-4 px-8 py-3 bg-surface-high hover:bg-surface-highest rounded-xl border border-white/5 transition-all group"
                       >
                           <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground group-hover:rotate-12 transition-transform">

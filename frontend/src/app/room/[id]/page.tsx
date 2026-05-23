@@ -335,6 +335,10 @@ export default function RoomPage() {
   };
 
   const handleQueueItemClick = (song: Song) => {
+      if (user?.isGuest) {
+          toast.error("Sign in to control the queue!");
+          return;
+      }
       // Play a queue item immediately
       playSong(song);
       toast.success(`Skipping to ${song.title}`);
@@ -540,6 +544,7 @@ export default function RoomPage() {
   };
 
   const checkPermission = (action: "playPause" | "skip" | "seek" | "volume" | "addToQueue") => {
+      if (user?.isGuest) return false;
       if (isHost || userRole === "host") return true;
       const level = permissions[action === "seek" ? "playPause" : action]; // Seek uses playPause perm
       if (level === "everyone") return true;
@@ -686,7 +691,17 @@ export default function RoomPage() {
                     </button>
                  </div>
                  <div className="flex gap-2">
-                    <button onClick={() => setShowSettings(true)} className="h-10 w-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-white/40 hover:text-white" title="Settings">
+                    <button 
+                      onClick={() => {
+                        if (user?.isGuest) {
+                          toast.error("Sign in to access settings!");
+                        } else {
+                          setShowSettings(true);
+                        }
+                      }}
+                      className="h-10 w-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-white/40 hover:text-white" 
+                      title="Settings"
+                    >
                         <Settings className="h-4 w-4" />
                     </button>
                     <button onClick={handleLeaveRoom} className="h-10 w-10 flex items-center justify-center bg-rose-500/5 hover:bg-rose-500/10 rounded-xl border border-rose-500/10 transition-all text-rose-500/40 hover:text-rose-500" title="Exit Room">
@@ -729,7 +744,7 @@ export default function RoomPage() {
                             <Search className="h-3.5 w-3.5 text-primary" />
                             {showSearch ? "Close Search" : "Enhance Queue"}
                         </button>
-                        <AIPlaylistGenerator />
+                        {!user?.isGuest && <AIPlaylistGenerator />}
                       </div>
                       {isHost && (
                            <div className="flex items-center gap-2 px-3 py-1 opacity-40">
@@ -787,7 +802,13 @@ export default function RoomPage() {
                                <motion.button
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  onClick={() => handleSelectSong(song)}
+                                  onClick={() => {
+                                      if (user?.isGuest) {
+                                          toast.error("Sign in to play songs!");
+                                          return;
+                                      }
+                                      handleSelectSong(song);
+                                  }}
                                   className="text-white font-black text-[10px] uppercase tracking-widest bg-primary/20 hover:bg-primary/40 px-4 py-2 rounded-xl transition-all border border-primary/20"
                                >
                                   Play
@@ -796,6 +817,10 @@ export default function RoomPage() {
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
                                   onClick={() => {
+                                      if (user?.isGuest) {
+                                          toast.error("Sign in to request songs!");
+                                          return;
+                                      }
                                       if (isDJ) {
                                           handleAddToQueue(song);
                                       } else {
